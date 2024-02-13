@@ -1,0 +1,213 @@
+package com.twilio.passkeys
+
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCustomException
+import androidx.credentials.exceptions.GetCredentialInterruptedException
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
+import androidx.credentials.exceptions.GetCredentialUnsupportedException
+import androidx.credentials.exceptions.NoCredentialException
+import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
+import androidx.test.core.app.launchActivity
+import com.google.common.truth.Truth.assertThat
+import com.twilio.passkeys.exception.TwilioException
+import com.twilio.passkeys.mocks.CredentialManagerMock
+import com.twilio.passkeys.mocks.authenticateCredentialException
+import com.twilio.passkeys.mocks.authenticatePasskeyChallengePayload
+import com.twilio.passkeys.mocks.authenticationResponse
+import com.twilio.passkeys.AppContext
+import com.twilio.passkeys.AuthenticatePasskeyResult
+import com.twilio.passkeys.PasskeyPayloadMapper
+import com.twilio.passkeys.TestActivity
+import com.twilio.passkeys.TwilioPasskey
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+
+class AuthenticatePasskeyMockingCredentialManagerTest {
+  private val credentialManager = CredentialManagerMock()
+  private val twilioPasskey =
+      com.twilio.passkeys.TwilioPasskey(credentialManager, PasskeyPayloadMapper)
+
+  @Test
+  fun authenticatePasskey_succeeds() {
+    authenticateCredentialException = null
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val authenticatePasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(authenticatePasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Success::class.java)
+          assertThat((authenticatePasskeyResult as AuthenticatePasskeyResult.Success).authenticatePasskeyResponse.id)
+            .isEqualTo(
+              authenticationResponse.id,
+            )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.rawId).isEqualTo(
+            authenticationResponse.rawId,
+          )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.authenticatorAttachment)
+            .isEqualTo(
+              authenticationResponse.authenticatorAttachment,
+            )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.type).isEqualTo(
+            authenticationResponse.type,
+          )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.clientDataJSON).isEqualTo(
+            authenticationResponse.response.clientDataJSON,
+          )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.authenticatorData).isEqualTo(
+            authenticationResponse.response.authenticatorData,
+          )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.signature).isEqualTo(
+            authenticationResponse.response.signature,
+          )
+          assertThat(authenticatePasskeyResult.authenticatePasskeyResponse.userHandle).isEqualTo(
+            authenticationResponse.response.userHandle,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getCredentialCancellationException() {
+    authenticateCredentialException = mockk<GetCredentialCancellationException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getCredentialCustomException() {
+    authenticateCredentialException = mockk<GetCredentialCustomException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getCredentialInterruptedException() {
+    authenticateCredentialException = mockk<GetCredentialInterruptedException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_noCredentialException() {
+    authenticateCredentialException = mockk<NoCredentialException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getCredentialProviderConfigurationException() {
+    authenticateCredentialException = mockk<GetCredentialProviderConfigurationException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getCredentialUnsupportedException() {
+    authenticateCredentialException = mockk<GetCredentialUnsupportedException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun passkeyAuthentication_throws_getPublicKeyCredentialDomException() {
+    authenticateCredentialException = mockk<GetPublicKeyCredentialDomException>(relaxed = true)
+    launchActivity<TestActivity>().use { scenario ->
+      scenario.onActivity { activity ->
+        runTest {
+          val createPasskeyResult =
+            twilioPasskey.authenticate(
+              authenticatePasskeyChallengePayload,
+                com.twilio.passkeys.AppContext(activity)
+            )
+          assertThat(createPasskeyResult).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
+          assertThat((createPasskeyResult as AuthenticatePasskeyResult.Error).error).isInstanceOf(
+            TwilioException::class.java,
+          )
+        }
+      }
+    }
+  }
+}

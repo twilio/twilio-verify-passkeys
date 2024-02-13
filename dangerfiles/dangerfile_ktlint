@@ -1,0 +1,4 @@
+# Ktlint
+ktlint.skip_lint = true
+ktlint.report_files_pattern = '**/build/reports/ktlint/**.json'
+ktlint.lint

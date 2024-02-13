@@ -1,0 +1,9 @@
+# Detekt report
+report_file = "build/reports/detekt/detekt.xml"
+kotlin_detekt.skip_gradle_task = true
+kotlin_detekt.report_file = report_file
+kotlin_detekt.detekt(inline_mode: true)
+document = Oga.parse_xml(File.read(report_file))
+if (document.xpath("//error")).size > 0
+    fail("Detekt found some warnings, try to fix them")
+end
