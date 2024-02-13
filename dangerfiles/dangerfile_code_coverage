@@ -1,0 +1,5 @@
+# Kover code coverage report
+kover_report = "**/build/reports/kover/reportDebug.xml"
+Dir[kover_report].each do |file_name|
+  shroud.reportKover file_name.split('/').first  + " module", file_name
+end

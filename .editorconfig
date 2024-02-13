@@ -1,0 +1,26 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+max_line_length = 150
+
+[*.{kt, kts, xml}]
+ktlint_code_style = ktlint_official
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = lf
+# Don't allow any wildcard imports
+ij_kotlin_packages_to_use_import_on_demand = unset
+ktlint_code_style = ktlint_official
+
+[*.xml]
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = unset
+
+[*.yml]
+ij_yaml_spaces_within_brackets = false
