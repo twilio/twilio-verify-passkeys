@@ -1,0 +1,216 @@
+version: 2.1
+
+orbs:
+  android: circleci/android@2.3.0
+  ruby: circleci/ruby@2.1.0
+
+aliases:
+  - &workspace
+      ~/passkeys-sdk
+  - &unit-test-folder-result
+      ~/test-results/junit
+
+executors:
+  android-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2023.12.1
+    resource_class: large
+    working_directory: *workspace
+
+  mac-os-executor:
+    macos:
+      xcode: "15.1.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: *workspace
+
+  ruby-executor:
+    docker:
+      - image: cimg/ruby:3.3.0
+    working_directory: *workspace
+
+commands:
+  test-results-folder:
+    parameters:
+      folder:
+        default: *unit-test-folder-result
+        type: string
+    steps:
+      - run:
+          name: Copying tests results to <<parameters.folder>>
+          command: |
+            mkdir -p <<parameters.folder>>
+            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} <<parameters.folder>> \;
+          when: always
+          working_directory: *workspace
+
+  install-jdk-17:
+    steps:
+      - run:
+          name: Install OpenJDK 17
+          command: |
+            sudo apt-get update && sudo apt-get install openjdk-17-jdk
+            sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+            sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
+            java -version
+
+  danger-check:
+    parameters:
+      danger_params:
+        type: string
+    steps:
+      - run:
+          name: Danger check
+          command: bundle exec danger <<parameters.danger_params>> --verbose --remove-previous-comments
+
+jobs:
+  assemble:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
+      - run:
+          name: Assemble build
+          command: ./gradlew assembleDebug assembleDebugAndroidTest
+      - danger-check:
+          danger_params: --danger_id=assemble --dangerfile=dangerfiles/dangerfile_pr_validation
+      - android/save-gradle-cache
+      - android/save-build-cache
+
+  lint-check:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
+      - install-jdk-17
+      - run:
+          name: Kotlin lint
+          command: ./gradlew ktlintCheck
+      - danger-check:
+          danger_params: --danger_id=lint --dangerfile=dangerfiles/dangerfile_ktlint
+      - android/save-gradle-cache
+      - android/save-build-cache
+
+  detekt-check:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
+      - run:
+          name: Detekt check
+          command: ./gradlew detekt
+      - danger-check:
+          danger_params: --danger_id=detekt --dangerfile=dangerfiles/dangerfile_detekt
+      - android/save-gradle-cache
+      - android/save-build-cache
+
+  android-unit-test:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
+      - run:
+          name: Kover code coverage report
+          command: ./gradlew :shared:koverXmlReportDebug
+      - danger-check:
+          danger_params: --danger_id=unit_tests --dangerfile=dangerfiles/dangerfile_code_coverage
+      - run:
+          name: Kover code coverage rule
+          command: ./gradlew :shared:koverVerify
+      - android/save-gradle-cache
+      - android/save-build-cache
+      - test-results-folder
+      - store_test_results:
+          path: *unit-test-folder-result
+      - store_artifacts:
+          path: /home/circleci/test-results/
+
+  ios-unit-test:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - run:
+          name: Run Unit tests
+          command: ./gradlew :shared:iosSimulatorArm64Test
+      - android/save-gradle-cache
+      - android/save-build-cache
+      - test-results-folder
+      - store_test_results:
+          path: *unit-test-folder-result
+      - store_artifacts:
+          path: /Users/distiller/test-results/
+
+  ios-generate-framework:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - run:
+          name: Create Framework
+          command: ./gradlew iosArm64Binaries
+      - run:
+          name: Compress Artifacts
+          command: |
+            tar -cvzf debugFramework.tar.gz shared/build/bin/iosArm64/debugFramework
+            tar -cvzf releaseFramework.tar.gz shared/build/bin/iosArm64/releaseFramework
+      - store_artifacts:
+          path: debugFramework.tar.gz
+      - store_artifacts:
+          path: releaseFramework.tar.gz
+
+  android-generate-aar:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - run:
+          name: Create aars
+          command: |
+            ./gradlew :shared:assembleDebug
+            mv shared/build/outputs/aar/shared-debug.aar TwilioPasskeys-debug.aar
+            ./gradlew :shared:assembleRelease
+            mv shared/build/outputs/aar/shared-release.aar TwilioPasskeys.aar
+      - store_artifacts:
+          path: TwilioPasskeys-debug.aar
+      - store_artifacts:
+          path: TwilioPasskeys.aar
+
+workflows:
+  build-all:
+    jobs:
+      - assemble
+      - lint-check:
+          requires:
+            - assemble
+      - detekt-check:
+          requires:
+            - assemble
+      - android-unit-test:
+          requires:
+            - lint-check
+            - detekt-check
+      - ios-unit-test:
+          requires:
+            - lint-check
+            - detekt-check
+      - ios-generate-framework:
+          requires:
+            - ios-unit-test
+      - android-generate-aar:
+          requires:
+            - android-unit-test
