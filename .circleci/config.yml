@@ -63,6 +63,17 @@ commands:
           name: Danger check
           command: bundle exec danger <<parameters.danger_params>> --verbose --remove-previous-comments
 
+  move_directory:
+    parameters:
+      from:
+        description: directory to move
+        type: string
+      to:
+        description: destination directory
+        type: string
+    steps:
+      - run: cp -R <<parameters.from>> <<parameters.to>>
+
 jobs:
   assemble:
     executor: android-executor
@@ -155,6 +166,31 @@ jobs:
       - store_artifacts:
           path: /Users/distiller/test-results/
 
+  android-sdk-size-report:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
+      - run:
+          name: Android SDK size report
+          command: ./gradlew generateSizeReport
+      - store_artifacts:
+          path: "shared/build/outputs/sizeReport"
+          destination: sizeReport
+      - run: mkdir -p builds
+      - move_directory:
+          from: shared/build/outputs/sizeReport/
+          to: builds
+      - danger-check:
+          danger_params: --danger_id=android_sdk_report --dangerfile=dangerfiles/dangerfile_android_sdk_size_report
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - builds
+
   ios-generate-framework:
     executor: mac-os-executor
 
@@ -195,6 +231,9 @@ workflows:
     jobs:
       - assemble
       - lint-check:
+          requires:
+            - assemble
+      - android-sdk-size-report:
           requires:
             - assemble
       - detekt-check:
