@@ -61,7 +61,13 @@ let twilioPasskey = TwilioPasskey()
 
 ### Create registration
 
-Use TwilioPasskey to create a registration by calling the `create(String, AppContext)` function. Once you [create your challenge payload](#create-challenge-payload) (`challengePayload`), invoke the registration creation:<br>
+Use the `TwilioPasskey` instance to create a registration by calling the `create(String, AppContext)` function.
+
+The first param is a `String` representation of a challenge payload, check how to [create your challenge payload](#create-challenge-payload) (`challengePayload`).
+
+The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS.
+
+You can also call the `create(CreatePasskeyRequest, AppContext)` function, where `CreatePasskeyRequest` is a wrapper object of a [creation challenge payload](#create-challenge-payload) schema.
 
 **Android**
 ```
@@ -78,6 +84,7 @@ when(createPasskeyResult) {
 ```
 
 **iOS**
+
 ```
 let response = try await twilioPasskey.create(challengePayload: challengePayload, appContext: AppContext(uiWindow: window))
 if let success = response as? CreatePasskeyResult.Success {
@@ -90,8 +97,16 @@ if let success = response as? CreatePasskeyResult.Success {
 
 ### Authenticate a user
 
-**Android** <br>
-Use TwilioPasskey to authenticate a user by calling the `authenticate(AuthenticatePasskeyRequest, AppContext)` function. The param `AuthenticatePasskeyRequest` is a wrapper [object](https://github.com/twilio/twilio-verify-passkeys/blob/55232cdc24ac80adc83c646aa302696a7039c2ad/shared/src/commonMain/kotlin/com/twilio/passkeys/models/AuthenticatePasskeyRequest.kt#L6), provided by your backend to request a Passkeys authentication, it follows the [authenticate challenge payload](#authenticate-challenge-payload) schema:
+Use the `TwilioPasskey` instance to authenticate a user by calling the `authenticate(String, AppContext)` function.
+
+The first param is a `String` representation of an authentication request, it follows the schema of an [authentication challenge payload](#authenticate-challenge-payload).
+
+The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS.
+
+You can also call the `authenticate(AuthenticatePasskeyRequest, AppContext)` function, which the `AuthenticatePasskeyRequest` is a wrapper object of an [authentication challenge payload](#authenticate-challenge-payload).
+
+**Android**
+
 ```
 val authenticatePasskeyResult = twilioPasskey.authenticate(challengePayload, AppContext(activity))
 when(authenticatePasskeyResult) {
@@ -105,8 +120,8 @@ when(authenticatePasskeyResult) {
 }
 ```
 
-**iOS** <br>
-Use TwilioPasskey to authenticate a user by calling the `authenticate(String, AppContext)` function. The first param is a JSON that follows the [authenticate challenge payload](#authenticate-challenge-payload) schema:
+**iOS**
+
 ```
 let response = try await twilioPasskey.authenticate(challengePayload: json, appContext: AppContext(uiWindow: window))
 if let success = response as? AuthenticatePasskeyResult.Success {
