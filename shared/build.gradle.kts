@@ -3,6 +3,7 @@ plugins {
   alias(libs.plugins.androidLibrary)
   alias(libs.plugins.kotlinSerialization)
   alias(libs.plugins.kover)
+  id("com.twilio.apkscale")
   id("com.chromaticnoise.multiplatform-swiftpackage") version "2.0.3"
   id("co.touchlab.skie") version "0.6.1"
 }
@@ -88,6 +89,7 @@ android {
   compileSdk = 34
   defaultConfig {
     minSdk = 24
+    targetSdkVersion(34) // Don't remove this, apkscale plugin needs it
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   compileOptions {
@@ -99,6 +101,37 @@ android {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
       excludes += "/META-INF/LICENSE.md"
       excludes += "/META-INF/LICENSE-notice.md"
+    }
+  }
+
+  apkscale {
+    abis = setOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
+  }
+
+  task("generateSizeReport") {
+    dependsOn("assembleRelease", "measureSize")
+    description = "Calculate Passkeys Android SDK Size Impact"
+    group = "Reporting"
+
+    doLast {
+      var sizeReport =
+        "### Size impact\n" +
+          "\n" +
+          "| ABI             | APK Size Impact |\n" +
+          "| --------------- | --------------- |\n"
+      val apkscaleOutputFile = file("$buildDir/apkscale/build/outputs/reports/apkscale.json")
+      val jsonSlurper = groovy.json.JsonSlurper()
+      val apkscaleOutput = jsonSlurper.parseText(apkscaleOutputFile.readText()) as List<*>
+      val releaseOutput = apkscaleOutput[0] as Map<*, *>
+      val sizes = releaseOutput["size"] as Map<String, String>
+      sizes.forEach { (arch, sizeImpact) ->
+        sizeReport += "| ${arch.padEnd(16)}| ${sizeImpact.padEnd(16)}|\n"
+      }
+      val sizeReportDir = "$buildDir/outputs/sizeReport"
+      mkdir(sizeReportDir)
+      val targetFile = file("$sizeReportDir/AndroidSDKSizeReport.txt")
+      targetFile.createNewFile()
+      targetFile.writeText(sizeReport)
     }
   }
 
