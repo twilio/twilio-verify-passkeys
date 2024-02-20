@@ -7,7 +7,7 @@
 * [Requirements](#requirements)
 * [Installation](#installation)
 * [Quickstart](#quickstart)
-* [Running Sample app](#building-and-running-sample-app)
+* [Building and Running Sample App](#building-and-running-sample-app)
 * [Project Structure](#project-structure)
 * [Code Structure](#code-structure)
 * [Useful Gradle Tasks](#useful-gradle-tasks)
@@ -33,7 +33,7 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 ## Installation <a name="installation"></a>
 
 ### Installation Android
-1. Download the .aar file from release page.
+1. Download the .aar file from the [release page](https://github.com/twilio/twilio-verify-passkeys/releases).
 2. Create a folder `libs` in the module directory.
 3. Copy/move the .aar file in `libs` folder.
 4. Add the implementation statement in dependencies:
@@ -48,7 +48,14 @@ val twilioPasskey = TwilioPasskey(context)
 
 ### Installation iOS
 
-1. (WIP)
+1. Download the XCFramework form the [release page](https://github.com/twilio/twilio-verify-passkeys/releases).
+2. Create a Framework folder or use any name of your preference.
+3. Copy/Move the XCFramework into the folder created at the previous step.
+4. On your Project Configurations > General > Frameworks, Libraries, and Embedded Content section, drag & drop the XCFramework.
+5. Import TwilioPasskeys in the files you will make use of it:
+```
+let twilioPasskey = TwilioPasskey()
+```
 
 ## Quickstart <a name="quickstart"></a>
 
@@ -111,7 +118,7 @@ if let success = response as? AuthenticatePasskeyResult.Success {
 
 ### Create Challenge Payload <a name="create-challenge-payload"></a>
 
-The challenge payload for creating a registration is a String obtained by requesting your backend a challenge for register a user, it uses the JSON schema:
+The challenge payload for creating a registration is a String obtained by requesting your backend a challenge for registering a user, it uses the JSON schema:
 ```
 {"rp":{"id":"your_backend","name":"PasskeySample"},"user":{"id":"WUV...5Ng","name":"1234567890","displayName":"1234567890"},"challenge":"WUY...jZQ","pubKeyCredParams":[{"type":"public-key","alg":-7}],"timeout":600000,"excludeCredentials":[],"authenticatorSelection":{"authenticatorAttachment":"platform","requireResidentKey":false,"residentKey":"preferred","userVerification":"preferred"},"attestation":"none"}
 ```
@@ -131,10 +138,14 @@ The challenge payload for authenticating a user is a JSON with the schema:
 2. Open the project in IntelliJ IDEA or Android Studio.
 3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/src/main/java/com/twilio/passkeys/android/di/TwilioPasskeyModule.kt#L42).
 4. Build and run the Android app from the `androidApp` module.
-5. Associate the app sha256 to the backend by running `./gradlew signingreport` and adding the sha-256 value in the `sha256_cert_fingerprints` array of the file `well-known/assetlinks.json`.
-6. Add the origin following the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin).
 
 **Note**: To start sign up/in flows, the Android device must have a valid Google account to store and fetch passkeys.
+
+**Backend-side configuration for Android Sample App**<br>
+
+1. Make sure you already [added support for digital asset links](https://developer.android.com/training/sign-in/passkeys#add-support-dal) in your backend by checking whether an entry with the build sha256 value exists. You can generate a sha256 by running `./gradlew signingreport`.
+2. Add the origin if you have not added it yet, following the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin).
+
 
 #### iOS
 
@@ -142,6 +153,8 @@ The challenge payload for authenticating a user is a JSON with the schema:
 2. Open the project in IntelliJ IDEA or Android Studio or open `iosApp` module in Xcode.
 3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Core/AuthenticationManager.swift#L22) and [Entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
 4. Build and run the iOS app from the `iosApp` module.
+
+**Note**: To start sign up/in flows, the iPhone must have a valid iCloud account to store and fetch passkeys.
 
 ## Project Structure <a name="project-structure"></a>
 
