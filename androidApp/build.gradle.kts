@@ -6,6 +6,10 @@ plugins {
   kotlin("kapt")
 }
 
+repositories {
+  mavenLocal()
+}
+
 android {
   namespace = "com.twilio.passkeys.android"
   compileSdk = 34
@@ -27,9 +31,21 @@ android {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
   }
+  signingConfigs {
+    create("release") {
+      storeFile = file("passkeys-release-key.keystore")
+      storePassword = "twilio-verify-passkeys"
+      keyAlias = "twilio-verify-passkeys"
+      keyPassword = "twilio-verify-passkeys"
+    }
+  }
   buildTypes {
     getByName("release") {
       isMinifyEnabled = false
+      signingConfig = signingConfigs.getByName("release")
+    }
+    getByName("debug") {
+      signingConfig = signingConfigs.getByName("release")
     }
   }
   compileOptions {
@@ -41,8 +57,10 @@ android {
   }
 }
 
+val versionCode: String by extra
 dependencies {
-  implementation(projects.shared)
+  debugImplementation(projects.shared)
+  releaseImplementation("com.twilio:twilio-verify-passkeys-android:$versionCode")
   implementation(libs.compose.ui)
   implementation(libs.compose.ui.tooling.preview)
   implementation(libs.compose.material3)
