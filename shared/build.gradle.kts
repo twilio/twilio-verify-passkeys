@@ -4,9 +4,9 @@ plugins {
   alias(libs.plugins.kotlinSerialization)
   alias(libs.plugins.kover)
   alias(libs.plugins.dokka)
+  signing
+  `maven-publish`
   id("com.twilio.apkscale")
-  id("signing")
-  id("maven-publish")
   id("com.chromaticnoise.multiplatform-swiftpackage") version "2.0.3"
   id("co.touchlab.skie") version "0.6.1"
 }
