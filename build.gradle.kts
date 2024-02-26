@@ -9,6 +9,13 @@ buildscript {
   }
 }
 
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+
 plugins {
   // trick: for the same plugin versions in all sub-modules
   alias(libs.plugins.androidApplication).apply(false)
@@ -21,6 +28,7 @@ plugins {
   alias(libs.plugins.kover).apply(false)
   alias(libs.plugins.ktlint)
   alias(libs.plugins.detekt)
+  alias(libs.plugins.nexus)
 }
 
 allprojects {
@@ -74,4 +82,59 @@ allprojects {
       input.from(tasks.withType<Detekt>().map { it.xmlReportFile }) // or .sarifReportFile
     }
   }
+}
+
+nexusPublishing {
+  repositories {
+    sonatype {
+      username = getPropertyValue("OSSRH_USERNAME")
+      password = getPropertyValue("OSSRH_PASSWORD")
+      stagingProfileId = getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+    }
+  }
+}
+
+task("sonatypeTwilioPasskeysStagingRepositoryUpload", GradleBuild::class) {
+  description = "Publish Twilio Passkeys to nexus staging repository"
+  group = "Publishing"
+  buildName = "TwilioPasskeys"
+  tasks = listOf(
+    ":shared:publishToSonatype",
+    "closeSonatypeStagingRepository"
+  )
+  startParameter.projectProperties.plusAssign(
+    gradle.startParameter.projectProperties + mavenPublishCredentials()
+  )
+}
+
+task("mavenLocalTwilioPasskeysReleaseUpload", GradleBuild::class) {
+  description = "Publish Twilio Passkeys to maven local"
+  group = "Publishing"
+  buildName = "TwilioPasskeys"
+  tasks = listOf(
+    ":shared:publishToMavenLocal"
+  )
+  startParameter.projectProperties.plusAssign(
+    gradle.startParameter.projectProperties + mavenPublishCredentials()
+  )
+}
+
+fun mavenPublishCredentials(): Map<String, String> {
+  return mapOf(
+    "signing.keyId" to getPropertyValue("SIGNING_KEY_ID"),
+    "signing.password" to getPropertyValue("SIGNING_PASSWORD"),
+    "signing.secretKeyRingFile" to getPropertyValue("SIGNING_SECRET_KEY_RING_FILE"),
+    "ossrhUsername" to getPropertyValue("OSSRH_USERNAME"),
+    "ossrhPassword" to getPropertyValue("OSSRH_PASSWORD"),
+    "sonatypeStagingProfileId" to getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+  )
+}
+
+fun getPropertyValue(key: String): String {
+  val property = if (project.hasProperty(key)) {
+    project.property(key) as String
+  } else {
+    System.getenv(key)
+  }
+  return property
 }

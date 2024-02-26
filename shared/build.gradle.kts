@@ -1,17 +1,96 @@
 plugins {
-  alias(libs.plugins.kotlinMultiplatform)
   alias(libs.plugins.androidLibrary)
+  alias(libs.plugins.kotlinMultiplatform)
   alias(libs.plugins.kotlinSerialization)
   alias(libs.plugins.kover)
+  alias(libs.plugins.dokka)
+  signing
+  `maven-publish`
   id("com.twilio.apkscale")
   id("com.chromaticnoise.multiplatform-swiftpackage") version "2.0.3"
   id("co.touchlab.skie") version "0.6.1"
+}
+
+val dokkaOutputDir = "$buildDir/dokka"
+
+tasks.dokkaHtml {
+  outputDirectory.set(file(dokkaOutputDir))
+}
+
+val deleteDokkaOutputDir by tasks.register<Delete>("deleteDokkaOutputDirectory") {
+  delete(dokkaOutputDir)
+}
+val javadocJar = tasks.register<Jar>("javadocJar") {
+  dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
+  archiveClassifier.set("javaDoc")
+  from(dokkaOutputDir)
+}
+
+val versionCode: String by extra
+version = versionCode
+val libId = "twilio-verify-passkeys"
+
+afterEvaluate {
+  publishing {
+    publications {
+      withType<MavenPublication> {
+        when (name) {
+          "kotlinMultiplatform" -> {
+            this.artifactId = "$libId-common"
+          }
+          else -> {
+            this.artifactId = "$libId-${name.lowercase()}"
+          }
+        }
+        groupId = "com.twilio"
+        artifact(javadocJar)
+
+        pom {
+          name.set("Twilio Verify Passkeys Android")
+          description.set("Twilio Passkeys SDK enables developers to easily add Passkeys into their existing authentication flows within their own mobile applications. The Verify Passkeys SDK supports passkeys creation and authentication using the FIDO/WebAuthn industry standard.")
+          url.set("https://github.com/twilio/twilio-verify-passkeys")
+          licenses {
+            license {
+              name.set("Apache License, Version 2.0")
+              url.set("https://github.com/twilio/twilio-verify-passkeys/blob/main/LICENSE")
+            }
+          }
+          developers {
+            developer {
+              id.set("Twilio")
+              name.set("Twilio")
+            }
+          }
+          scm {
+            connection.set("scm:git:github.com/twilio/twilio-verify-passkeys.git")
+            developerConnection.set("scm:git:github.com/twilio/twilio-verify-passkeys.git")
+            url.set("https://github.com/twilio/twilio-verify-passkeys/tree/main")
+          }
+        }
+      }
+    }
+  }
+}
+
+
+// TODO: remove after https://youtrack.jetbrains.com/issue/KT-46466 is fixed
+project.tasks.withType(AbstractPublishToMaven::class.java).configureEach {
+  dependsOn(project.tasks.withType(Sign::class.java))
+}
+
+signing {
+  sign(publishing.publications)
 }
 
 kotlin {
   applyDefaultHierarchyTemplate()
 
   androidTarget {
+    mavenPublication {
+      artifactId = "$libId-android"
+    }
+    publishLibraryVariants("release")
+
     compilations.all {
       kotlinOptions {
         jvmTarget = "17"
