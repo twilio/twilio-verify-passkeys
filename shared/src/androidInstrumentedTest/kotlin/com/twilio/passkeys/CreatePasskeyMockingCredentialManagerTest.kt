@@ -1,3 +1,19 @@
+/*
+ * Copyright © 2024 Twilio.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.twilio.passkeys
 
 import androidx.credentials.exceptions.CreateCredentialCancellationException
@@ -13,11 +29,6 @@ import com.twilio.passkeys.mocks.CredentialManagerMock
 import com.twilio.passkeys.mocks.createCredentialException
 import com.twilio.passkeys.mocks.createPasskeyChallengePayload
 import com.twilio.passkeys.mocks.creationResponse
-import com.twilio.passkeys.AppContext
-import com.twilio.passkeys.CreatePasskeyResult
-import com.twilio.passkeys.PasskeyPayloadMapper
-import com.twilio.passkeys.TestActivity
-import com.twilio.passkeys.TwilioPasskey
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -25,7 +36,7 @@ import org.junit.Test
 class CreatePasskeyMockingCredentialManagerTest {
   private val credentialManager = CredentialManagerMock()
   private val twilioPasskey =
-      com.twilio.passkeys.TwilioPasskey(credentialManager, PasskeyPayloadMapper)
+    TwilioPasskey(credentialManager, PasskeyPayloadMapper)
 
   @Test
   fun passkeyCreation_succeeds() {
@@ -36,7 +47,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Success::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Success).createPasskeyResponse.id)
@@ -76,7 +87,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
@@ -96,7 +107,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
@@ -116,7 +127,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
@@ -137,7 +148,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
@@ -157,7 +168,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
@@ -177,7 +188,7 @@ class CreatePasskeyMockingCredentialManagerTest {
           val createPasskeyResult =
             twilioPasskey.create(
               createPasskeyChallengePayload,
-                com.twilio.passkeys.AppContext(activity)
+              AppContext(activity),
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
