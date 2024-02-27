@@ -20,14 +20,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegistrationStartResponse(
-    val rp: RP,
-    val user: User,
-    val challenge: String,
-    val pubKeyCredParams: List<PublicKeyCredentialParam>,
-    val timeout: Int,
-    val excludeCredentials: List<ExcludeCredential>,
-    val authenticatorSelection: AuthenticatorSelection,
-    val attestation: String,
+  val rp: RP,
+  val user: User,
+  val challenge: String,
+  val pubKeyCredParams: List<PublicKeyCredentialParam>,
+  val timeout: Int,
+  val excludeCredentials: List<ExcludeCredential>,
+  val authenticatorSelection: AuthenticatorSelection,
+  val attestation: String,
 )
 
 @Serializable

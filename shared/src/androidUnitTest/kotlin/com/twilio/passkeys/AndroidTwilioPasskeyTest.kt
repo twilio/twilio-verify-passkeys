@@ -52,9 +52,9 @@ import org.robolectric.RobolectricTestRunner
 class AndroidTwilioPasskeyTest {
   private val credentialManager: CredentialManager = mockk()
   private val passkeyPayloadMapper: PasskeyPayloadMapper = mockk()
-  private val twilioPasskey = com.twilio.passkeys.TwilioPasskey(credentialManager, passkeyPayloadMapper)
+  private val twilioPasskey = TwilioPasskey(credentialManager, passkeyPayloadMapper)
   private val activity: Activity = mockk()
-  private val appContext = com.twilio.passkeys.AppContext(activity)
+  private val appContext = AppContext(activity)
 
   @Before
   fun before() {

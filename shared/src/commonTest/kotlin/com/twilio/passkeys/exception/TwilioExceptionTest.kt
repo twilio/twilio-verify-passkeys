@@ -16,8 +16,6 @@
 
 package com.twilio.passkeys.exception
 
-import com.twilio.passkeys.exception.TwilioException
-import com.twilio.passkeys.exception.UNKNOWN_ERROR
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

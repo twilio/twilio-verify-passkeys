@@ -17,7 +17,6 @@
 package com.twilio.passkeys.utils
 
 import com.twilio.passkeys.mocks.UIDeviceMock
-import com.twilio.passkeys.utils.DeviceUtils
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

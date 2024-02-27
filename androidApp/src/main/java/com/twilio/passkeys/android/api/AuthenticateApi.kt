@@ -28,7 +28,7 @@ interface AuthenticateApi {
 
   @POST("/authentication/verification")
   suspend fun authenticateVerification(
-      @Body authenticateVerificationRequest: AuthenticateVerificationRequest,
+    @Body authenticateVerificationRequest: AuthenticateVerificationRequest,
   ): AuthenticateVerificationResponse
 }
 

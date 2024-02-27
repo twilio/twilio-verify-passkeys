@@ -21,7 +21,6 @@ import com.twilio.passkeys.exception.UNKNOWN_ERROR
 import com.twilio.passkeys.extensions.b64Decode
 import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.KeyCredential
-import com.twilio.passkeys.PasskeyPayloadMapper
 import kotlinx.serialization.SerializationException
 import kotlin.test.Test
 import kotlin.test.assertEquals

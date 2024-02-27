@@ -25,12 +25,12 @@ import retrofit2.http.POST
 interface RegistrationApi {
   @POST("/registration/start")
   suspend fun registrationStart(
-      @Body registrationStartRequest: RegistrationStartRequest,
+    @Body registrationStartRequest: RegistrationStartRequest,
   ): RegistrationStartResponse
 
   @POST("/registration/verification")
   suspend fun registrationVerification(
-      @Body registrationVerificationRequest: RegistrationVerificationRequest,
+    @Body registrationVerificationRequest: RegistrationVerificationRequest,
   ): RegistrationVerificationResponse
 }
 

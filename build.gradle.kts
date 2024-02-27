@@ -114,12 +114,13 @@ task("sonatypeTwilioPasskeysStagingRepositoryUpload", GradleBuild::class) {
   description = "Publish Twilio Passkeys to nexus staging repository"
   group = "Publishing"
   buildName = "TwilioPasskeys"
-  tasks = listOf(
-    ":shared:publishToSonatype",
-    "closeSonatypeStagingRepository"
-  )
+  tasks =
+    listOf(
+      ":shared:publishToSonatype",
+      "closeSonatypeStagingRepository",
+    )
   startParameter.projectProperties.plusAssign(
-    gradle.startParameter.projectProperties + mavenPublishCredentials()
+    gradle.startParameter.projectProperties + mavenPublishCredentials(),
   )
 }
 
@@ -127,11 +128,12 @@ task("mavenLocalTwilioPasskeysReleaseUpload", GradleBuild::class) {
   description = "Publish Twilio Passkeys to maven local"
   group = "Publishing"
   buildName = "TwilioPasskeys"
-  tasks = listOf(
-    ":shared:publishToMavenLocal"
-  )
+  tasks =
+    listOf(
+      ":shared:publishToMavenLocal",
+    )
   startParameter.projectProperties.plusAssign(
-    gradle.startParameter.projectProperties + mavenPublishCredentials()
+    gradle.startParameter.projectProperties + mavenPublishCredentials(),
   )
 }
 
@@ -142,15 +144,16 @@ fun mavenPublishCredentials(): Map<String, String> {
     "signing.secretKeyRingFile" to getPropertyValue("SIGNING_SECRET_KEY_RING_FILE"),
     "ossrhUsername" to getPropertyValue("OSSRH_USERNAME"),
     "ossrhPassword" to getPropertyValue("OSSRH_PASSWORD"),
-    "sonatypeStagingProfileId" to getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+    "sonatypeStagingProfileId" to getPropertyValue("SONATYPE_STAGING_PROFILE_ID"),
   )
 }
 
 fun getPropertyValue(key: String): String {
-  val property = if (project.hasProperty(key)) {
-    project.property(key) as String
-  } else {
-    System.getenv(key)
-  }
+  val property =
+    if (project.hasProperty(key)) {
+      project.property(key) as String
+    } else {
+      System.getenv(key)
+    }
   return property
 }

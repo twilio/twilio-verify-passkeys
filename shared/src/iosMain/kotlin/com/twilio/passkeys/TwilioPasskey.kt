@@ -23,10 +23,6 @@ import com.twilio.passkeys.models.AuthenticatePasskeyResponse
 import com.twilio.passkeys.models.CreatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyResponse
 import com.twilio.passkeys.utils.DeviceUtils
-import com.twilio.passkeys.AppContext
-import com.twilio.passkeys.AuthenticatePasskeyResult
-import com.twilio.passkeys.CreatePasskeyResult
-import com.twilio.passkeys.PasskeyPayloadMapper
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationController

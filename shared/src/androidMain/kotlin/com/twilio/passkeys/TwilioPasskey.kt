@@ -29,10 +29,6 @@ import androidx.credentials.exceptions.GetCredentialException
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyRequest
-import com.twilio.passkeys.AppContext
-import com.twilio.passkeys.AuthenticatePasskeyResult
-import com.twilio.passkeys.CreatePasskeyResult
-import com.twilio.passkeys.PasskeyPayloadMapper
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

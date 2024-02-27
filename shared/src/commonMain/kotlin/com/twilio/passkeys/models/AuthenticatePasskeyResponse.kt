@@ -31,11 +31,11 @@ data class AuthenticatePasskeyResponse(
 
 @Serializable
 data class AuthenticatePasskeyDto(
-    val rawId: String,
-    val id: String,
-    val authenticatorAttachment: String,
-    val type: String,
-    val response: AuthenticatePasskeyResponseDto,
+  val rawId: String,
+  val id: String,
+  val authenticatorAttachment: String,
+  val type: String,
+  val response: AuthenticatePasskeyResponseDto,
 )
 
 @Serializable

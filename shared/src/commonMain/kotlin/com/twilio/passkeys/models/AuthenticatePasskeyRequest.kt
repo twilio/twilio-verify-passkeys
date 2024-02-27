@@ -23,9 +23,9 @@ data class AuthenticatePasskeyRequest(val publicKey: AuthenticatePasskeyRequestP
 
 @Serializable
 data class AuthenticatePasskeyRequestPublicKey(
-    var challenge: String,
-    val timeout: Long,
-    val rpId: String,
-    val allowCredentials: List<KeyCredential>,
-    val userVerification: String,
+  var challenge: String,
+  val timeout: Long,
+  val rpId: String,
+  val allowCredentials: List<KeyCredential>,
+  val userVerification: String,
 )

@@ -16,7 +16,6 @@
 
 package com.twilio.passkeys.extensions
 
-import com.twilio.passkeys.extensions.b64Decode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
