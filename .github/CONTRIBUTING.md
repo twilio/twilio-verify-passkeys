@@ -21,7 +21,7 @@ Thank you for your interest in contributing to `twilio-verify-passkeys`. We appr
 ## Code of Conduct
 
 Help us keep `twilio-verify-passkeys` open and inclusive. Please be kind to and considerate of other developers, as we all have the same goal: make `twilio-verify-passkeys` as good as it can be.
-By interacting with the project in any shape or from you are agreeing to the project's [Code of Conduct](https://github.com/twilio/twilio-verify-passkeys?tab=coc-ov-file). If you feel like another individual has violated the code of conduct, please raise a complaint to [open-source@twilio.com](mailto:open-source@twilio.com).
+By interacting with the project in any shape or form you are agreeing to the project's [Code of Conduct](https://github.com/twilio/twilio-verify-passkeys?tab=coc-ov-file). If you feel like another individual has violated the code of conduct, please raise a complaint to [open-source@twilio.com](mailto:open-source@twilio.com).
 
 ## Question or Problem?
 
