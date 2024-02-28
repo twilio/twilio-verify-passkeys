@@ -1,3 +1,19 @@
+/*
+ * Copyright © 2024 Twilio.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 plugins {
   alias(libs.plugins.androidLibrary)
   alias(libs.plugins.kotlinMultiplatform)
@@ -20,11 +36,12 @@ tasks.dokkaHtml {
 val deleteDokkaOutputDir by tasks.register<Delete>("deleteDokkaOutputDirectory") {
   delete(dokkaOutputDir)
 }
-val javadocJar = tasks.register<Jar>("javadocJar") {
-  dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
-  archiveClassifier.set("javaDoc")
-  from(dokkaOutputDir)
-}
+val javadocJar =
+  tasks.register<Jar>("javadocJar") {
+    dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
+    archiveClassifier.set("javaDoc")
+    from(dokkaOutputDir)
+  }
 
 val versionCode: String by extra
 version = versionCode
@@ -38,6 +55,7 @@ afterEvaluate {
           "kotlinMultiplatform" -> {
             this.artifactId = "$libId-common"
           }
+
           else -> {
             this.artifactId = "$libId-${name.lowercase()}"
           }
@@ -47,7 +65,13 @@ afterEvaluate {
 
         pom {
           name.set("Twilio Verify Passkeys Android")
-          description.set("Twilio Passkeys SDK enables developers to easily add Passkeys into their existing authentication flows within their own mobile applications. The Verify Passkeys SDK supports passkeys creation and authentication using the FIDO/WebAuthn industry standard.")
+          description.set(
+            """
+            Twilio Passkeys SDK enables developers to easily add Passkeys into their existing authentication flows 
+            within their own mobile applications. The Verify Passkeys SDK supports passkeys creation and authentication 
+            using the FIDO/WebAuthn industry standard.
+            """.trimIndent(),
+          )
           url.set("https://github.com/twilio/twilio-verify-passkeys")
           licenses {
             license {
@@ -71,7 +95,6 @@ afterEvaluate {
     }
   }
 }
-
 
 // TODO: remove after https://youtrack.jetbrains.com/issue/KT-46466 is fixed
 project.tasks.withType(AbstractPublishToMaven::class.java).configureEach {

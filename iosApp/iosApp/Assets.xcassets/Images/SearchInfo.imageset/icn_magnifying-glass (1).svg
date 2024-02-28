@@ -1,3 +1,19 @@
+<!--
+  - Copyright © 2024 Twilio.
+  -
+  - Licensed under the Apache License, Version 2.0 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -    http://www.apache.org/licenses/LICENSE-2.0
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+  -->
+
 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M14.2681 13.8636C15.6312 12.5349 16.312 10.9083 16.312 8.98483C16.312 7.09017 15.6312 5.47805 14.2681 4.14847C12.9041 2.79089 11.2718 2.11211 9.36933 2.11211C7.4669 2.11211 5.84732 2.79089 4.51315 4.14847C3.15001 5.47805 2.46759 7.09017 2.46759 8.98483C2.46759 10.8803 3.15001 12.506 4.51315 13.8636C5.84732 15.222 7.4669 15.9 9.36933 15.9C11.3007 15.9 12.9331 15.222 14.2681 13.8636ZM21.8496 20.313L20.6143 21.5L14.694 15.6463C13.1596 16.8622 11.385 17.4697 9.36923 17.4697C7.01185 17.4697 5.00974 16.6501 3.3629 15.0099C1.68709 13.341 0.849609 11.3326 0.849609 8.98485C0.849609 6.66594 1.68709 4.672 3.3629 3.00303C5.03785 1.33491 7.04081 0.5 9.36923 0.5C11.7266 0.5 13.7423 1.33491 15.4182 3.00303C17.065 4.644 17.8888 6.63794 17.8888 8.98485C17.8888 11.0781 17.2345 12.9023 15.9285 14.4576L21.8496 20.313Z" fill="white"/>
 </svg>

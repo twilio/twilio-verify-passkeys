@@ -1,3 +1,19 @@
+/*
+ * Copyright © 2024 Twilio.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektPlugin
 import org.jlleitschuh.gradle.ktlint.KtlintPlugin
@@ -98,12 +114,13 @@ task("sonatypeTwilioPasskeysStagingRepositoryUpload", GradleBuild::class) {
   description = "Publish Twilio Passkeys to nexus staging repository"
   group = "Publishing"
   buildName = "TwilioPasskeys"
-  tasks = listOf(
-    ":shared:publishToSonatype",
-    "closeSonatypeStagingRepository"
-  )
+  tasks =
+    listOf(
+      ":shared:publishToSonatype",
+      "closeSonatypeStagingRepository",
+    )
   startParameter.projectProperties.plusAssign(
-    gradle.startParameter.projectProperties + mavenPublishCredentials()
+    gradle.startParameter.projectProperties + mavenPublishCredentials(),
   )
 }
 
@@ -111,11 +128,12 @@ task("mavenLocalTwilioPasskeysReleaseUpload", GradleBuild::class) {
   description = "Publish Twilio Passkeys to maven local"
   group = "Publishing"
   buildName = "TwilioPasskeys"
-  tasks = listOf(
-    ":shared:publishToMavenLocal"
-  )
+  tasks =
+    listOf(
+      ":shared:publishToMavenLocal",
+    )
   startParameter.projectProperties.plusAssign(
-    gradle.startParameter.projectProperties + mavenPublishCredentials()
+    gradle.startParameter.projectProperties + mavenPublishCredentials(),
   )
 }
 
@@ -126,15 +144,16 @@ fun mavenPublishCredentials(): Map<String, String> {
     "signing.secretKeyRingFile" to getPropertyValue("SIGNING_SECRET_KEY_RING_FILE"),
     "ossrhUsername" to getPropertyValue("OSSRH_USERNAME"),
     "ossrhPassword" to getPropertyValue("OSSRH_PASSWORD"),
-    "sonatypeStagingProfileId" to getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+    "sonatypeStagingProfileId" to getPropertyValue("SONATYPE_STAGING_PROFILE_ID"),
   )
 }
 
 fun getPropertyValue(key: String): String {
-  val property = if (project.hasProperty(key)) {
-    project.property(key) as String
-  } else {
-    System.getenv(key)
-  }
+  val property =
+    if (project.hasProperty(key)) {
+      project.property(key) as String
+    } else {
+      System.getenv(key)
+    }
   return property
 }
