@@ -33,7 +33,7 @@ repositories {
 //  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
   maven {
     println("TEST: ${getPropertyValue("REPO_URL")}")
-    url = uri(getPropertyValue("REPO_URL"))
+    url = uri(getPropertyValue("REPO_URL")!!)
     credentials {
       username = getPropertyValue("OSSRH_USERNAME")
       password = getPropertyValue("OSSRH_PASSWORD")
@@ -42,7 +42,7 @@ repositories {
   }
 }
 
-fun getPropertyValue(key: String): String {
+fun getPropertyValue(key: String): String? {
   val property =
     if (project.hasProperty(key)) {
       project.property(key) as String
