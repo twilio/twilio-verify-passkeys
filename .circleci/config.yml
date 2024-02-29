@@ -226,6 +226,45 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
+  publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - run:
+          name: Publish SDK to internal repository
+          command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
+      - run:
+          name: Save internal repository link
+          command: ./scripts/save_sonatype_repository_internal_release_url
+      - persist_to_workspace:
+          root: tmp/workspace
+          paths:
+            - tmp/workspace/env_vars
+
+  generate-android-sample-app-using-internal-sdk:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: tmp/workspace
+      - run:
+          name: Get internal repository link
+          command: | 
+            source tmp/workspace/env_vars
+            echo $REPO_NAME
+            echo $REPO_URL
+      - run:
+          name: Generate APK with maven repo url
+          command: ./gradlew -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL :androidApp:assembleRelease
+      - run:
+          name: Install Firebase CLI
+          command: npm install -g firebase-tools
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app 1:702410982038:android:e26dad2baf4fe5b09278b7 --token $FIREBASE_TOKEN --groups qa --debug
+
 workflows:
   build-all:
     jobs:
@@ -253,3 +292,10 @@ workflows:
       - android-generate-aar:
           requires:
             - android-unit-test
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            - android-unit-test
+            - ios-unit-test
+      - generate-android-sample-app-using-internal-sdk:
+          requires:
+            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
