@@ -260,8 +260,6 @@ jobs:
       - run:
           name: Get internal repository link
           command: | 
-            ls
-            pwd
             source tmp/workspace/env_vars
             echo $REPO_NAME
             echo $REPO_URL
