@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright © 2024 Twilio.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LongMethod:HomePage.kt$@Suppress("FunctionName") @Composable @Preview fun HomePage( number: String = "+1 1111 1111", onDisconnect: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:AuthenticateRepository.kt$AuthenticateRepository$( rawId: String, id: String, clientDataJson: String, userHandle: String?, signature: String?, authenticatorData: String?, )</ID>
+    <ID>LongParameterList:CreateRepository.kt$CreateRepository$( rawId: String, id: String, clientDataJson: String, attestationObject: String, type: String, transports: List&lt;String&gt;, )</ID>
+    <ID>MagicNumber:Color.kt$0xFF0263E0</ID>
+    <ID>MagicNumber:Color.kt$0xFFF22F46</ID>
+    <ID>MagicNumber:HomePage.kt$0x08000000</ID>
+    <ID>MagicNumber:HomePage.kt$0xB2FFFFFF</ID>
+    <ID>MagicNumber:HomePage.kt$0xFF0385EB</ID>
+    <ID>MagicNumber:HomePage.kt$0xFF05090A</ID>
+    <ID>MagicNumber:HomePage.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:HomePage.kt$400</ID>
+    <ID>MagicNumber:HomePage.kt$500</ID>
+    <ID>MagicNumber:LoginPage.kt$0xFF121C2D</ID>
+    <ID>MagicNumber:LoginPage.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:LoginPage.kt$400</ID>
+    <ID>MagicNumber:LoginPage.kt$600</ID>
+    <ID>UnusedParameter:MyApplicationTheme.kt$darkTheme: Boolean = isSystemInDarkTheme()</ID>
+  </CurrentIssues>
+</SmellBaseline>

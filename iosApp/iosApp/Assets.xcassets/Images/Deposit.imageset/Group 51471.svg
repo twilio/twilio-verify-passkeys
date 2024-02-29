@@ -1,3 +1,19 @@
+<!--
+  - Copyright © 2024 Twilio.
+  -
+  - Licensed under the Apache License, Version 2.0 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -    http://www.apache.org/licenses/LICENSE-2.0
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+  -->
+
 <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect opacity="0.8" x="27.325" y="1.13618" width="15.65" height="26.65" rx="1.325" transform="rotate(90 27.325 1.13618)" stroke="#606B85" stroke-width="1.35"/>
 <path d="M16.355 6.81511L4.37105 6.81511" stroke="#606B85" stroke-width="1.35"/>

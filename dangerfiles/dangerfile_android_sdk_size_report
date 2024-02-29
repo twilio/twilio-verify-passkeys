@@ -1,0 +1,3 @@
+# Android SDK size report
+file = File.read("shared/build/outputs/sizeReport/AndroidSDKSizeReport.txt")
+warn file

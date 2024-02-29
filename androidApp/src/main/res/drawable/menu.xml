@@ -1,0 +1,28 @@
+<!--
+  ~ Copyright © 2024 Twilio.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="23dp"
+    android:height="13dp"
+    android:viewportWidth="23"
+    android:viewportHeight="13">
+  <path
+      android:pathData="M1.84,0.211L21.84,0.211A1,1 0,0 1,22.84 1.211L22.84,1.211A1,1 0,0 1,21.84 2.211L1.84,2.211A1,1 0,0 1,0.84 1.211L0.84,1.211A1,1 0,0 1,1.84 0.211z"
+      android:fillColor="#ffffff"/>
+  <path
+      android:pathData="M1.84,10.211L21.84,10.211A1,1 0,0 1,22.84 11.211L22.84,11.211A1,1 0,0 1,21.84 12.211L1.84,12.211A1,1 0,0 1,0.84 11.211L0.84,11.211A1,1 0,0 1,1.84 10.211z"
+      android:fillColor="#ffffff"/>
+</vector>
