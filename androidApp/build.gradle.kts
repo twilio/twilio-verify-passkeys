@@ -30,16 +30,26 @@ val mavenPassword: String? by project
 
 repositories {
   mavenLocal()
-  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
-    maven {
-      println("TEST: $mavenRepoUrl")
-      url = uri(mavenRepoUrl!!)
-      credentials {
-        username = mavenUsername
-        password = mavenPassword
-      }
+//  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
+  maven {
+    println("TEST: ${getPropertyValue("REPO_URL")}")
+    url = uri(getPropertyValue("REPO_URL"))
+    credentials {
+      username = getPropertyValue("OSSRH_USERNAME")
+      password = getPropertyValue("OSSRH_PASSWORD")
     }
+//    }
   }
+}
+
+fun getPropertyValue(key: String): String {
+  val property =
+    if (project.hasProperty(key)) {
+      project.property(key) as String
+    } else {
+      System.getenv(key)
+    }
+  return property
 }
 
 val sdkVersionName: String by extra
