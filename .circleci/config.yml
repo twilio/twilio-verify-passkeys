@@ -256,10 +256,12 @@ jobs:
       - android/restore-build-cache
       - android/restore-gradle-cache
       - attach_workspace:
-          at: tmp/workspace
+          at: *workspace
       - run:
           name: Get internal repository link
           command: | 
+            ls
+            pwd
             source tmp/workspace/env_vars
             echo $REPO_NAME
             echo $REPO_URL
