@@ -231,6 +231,10 @@ jobs:
 
     steps:
       - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
       - run:
           name: Generate signing key ring file
           command: echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
@@ -250,6 +254,8 @@ jobs:
 
     steps:
       - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
       - attach_workspace:
           at: tmp/workspace
       - run:
