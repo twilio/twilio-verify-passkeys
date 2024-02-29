@@ -244,7 +244,7 @@ jobs:
           name: Save internal repository link
           command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log
       - persist_to_workspace:
-          root: tmp/workspace
+          root: *workspace
           paths:
             - tmp/workspace/env_vars
 
