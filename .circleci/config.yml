@@ -265,7 +265,7 @@ jobs:
             echo $REPO_URL
       - run:
           name: Generate APK with maven repo url
-          command: ./gradlew -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL :androidApp:assembleRelease --scan
+          command: ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
       - run:
           name: Install Firebase CLI
           command: npm install -g firebase-tools

@@ -33,7 +33,7 @@ repositories {
   if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
     maven {
       println("TEST: $mavenRepoUrl")
-      url = URI.create(mavenRepoUrl!!)
+      url = uri(mavenRepoUrl!!)
       credentials {
         username = mavenUsername
         password = mavenPassword
