@@ -237,14 +237,15 @@ jobs:
           name: Generate signing key ring file
           command: |
             echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
-            ls
-            pwd
       - run:
           name: Publish SDK to internal repository
           command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
       - run:
           name: Save internal repository link
-          command: ./scripts/save_sonatype_repository_internal_release_url
+          command: | 
+            ls
+            pwd
+            ./scripts/save_sonatype_repository_internal_release_url gradle-task-output.log
       - persist_to_workspace:
           root: tmp/workspace
           paths:
