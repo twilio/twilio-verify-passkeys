@@ -1,3 +1,5 @@
+import java.net.URI
+
 /*
  * Copyright © 2024 Twilio Inc.
  *
@@ -30,7 +32,8 @@ repositories {
   mavenLocal()
   if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
     maven {
-      url = uri(mavenRepoUrl!!)
+      println("TEST: $mavenRepoUrl")
+      url = URI.create(mavenRepoUrl!!)
       credentials {
         username = mavenUsername
         password = mavenPassword
