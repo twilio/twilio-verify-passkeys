@@ -242,10 +242,7 @@ jobs:
           command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
       - run:
           name: Save internal repository link
-          command: | 
-            ls
-            pwd
-            ./scripts/save_sonatype_repository_internal_release_url gradle-task-output.log
+          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log
       - persist_to_workspace:
           root: tmp/workspace
           paths:
