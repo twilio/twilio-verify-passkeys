@@ -32,13 +32,14 @@ repositories {
   mavenLocal()
 //  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
   maven {
-    println("TEST: ${getPropertyValue("REPO_URL")}")
-    url = uri(getPropertyValue("REPO_URL")!!)
-    credentials {
-      username = getPropertyValue("OSSRH_USERNAME")
-      password = getPropertyValue("OSSRH_PASSWORD")
+    if (getPropertyValue("REPO_URL") != null) {
+      println("TEST: ${getPropertyValue("REPO_URL")}")
+      url = uri(getPropertyValue("REPO_URL")!!)
+      credentials {
+        username = getPropertyValue("OSSRH_USERNAME")
+        password = getPropertyValue("OSSRH_PASSWORD")
+      }
     }
-//    }
   }
 }
 
