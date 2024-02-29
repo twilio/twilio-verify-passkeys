@@ -233,11 +233,12 @@ jobs:
       - checkout
       - android/restore-build-cache
       - android/restore-gradle-cache
-      - attach_workspace:
-          at: *workspace
       - run:
           name: Generate signing key ring file
-          command: echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
+          command: |
+            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
+            ls
+            pwd
       - run:
           name: Publish SDK to internal repository
           command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
