@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000261">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: setup_circle_ci" time="0.000367">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="2: gym" time="21.469887">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="3: unzip /Users/aorozcobuiles/Development/Twilio/Secondary/twilio-verify-passkeys/iosApp/IPAs/iosApp.ipa -d extracted" time="0.090184">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="4: du -sh extracted/Payload/*.framework/" time="0.023744">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>

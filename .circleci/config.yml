@@ -376,6 +376,24 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+  ios-sdk-size-report:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Build and measure
+          command: |
+            cd iosApp
+            bundle exec fastlane size_demo_app
+      - danger-check:
+          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
 
 workflows:
   build-all:
@@ -385,6 +403,9 @@ workflows:
           requires:
             - assemble
       - android-sdk-size-report:
+          requires:
+            - assemble
+      - ios-sdk-size-report:
           requires:
             - assemble
       - detekt-check:
