@@ -14,7 +14,14 @@ executors:
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2023.12.1
+      - image: cimg/android:2024.01.1
+    resource_class: large
+    working_directory: *workspace
+
+  android-node-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1-node
     resource_class: large
     working_directory: *workspace
 
@@ -249,7 +256,7 @@ jobs:
             - tmp/workspace/env_vars
 
   generate-android-sample-app-using-internal-sdk:
-    executor: android-executor
+    executor: android-node-executor
 
     steps:
       - checkout
@@ -257,12 +264,6 @@ jobs:
       - android/restore-gradle-cache
       - attach_workspace:
           at: *workspace
-      - run:
-          name: Get internal repository link
-          command: |
-            source tmp/workspace/env_vars
-            echo $REPO_NAME
-            echo $REPO_URL
       - run:
           name: Generate APK with maven repo url
           command: |
