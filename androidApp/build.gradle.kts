@@ -1,4 +1,3 @@
-import java.net.URI
 
 /*
  * Copyright © 2024 Twilio Inc.
@@ -27,32 +26,23 @@ plugins {
 val mavenRepoUrl: String? by project
 val mavenUsername: String? by project
 val mavenPassword: String? by project
+val sdkStagingRepositoryUrl: String by extra
 
 repositories {
   mavenLocal()
-//  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
-  maven {
-    if (getPropertyValue("REPO_URL") != null) {
-      println("TEST: ${getPropertyValue("REPO_URL")}")
-      url = uri(getPropertyValue("REPO_URL")!!)
+  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
+    println("TEST: $mavenRepoUrl")
+    maven {
+      url = uri(mavenRepoUrl!!)
       credentials {
-        username = getPropertyValue("OSSRH_USERNAME")
-        password = getPropertyValue("OSSRH_PASSWORD")
+        username = mavenUsername
+        password = mavenPassword
       }
     }
   }
 }
 
-fun getPropertyValue(key: String): String? {
-  val property =
-    if (project.hasProperty(key)) {
-      project.property(key) as String
-    } else {
-      System.getenv(key)
-    }
-  return property
-}
-
+val sampleBackendUrl: String by extra
 val sdkVersionName: String by extra
 
 android {
@@ -64,8 +54,11 @@ android {
     targetSdk = 34
     versionCode = 1
     versionName = sdkVersionName
+
+    buildConfigField("String", "SAMPLE_BACKEND_URL", sampleBackendUrl)
   }
   buildFeatures {
+    buildConfig = true
     compose = true
   }
   composeOptions {
