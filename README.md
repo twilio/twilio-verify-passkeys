@@ -151,7 +151,7 @@ The challenge payload for authenticating a user is a JSON with the schema:
 
 1. Clone this repository.
 2. Open the project in IntelliJ IDEA or Android Studio.
-3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/src/main/java/com/twilio/passkeys/android/di/TwilioPasskeyModule.kt#L42).
+3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/gradle.properties#L17).
 4. Build and run the Android app from the `androidApp` module.
 
 **Note**: To start sign up/in flows, the Android device must have a valid Google account to store and fetch passkeys.

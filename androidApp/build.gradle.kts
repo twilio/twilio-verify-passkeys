@@ -26,7 +26,6 @@ plugins {
 val mavenRepoUrl: String? by project
 val mavenUsername: String? by project
 val mavenPassword: String? by project
-val sdkStagingRepositoryUrl: String by extra
 
 repositories {
   mavenLocal()
