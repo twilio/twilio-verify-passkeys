@@ -31,7 +31,6 @@ val sdkStagingRepositoryUrl: String by extra
 repositories {
   mavenLocal()
   if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
-    println("TEST: $mavenRepoUrl")
     maven {
       url = uri(mavenRepoUrl!!)
       credentials {

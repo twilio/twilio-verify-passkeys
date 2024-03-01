@@ -15,14 +15,14 @@ executors:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
       - image: cimg/android:2024.01.1
-    resource_class: large
+    resource_class: medium
     working_directory: *workspace
 
   android-node-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
       - image: cimg/android:2024.01.1-node
-    resource_class: large
+    resource_class: medium
     working_directory: *workspace
 
   mac-os-executor:
@@ -264,6 +264,9 @@ jobs:
       - android/restore-gradle-cache
       - attach_workspace:
           at: *workspace
+      - run:
+          name: Set sample backend URL
+          command: ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
       - run:
           name: Generate APK with maven repo url
           command: |
