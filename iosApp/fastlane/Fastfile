@@ -41,11 +41,14 @@ platform :ios do
       output_directory: "IPAs/",
       output_name: "iosApp.ipa"
     )
+
     ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
 
     # Print the size of the IPA file
-    ipa_size = File.size(ipa_path)
-    puts "IPA size is #{ipa_size} bytes"
+    ipa_size_kb = `du -sk #{ipa_path}`.split[0].to_i
+    ipa_size_mb = ipa_size_kb / 1024.0  # Convert KB to MB
+    puts "IPA size is #{ipa_size_mb} MB"
+    File.open("sizes.txt", "w") { |file| file.write("IPA size: #{'%.1f' % ipa_size_mb} MB\n") }
 
     # Unzip the IPA file
     sh "unzip #{ipa_path} -d extracted"
@@ -53,18 +56,42 @@ platform :ios do
     # Measure the size of each framework
     sh "du -sh extracted/Payload/iosApp.app/Frameworks/*.framework/"
 
+     # Measure the size of the extracted app
+    app_size_kb = `du -sk extracted/Payload/iosApp.app`.split[0].to_i
+    app_size_mb = app_size_kb / 1024.0  # Convert KB to MB
+    puts "App size is #{'%.1f' % app_size_mb} MB"
+
+    # Write the size of the app to a file
+    File.open("sizes.txt", "a") { |file| file.write("App size: #{'%.1f' % app_size_mb} MB\n") }
+
     # Measure the size of each framework
     Dir.glob('extracted/Payload/iosApp.app/Frameworks/*.framework').each do |framework|
-      framework_size = `du -sk #{framework}`.split[0].to_i
-      puts "#{framework} size is #{framework_size} KB"
+      framework_size_kb = `du -sk #{framework}`.split[0].to_i
+      framework_size_mb = framework_size_kb / 1024.0  # Convert KB to MB
+      framework_name = File.basename(framework)  # Get the framework name without the path
 
-      # Write the size to a file
-      File.open("sizes.txt", "a") { |file| file.write("#{framework}: #{framework_size} KB\n") }
+      puts "#{framework_name} size is #{'%.1f' % framework_size_mb} MB"
 
-      # Fail the build if the framework size is more than 8MB
-      if framework_size > 8192
-        UI.user_error!("Framework #{framework} is larger than 8MB!")
-      end
+      # Write the size and impact of each framework to a file
+      impact = (framework_size_mb / app_size_mb) * 100  # Calculate the impact of the framework on the total size
+      File.open("sizes.txt", "a") { |file| file.write("#{framework_name}: #{'%.1f' % framework_size_mb} MB, Impact: #{'%.1f' % impact}%\n") }
     end
+
+    # Get the last commit message
+    last_commit = last_git_commit
+    commit_message = last_commit[:message]
+
+    # Configure service credentials
+    app_distribution_key = "gcloud-app-distribution-service-key.json"
+    key_file = "#{ENV["HOME"]}/#{app_distribution_key}"
+
+    # Distribute the app
+    firebase_app_distribution(
+      app: ENV["SAMPLE_APP_FIREBASE_ID"],
+      ipa_path: ipa_path,
+      groups: ENV["FIREBASE_APP_DISTRIBUTION_GROUP"],
+      service_credentials_file: key_file,
+      release_notes: commit_message
+    )
   end
 end

@@ -388,6 +388,9 @@ jobs:
             cd iosApp
             bundle install
       - run:
+          name: Configure GCloud App Distribution service
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - run:
           name: Build and measure
           command: |
             cd iosApp
