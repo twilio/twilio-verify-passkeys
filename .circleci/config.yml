@@ -9,6 +9,8 @@ aliases:
       ~/passkeys-sdk
   - &unit-test-folder-result
       ~/test-results/junit
+  - &env-vars-folder
+      tmp/workspace/env_vars
 
 executors:
   ubuntu-small-executor:
@@ -259,7 +261,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - tmp/workspace/env_vars
+            - *env-vars-folder
 
   generate-android-sample-app-using-internal-sdk:
     executor: android-node-executor
@@ -276,7 +278,7 @@ jobs:
       - run:
           name: Generate APK with maven repo url
           command: |
-            source tmp/workspace/env_vars
+            source *env-vars-folder
             echo $REPO_NAME
             echo $REPO_URL
             ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
@@ -292,7 +294,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - tmp/workspace/env_vars
+            - *env-vars-folder
 
   run-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
@@ -304,7 +306,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source tmp/workspace/env_vars
+            source *env-vars-folder
             echo $REPO_NAME
             echo $REPO_URL
             echo $ANDROID_APP_DOWNLOAD_URL
