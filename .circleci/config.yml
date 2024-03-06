@@ -18,6 +18,7 @@ executors:
     docker:
       - image: cimg/base:2024.02
     resource_class: small
+    working_directory: *workspace
 
   android-executor:
     docker:
