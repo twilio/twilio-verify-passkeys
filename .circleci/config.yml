@@ -11,6 +11,12 @@ aliases:
       ~/test-results/junit
 
 executors:
+  ubuntu-small-executor:
+    #https://circleci:com/developer/images/image/cimg/base
+    docker:
+      - image: cimg/base:2024.02
+    resource_class: small
+
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
@@ -279,7 +285,34 @@ jobs:
           command: npm install --save-dev firebase-tools
       - run:
           name: Deploy to Firebase App Distribution
-          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug
+          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+      - run:
+          name: Save distributed app link
+          command: ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - tmp/workspace/env_vars
+
+  run-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source tmp/workspace/env_vars
+            echo $REPO_NAME
+            echo $REPO_URL
+            echo $ANDROID_APP_DOWNLOAD_URL
+            curl --request POST \
+                --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+                --header "Circle-Token: $CIRCLE_TOKEN" \
+                --header "Content-Type: application/json" \
+                --data '{"branch":"sfierro/ACCSEC-33517-Run-automation-pipeline","parameters":{"android-app-url":"$ANDROID_APP_DOWNLOAD_URL"}}'
 
 workflows:
   build-all:
@@ -312,16 +345,19 @@ workflows:
           requires:
             - android-unit-test
             - ios-unit-test
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
+      - run-internal-sdk-e2e-tests:
+          requires:
+            - generate-android-sample-app-using-internal-sdk
