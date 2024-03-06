@@ -19,6 +19,7 @@ package com.twilio.passkeys.android.di
 import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.twilio.passkeys.TwilioPasskey
+import com.twilio.passkeys.android.BuildConfig
 import com.twilio.passkeys.android.api.AuthenticateApi
 import com.twilio.passkeys.android.api.RegistrationApi
 import dagger.Module
@@ -55,7 +56,7 @@ class TwilioPasskeyModule {
       OkHttpClient.Builder()
         .addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
         .build()
-    return Retrofit.Builder().baseUrl("https://your_backend/")
+    return Retrofit.Builder().baseUrl(BuildConfig.SAMPLE_BACKEND_URL)
       .addConverterFactory(json.asConverterFactory(contentType)).client(client)
       .build()
   }

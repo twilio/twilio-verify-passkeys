@@ -43,8 +43,8 @@ val javadocJar =
     from(dokkaOutputDir)
   }
 
-val versionCode: String by extra
-version = versionCode
+val sdkVersionName: String by extra
+version = sdkVersionName
 val libId = "twilio-verify-passkeys"
 
 afterEvaluate {

@@ -14,8 +14,15 @@ executors:
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2023.12.1
-    resource_class: large
+      - image: cimg/android:2024.01.1
+    resource_class: medium
+    working_directory: *workspace
+
+  android-node-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1-node
+    resource_class: medium
     working_directory: *workspace
 
   mac-os-executor:
@@ -226,6 +233,54 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
+  publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - run:
+          name: Generate signing key ring file
+          command: |
+            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
+      - run:
+          name: Publish SDK to internal repository
+          command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
+      - run:
+          name: Save internal repository link
+          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - tmp/workspace/env_vars
+
+  generate-android-sample-app-using-internal-sdk:
+    executor: android-node-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Set sample backend URL
+          command: ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
+      - run:
+          name: Generate APK with maven repo url
+          command: |
+            source tmp/workspace/env_vars
+            echo $REPO_NAME
+            echo $REPO_URL
+            ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
+      - run:
+          name: Install Firebase CLI
+          command: npm install --save-dev firebase-tools
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug
+
 workflows:
   build-all:
     jobs:
@@ -253,3 +308,20 @@ workflows:
       - android-generate-aar:
           requires:
             - android-unit-test
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            - android-unit-test
+            - ios-unit-test
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
+      - generate-android-sample-app-using-internal-sdk:
+          requires:
+            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
