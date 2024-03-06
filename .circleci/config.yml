@@ -316,11 +316,26 @@ jobs:
             echo $REPO_NAME
             echo $REPO_URL
             echo $ANDROID_APP_DOWNLOAD_URL
-            curl --request POST \
-                --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
-                --header "Circle-Token: $CIRCLE_TOKEN" \
-                --header "Content-Type: application/json" \
-                --data '{"branch":"sfierro/ACCSEC-33517-Run-automation-pipeline","parameters":{"android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'"}}'
+            CREATED_PIPELINE=$(curl --request POST \
+              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+              --header "Circle-Token: $CIRCLE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{
+                "branch":"sfierro/ACCSEC-33517-Run-automation-pipeline",
+                "parameters":{
+                  "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
+                  "triggering-pipeline-id":"<< pipeline.id >>"
+                }
+              }' \
+              | jq -r '.id'
+            )
+            echo "Created pipeline: $CREATED_PIPELINE"
+            echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *env-vars-folder
+
 
 workflows:
   build-all:
