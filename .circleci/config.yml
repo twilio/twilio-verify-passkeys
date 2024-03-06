@@ -279,7 +279,7 @@ jobs:
           command: npm install --save-dev firebase-tools
       - run:
           name: Deploy to Firebase App Distribution
-          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app 1:702410982038:android:e26dad2baf4fe5b09278b7 --token $FIREBASE_TOKEN --groups qa --debug
+          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug
 
 workflows:
   build-all:
