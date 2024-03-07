@@ -330,7 +330,9 @@ jobs:
               | jq -r '.id'
             )
             echo "Created pipeline: $CREATED_PIPELINE"
-            sudo echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
+            TMP_FOLDER="tmp/workspace"
+            mkdir -p $TMP_FOLDER
+            echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -415,3 +417,6 @@ workflows:
           type: approval
           requires:
             - run-internal-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          requires:
+            - wait-for-internal-sdk-e2e-tests
