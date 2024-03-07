@@ -20,6 +20,4 @@ export REPO_URL=https://oss.sonatype.org/content/repositories/$REPO_NAME
 echo $REPO_URL
 
 TMP_FOLDER="tmp/workspace"
-mkdir -p $TMP_FOLDER
-echo "export REPO_NAME=\"$REPO_NAME\"" >> ${TMP_FOLDER}/env_vars
-echo "export REPO_URL=\"$REPO_URL\"" >> ${TMP_FOLDER}/env_vars
+./add_env_variable_to_file.sh REPO_NAME "$REPO_NAME" $TMP_FOLDER

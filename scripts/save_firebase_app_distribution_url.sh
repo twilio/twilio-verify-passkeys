@@ -14,5 +14,4 @@ export ANDROID_APP_DOWNLOAD_URL=$binary_download_uri
 echo "$ANDROID_APP_DOWNLOAD_URL"
 
 TMP_FOLDER="tmp/workspace"
-mkdir -p $TMP_FOLDER
-echo "export ANDROID_APP_DOWNLOAD_URL=\"$ANDROID_APP_DOWNLOAD_URL\"" >> ${TMP_FOLDER}/env_vars
+./add_env_variable_to_file.sh ANDROID_APP_DOWNLOAD_URL "$ANDROID_APP_DOWNLOAD_URL" $TMP_FOLDER

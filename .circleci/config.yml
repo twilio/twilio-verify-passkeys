@@ -10,7 +10,7 @@ aliases:
   - &unit-test-folder-result
       ~/test-results/junit
   - &env-vars-folder
-      tmp/workspace/env_vars
+      tmp/workspace
 
 executors:
   ubuntu-small-executor:
@@ -326,9 +326,7 @@ jobs:
               | jq -r '.id'
             )
             echo "Created pipeline: $CREATED_PIPELINE"
-            TMP_FOLDER="tmp/workspace"
-            mkdir -p $TMP_FOLDER
-            echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
+            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE tmp/workspace
       - persist_to_workspace:
           root: *workspace
           paths:
