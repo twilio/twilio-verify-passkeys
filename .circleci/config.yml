@@ -330,12 +330,39 @@ jobs:
               | jq -r '.id'
             )
             echo "Created pipeline: $CREATED_PIPELINE"
-            echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
+            sudo echo "export CREATED_PIPELINE=\"$CREATED_PIPELINE\"" >> ${TMP_FOLDER}/env_vars
       - persist_to_workspace:
           root: *workspace
           paths:
             - *env-vars-folder
 
+  check-status-of-triggered-pipeline:
+    executor: ubuntu-small-executor
+
+    steps:
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            source tmp/workspace/env_vars
+            echo $REPO_NAME
+            echo $REPO_URL
+            echo $ANDROID_APP_DOWNLOAD_URL
+            echo $CREATED_PIPELINE
+            created_workflow_status=$(curl --request GET \
+                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --header "Circle-Token: $CIRCLE_TOKEN" \
+                --header "Content-Type: application/json" \
+              | jq -r '.items[0].status'
+            )
+            echo $created_workflow_status
+            if [[ "$created_workflow_status" != "success" ]]; then
+              echo "Workflow not successful - ${created_workflow_status}"
+              (exit -1) 
+            fi
+            
+            echo "Created workflow successful"
 
 workflows:
   build-all:
@@ -384,3 +411,7 @@ workflows:
       - run-internal-sdk-e2e-tests:
           requires:
             - generate-android-sample-app-using-internal-sdk
+      - wait-for-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-internal-sdk-e2e-tests
