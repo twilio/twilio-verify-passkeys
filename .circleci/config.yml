@@ -294,8 +294,6 @@ jobs:
           command: |
             ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log
             source tmp/workspace/env_vars
-            echo $REPO_NAME
-            echo $REPO_URL
             echo $ANDROID_APP_DOWNLOAD_URL
       - persist_to_workspace:
           root: *workspace
@@ -313,8 +311,6 @@ jobs:
           name: Start automation pipeline to run E2E tests
           command: |
             source tmp/workspace/env_vars
-            echo $REPO_NAME
-            echo $REPO_URL
             echo $ANDROID_APP_DOWNLOAD_URL
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
@@ -348,9 +344,6 @@ jobs:
           name: Check triggered workflow status
           command: |
             source tmp/workspace/env_vars
-            echo $REPO_NAME
-            echo $REPO_URL
-            echo $ANDROID_APP_DOWNLOAD_URL
             echo $CREATED_PIPELINE
             created_workflow_status=$(curl --request GET \
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
