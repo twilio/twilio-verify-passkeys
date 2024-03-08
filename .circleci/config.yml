@@ -330,7 +330,7 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"sfierro/ACCSEC-33517-Run-automation-pipeline",
+                "branch":"appium-main",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
                   "triggering-pipeline-id":"<< pipeline.id >>"
