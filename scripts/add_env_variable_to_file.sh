@@ -15,4 +15,4 @@ FILE_NAME=$4
 mkdir -p "$FOLDER_PATH"
 
 # Export the variable
-echo "export ""$KEY""=""$VALUE""" >> "${FOLDER_PATH}"/"$FILE_NAME"
+echo "export ""$KEY""=""$VALUE""" >> "$FOLDER_PATH"/"$FILE_NAME"
