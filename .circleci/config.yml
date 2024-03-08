@@ -280,7 +280,8 @@ jobs:
           at: *workspace
       - run:
           name: Set sample backend URL
-          command: ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
+          command: |
+            ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
       - run:
           name: Generate APK with maven repo url
           command: |
@@ -297,7 +298,8 @@ jobs:
           command: npm install --save-dev firebase-tools
       - run:
           name: Deploy to Firebase App Distribution
-          command: firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+          command: |
+            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
       - run:
           name: Save distributed app link
           command: |
@@ -406,11 +408,11 @@ workflows:
           requires:
             - android-unit-test
             - ios-unit-test
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
