@@ -408,11 +408,11 @@ workflows:
           requires:
             - android-unit-test
             - ios-unit-test
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
