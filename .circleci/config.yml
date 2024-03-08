@@ -320,7 +320,9 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            echo $REPO_NAME
+            echo $REPO_URL
             echo $ANDROID_APP_DOWNLOAD_URL
             
             CREATED_PIPELINE=$(curl --request POST \
