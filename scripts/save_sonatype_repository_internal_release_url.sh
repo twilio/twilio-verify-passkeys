@@ -19,7 +19,7 @@ echo "$REPO_NAME"
 REPO_URL=https://oss.sonatype.org/content/repositories/$REPO_NAME
 echo "$REPO_URL"
 
-FOLDER_TO_SAVE_URL=$1
-FILE_NAME=$2
+FOLDER_TO_SAVE_URL=$2
+FILE_NAME=$3
 ./scripts/add_env_variable_to_file.sh REPO_NAME "$REPO_NAME" "$FOLDER_TO_SAVE_URL" "$FILE_NAME"
 ./scripts/add_env_variable_to_file.sh REPO_URL "$REPO_URL" "$FOLDER_TO_SAVE_URL" "$FILE_NAME"
