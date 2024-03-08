@@ -284,7 +284,7 @@ jobs:
       - run:
           name: Generate APK with maven repo url
           command: |
-            source "$TMP_WORKSPACE/ENV_VARS_FILE"
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             
             echo $REPO_NAME
             echo $REPO_URL
