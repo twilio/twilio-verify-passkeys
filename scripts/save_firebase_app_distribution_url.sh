@@ -1,17 +1,18 @@
 #!/bin/bash
 
 # Check if filename is provided as argument
-if [ $# -ne 1 ]; then
-    SELF=`basename $0`
-    echo "Usage: $SELF <FIREBASE_APP_DISTRIBUTION_OUTPUT_FILE>"
+if [ $# -ne 3 ]; then
+    SELF=$(basename "$0")
+    echo "Usage: $SELF <FIREBASE_APP_DISTRIBUTION_OUTPUT_FILE> <FOLDER_TO_SAVE_URL_AS_ENV> <ENV_FILE_NAME>"
     exit 1
 fi
 
-binary_download_uri=$(grep -o '"binaryDownloadUri":"[^"]*' "$1" | grep -o '[^"]*$')
+BINARY_DOWNLOAD_URI=$(grep -o '"binaryDownloadUri":"[^"]*' "$1" | grep -o '[^"]*$')
 
-echo "Binary Download URI: $binary_download_uri"
-export ANDROID_APP_DOWNLOAD_URL=$binary_download_uri
+echo "Binary Download URI: $BINARY_DOWNLOAD_URI"
+ANDROID_APP_DOWNLOAD_URL=$BINARY_DOWNLOAD_URI
 echo "$ANDROID_APP_DOWNLOAD_URL"
 
-TMP_FOLDER="tmp/workspace"
-./scripts/add_env_variable_to_file.sh ANDROID_APP_DOWNLOAD_URL "$ANDROID_APP_DOWNLOAD_URL" $TMP_FOLDER
+FOLDER_TO_SAVE_URL=$1
+FILE_NAME=$2
+./scripts/add_env_variable_to_file.sh ANDROID_APP_DOWNLOAD_URL "$ANDROID_APP_DOWNLOAD_URL" "$FOLDER_TO_SAVE_URL" "$FILE_NAME"

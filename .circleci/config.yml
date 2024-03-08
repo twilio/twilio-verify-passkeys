@@ -9,8 +9,10 @@ aliases:
       ~/passkeys-sdk
   - &unit-test-folder-result
       ~/test-results/junit
-  - &env-vars-folder
+  - &tmp-workspace
       tmp/workspace
+  - &env-vars-file
+      env_vars
 
 executors:
   ubuntu-small-executor:
@@ -258,11 +260,14 @@ jobs:
           command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
       - run:
           name: Save internal repository link
-          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log
+          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *env-vars-folder
+            - *tmp-workspace
 
   generate-android-sample-app-using-internal-sdk:
     executor: android-node-executor
@@ -279,10 +284,14 @@ jobs:
       - run:
           name: Generate APK with maven repo url
           command: |
-            source tmp/workspace/env_vars
+            source "$TMP_WORKSPACE/$ENV_VARS"
+            
             echo $REPO_NAME
             echo $REPO_URL
             ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
@@ -292,13 +301,16 @@ jobs:
       - run:
           name: Save distributed app link
           command: |
-            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log
-            source tmp/workspace/env_vars
+            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
+            source "$TMP_WORKSPACE/$ENV_VARS"
             echo $ANDROID_APP_DOWNLOAD_URL
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *env-vars-folder
+            - *tmp-workspace
 
   run-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
@@ -310,7 +322,8 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source tmp/workspace/env_vars
+            source "$TMP_WORKSPACE/$ENV_VARS"
+            
             echo $ANDROID_APP_DOWNLOAD_URL
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
@@ -326,11 +339,14 @@ jobs:
               | jq -r '.id'
             )
             echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE tmp/workspace
+            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *env-vars-folder
+            - *tmp-workspace
 
   check-status-of-triggered-pipeline:
     executor: ubuntu-small-executor
@@ -341,7 +357,8 @@ jobs:
       - run:
           name: Check triggered workflow status
           command: |
-            source tmp/workspace/env_vars
+            source "$TMP_WORKSPACE/$ENV_VARS"
+            
             echo $CREATED_PIPELINE
             created_workflow_status=$(curl --request GET \
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
@@ -356,6 +373,9 @@ jobs:
             fi
             
             echo "Created workflow successful"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   build-all:

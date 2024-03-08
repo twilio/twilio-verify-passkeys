@@ -1,17 +1,18 @@
 #!/bin/bash
 
 # Check if both key and value are provided
-if [ $# -ne 3 ]; then
-    echo "Usage: $0 <key> <value> <folder>"
+if [ $# -ne 4 ]; then
+    echo "Usage: $0 <KEY> <VALUE> <FOLDER_PATH> <FILE_NAME>"
     exit 1
 fi
 
 # Assign parameters to variables
 KEY=$1
 VALUE=$2
-TMP_FOLDER=$3
+FOLDER_PATH=$3
+FILE_NAME=$4
 
-mkdir -p "$TMP_FOLDER"
+mkdir -p "$FOLDER_PATH"
 
 # Export the variable
-echo "export ""$KEY""=""$VALUE""" >> "${TMP_FOLDER}"/env_vars
+echo "export ""$KEY""=""$VALUE""" >> "${FOLDER_PATH}"/"$FILE_NAME"
