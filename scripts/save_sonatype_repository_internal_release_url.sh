@@ -14,10 +14,11 @@ if ! [[ "$REPO_OUTPUT" =~ "Created staging repository '"(.+)"'" ]]; then
     exit 1
 fi
 
-export REPO_NAME=${BASH_REMATCH[1]}
-echo $REPO_NAME
-export REPO_URL=https://oss.sonatype.org/content/repositories/$REPO_NAME
-echo $REPO_URL
+REPO_NAME=${BASH_REMATCH[1]}
+echo "$REPO_NAME"
+REPO_URL=https://oss.sonatype.org/content/repositories/$REPO_NAME
+echo "$REPO_URL"
 
 TMP_FOLDER="tmp/workspace"
-./add_env_variable_to_file.sh REPO_NAME "$REPO_NAME" $TMP_FOLDER
+./scripts/add_env_variable_to_file.sh REPO_NAME "$REPO_NAME" $TMP_FOLDER
+./scripts/add_env_variable_to_file.sh REPO_URL "$REPO_URL" $TMP_FOLDER
