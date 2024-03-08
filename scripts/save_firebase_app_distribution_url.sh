@@ -11,7 +11,6 @@ BINARY_DOWNLOAD_URI=$(grep -o '"binaryDownloadUri":"[^"]*' "$1" | grep -o '[^"]*
 
 echo "Binary Download URI: $BINARY_DOWNLOAD_URI"
 ANDROID_APP_DOWNLOAD_URL=$BINARY_DOWNLOAD_URI
-echo "$ANDROID_APP_DOWNLOAD_URL"
 
 FOLDER_TO_SAVE_URL=$2
 FILE_NAME=$3

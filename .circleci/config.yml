@@ -284,10 +284,10 @@ jobs:
       - run:
           name: Generate APK with maven repo url
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
             echo $REPO_NAME
             echo $REPO_URL
+            
             ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
           environment:
             TMP_WORKSPACE: *tmp-workspace
@@ -302,8 +302,6 @@ jobs:
           name: Save distributed app link
           command: |
             ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_APP_DOWNLOAD_URL
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -323,8 +321,8 @@ jobs:
           name: Start automation pipeline to run E2E tests
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            
             echo $ANDROID_APP_DOWNLOAD_URL
+            
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
