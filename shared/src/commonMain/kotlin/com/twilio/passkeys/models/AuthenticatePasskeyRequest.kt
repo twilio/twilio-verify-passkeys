@@ -18,9 +18,23 @@ package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Represents a request for authenticating a passkey.
+ *
+ * @property publicKey The public key associated with the authentication request.
+ */
 @Serializable
 data class AuthenticatePasskeyRequest(val publicKey: AuthenticatePasskeyRequestPublicKey)
 
+/**
+ * Represents the public key information used for authenticating a passkey.
+ *
+ * @property challenge The challenge string used for authentication.
+ * @property timeout The timeout for the authentication request.
+ * @property rpId The relying party ID.
+ * @property allowCredentials The list of allowed credentials for authentication.
+ * @property userVerification The user verification method.
+ */
 @Serializable
 data class AuthenticatePasskeyRequestPublicKey(
   var challenge: String,

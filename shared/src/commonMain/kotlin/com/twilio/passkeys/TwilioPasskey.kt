@@ -14,31 +14,68 @@
  * limitations under the License.
  */
 
+@file:Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+
 package com.twilio.passkeys
 
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyRequest
 
+/**
+ * Class representing Passkey functionality.
+ * This class provides methods to create and authenticate passkeys.
+ */
 expect class TwilioPasskey {
+  /**
+   * Creates a passkey using the provided [createPasskeyRequest] and [appContext].
+   *
+   * @param createPasskeyRequest The request to create a passkey.
+   * @param appContext The context of the application.
+   * @return The result of creating the passkey.
+   */
   suspend fun create(
     createPasskeyRequest: CreatePasskeyRequest,
     appContext: AppContext,
   ): CreatePasskeyResult
 
+  /**
+   * Creates a passkey using the provided [createPayload] and [appContext].
+   *
+   * @param createPayload The payload for creating the passkey.
+   * @param appContext The context of the application.
+   * @return The result of creating the passkey.
+   */
   suspend fun create(
-    challengePayload: String,
+    createPayload: String,
     appContext: AppContext,
   ): CreatePasskeyResult
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePasskeyRequest] and [appContext].
+   *
+   * @param authenticatePasskeyRequest The request to authenticate a passkey.
+   * @param appContext The context of the application.
+   * @return The result of authenticating the passkey.
+   */
   suspend fun authenticate(
     authenticatePasskeyRequest: AuthenticatePasskeyRequest,
     appContext: AppContext,
   ): AuthenticatePasskeyResult
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePayload] and [appContext].
+   *
+   * @param authenticatePayload The payload for authenticating the passkey challenge.
+   * @param appContext The context of the application.
+   * @return The result of authenticating the passkey.
+   */
   suspend fun authenticate(
-    challengePayload: String,
+    authenticatePayload: String,
     appContext: AppContext,
   ): AuthenticatePasskeyResult
 }
 
+/**
+ * An interface representing the context.
+ */
 expect class AppContext

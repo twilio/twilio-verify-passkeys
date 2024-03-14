@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+
 package com.twilio.passkeys
 
 import android.app.Activity
@@ -32,15 +34,33 @@ import com.twilio.passkeys.models.CreatePasskeyRequest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+/**
+ * Represents the Twilio Passkey class responsible for managing passkey operations.
+ *
+ * @property credentialManager The credential manager responsible for managing passkey credentials.
+ * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
+ */
 actual class TwilioPasskey internal constructor(
   private val credentialManager: CredentialManager,
   private val passkeyPayloadMapper: PasskeyPayloadMapper,
 ) {
+  /**
+   * Constructor for creating a TwilioPasskey instance with the provided context.
+   *
+   * @param context The Android activity context.
+   */
   constructor(context: Context) : this(
     CredentialManager.create(context),
     PasskeyPayloadMapper,
   )
 
+  /**
+   * Creates a passkey using the provided [createPasskeyRequest] and [appContext].
+   *
+   * @param createPasskeyRequest The request for creating the passkey.
+   * @param appContext The activity context.
+   * @return The result of creating the passkey.
+   */
   actual suspend fun create(
     createPasskeyRequest: CreatePasskeyRequest,
     appContext: AppContext,
@@ -56,7 +76,7 @@ actual class TwilioPasskey internal constructor(
         (credentialManagerResult as CreatePublicKeyCredentialResponse).registrationResponseJson
 
       return CreatePasskeyResult.Success(
-        passkeyPayloadMapper.mapToPasskeyCreationResponse(
+        passkeyPayloadMapper.mapToCreatePasskeyResponse(
           registrationResponseJson,
         ),
       )
@@ -66,19 +86,33 @@ actual class TwilioPasskey internal constructor(
     }
   }
 
+  /**
+   * Creates a passkey using the provided [createPayload] and [appContext].
+   *
+   * @param createPayload The payload for creating the passkey.
+   * @param appContext The activity context.
+   * @return The result of creating the passkey.
+   */
   actual suspend fun create(
-    challengePayload: String,
+    createPayload: String,
     appContext: AppContext,
   ): CreatePasskeyResult {
     return try {
       val createPasskeyRequest =
-        passkeyPayloadMapper.mapToPasskeyCreationPayload(challengePayload)
+        passkeyPayloadMapper.mapToCreatePasskeyRequest(createPayload)
       create(createPasskeyRequest, appContext)
     } catch (e: Exception) {
       CreatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
     }
   }
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePasskeyRequest] and [appContext].
+   *
+   * @param authenticatePasskeyRequest The request for authenticating the passkey.
+   * @param appContext The activity context.
+   * @return The result of authenticating the passkey.
+   */
   actual suspend fun authenticate(
     authenticatePasskeyRequest: AuthenticatePasskeyRequest,
     appContext: AppContext,
@@ -103,13 +137,20 @@ actual class TwilioPasskey internal constructor(
     }
   }
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePayload] and [appContext].
+   *
+   * @param authenticatePayload The payload for authenticating the passkey.
+   * @param appContext The activity context.
+   * @return The result of authenticating the passkey.
+   */
   actual suspend fun authenticate(
-    challengePayload: String,
+    authenticatePayload: String,
     appContext: AppContext,
   ): AuthenticatePasskeyResult {
     return try {
       val authenticatePasskeyRequest =
-        passkeyPayloadMapper.mapToPasskeyAuthenticationPayload(challengePayload)
+        passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(authenticatePayload)
       authenticate(authenticatePasskeyRequest, appContext)
     } catch (e: Exception) {
       AuthenticatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
@@ -117,4 +158,9 @@ actual class TwilioPasskey internal constructor(
   }
 }
 
+/**
+ * Represents the activity context.
+ *
+ * @property activity The Android activity.
+ */
 actual class AppContext(val activity: Activity)

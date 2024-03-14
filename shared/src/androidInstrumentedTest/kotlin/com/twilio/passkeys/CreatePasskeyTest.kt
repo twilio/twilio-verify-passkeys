@@ -35,7 +35,7 @@ class CreatePasskeyTest {
         runBlocking {
           val result =
             twilioPasskey.create(
-              challengePayload = "{invalid}",
+              createPayload = "{invalid}",
               appContext = AppContext(activity),
             )
           assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
@@ -51,7 +51,7 @@ class CreatePasskeyTest {
         runBlocking {
           val result =
             twilioPasskey.create(
-              challengePayload = createPasskeyChallengePayload,
+              createPayload = createPasskeyChallengePayload,
               appContext = AppContext(activity),
             )
           assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
