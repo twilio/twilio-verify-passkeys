@@ -338,6 +338,6 @@ internal fun NSData.toUrlSafeString(): String =
 /**
  * Represents the UI window context.
  *
- * @property uiWindow The UI window associated with the context.
+ * @property uiWindow The active UIWindow where the Passkey Dialogs will be presented.
  */
 actual class AppContext(val uiWindow: UIWindow)
