@@ -432,7 +432,7 @@ workflows:
             - detekt-check
       - ios-generate-framework:
           requires:
-            - ios-unit-test
+            - ios-unit-tests
       - android-generate-aar:
           requires:
             - android-unit-tests
