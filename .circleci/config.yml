@@ -110,7 +110,7 @@ jobs:
       - ruby/install-deps
       - run:
           name: Assemble build
-          command: ./gradlew assembleDebug assembleDebugAndroidTest
+          command: ./gradlew assembleDebug :shared:assembleRelease assembleDebugAndroidTest
       - move-directory:
           from: shared/build/outputs/apk/androidTest/debug/
           to: builds
@@ -195,7 +195,12 @@ jobs:
       - gcp-cli/setup
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
-          command: gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
+          command: |
+            ls
+            cd builds
+            ls
+            cd ..
+            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
 
   ios-unit-tests:
     executor: mac-os-executor
@@ -229,7 +234,6 @@ jobs:
       - store_artifacts:
           path: "shared/build/outputs/sizeReport"
           destination: sizeReport
-      - run: mkdir -p builds
       - move-directory:
           from: shared/build/outputs/sizeReport/
           to: builds
@@ -268,6 +272,10 @@ jobs:
       - run:
           name: Create aars
           command: |
+            ls
+            cd builds
+            ls
+            cd ..
             mv builds/shared-debug.aar TwilioPasskeys-debug.aar
             mv builds/shared-release.aar TwilioPasskeys.aar
       - store_artifacts:
