@@ -196,10 +196,6 @@ jobs:
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
           command: |
-            ls
-            cd builds
-            ls
-            cd ..
             gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
 
   ios-unit-tests:
@@ -272,12 +268,8 @@ jobs:
       - run:
           name: Create aars
           command: |
-            ls
-            cd builds
-            ls
-            cd ..
-            mv builds/shared-debug.aar TwilioPasskeys-debug.aar
-            mv builds/shared-release.aar TwilioPasskeys.aar
+            mv builds/aar/shared-debug.aar TwilioPasskeys-debug.aar
+            mv builds/aar/shared-release.aar TwilioPasskeys.aar
       - store_artifacts:
           path: TwilioPasskeys-debug.aar
       - store_artifacts:
