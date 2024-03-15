@@ -19,9 +19,13 @@ package com.twilio.passkeys
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.AuthenticatePasskeyRequestPublicKey
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
+import com.twilio.passkeys.models.AuthenticatorSelection
 import com.twilio.passkeys.models.CreatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyResponse
 import com.twilio.passkeys.models.KeyCredential
+import com.twilio.passkeys.models.PubKeyCredParams
+import com.twilio.passkeys.models.Rp
+import com.twilio.passkeys.models.User
 
 const val RP_ID = "example.com"
 const val RP_NAME = "Example"
@@ -125,9 +129,9 @@ val createPasskeyResponse =
 val createPasskeyRequest =
   CreatePasskeyRequest(
     challenge = CREATE_CHALLENGE,
-    rp = CreatePasskeyRequest.Rp(name = RP_NAME, id = RP_ID, icon = null),
+    rp = Rp(name = RP_NAME, id = RP_ID, icon = null),
     user =
-      CreatePasskeyRequest.User(
+      User(
         id = USER_ID,
         icon = null,
         name = USER_NAME,
@@ -135,7 +139,7 @@ val createPasskeyRequest =
       ),
     pubKeyCredParams =
       listOf(
-        CreatePasskeyRequest.PubKeyCredParams(
+        PubKeyCredParams(
           type = PUB_KEY_CRED_TYPE,
           alg = PUB_KEY_CRED_ALG,
         ),
@@ -144,7 +148,7 @@ val createPasskeyRequest =
     attestation = ATTESTATION,
     excludeCredentials = emptyList(),
     authenticatorSelection =
-      CreatePasskeyRequest.AuthenticatorSelection(
+      AuthenticatorSelection(
         authenticatorAttachment = AUTHENTICATOR_SELECTION_AUTHENTICATOR_ATTACHMENT,
         requireResidentKey = AUTHENTICATOR_SELECTION_REQUIRE_RESIDENT_KEY,
         residentKey = AUTHENTICATOR_SELECTION_RESIDENT_KEY,

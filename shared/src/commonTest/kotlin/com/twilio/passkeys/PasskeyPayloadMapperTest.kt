@@ -91,7 +91,7 @@ class PasskeyPayloadMapperTest {
       """.trimIndent()
 
     val registerPasskeyRequestPublicKey =
-      passkeyPayloadMapper.mapToPasskeyCreationPayload(payload)
+      passkeyPayloadMapper.mapToCreatePasskeyRequest(payload)
 
     assertEquals(rpId, registerPasskeyRequestPublicKey.rp.id)
     assertEquals(rpName, registerPasskeyRequestPublicKey.rp.name)
@@ -168,7 +168,7 @@ class PasskeyPayloadMapperTest {
       """.trimIndent()
 
     val authenticatePasskeyRequestPublicKey =
-      passkeyPayloadMapper.mapToPasskeyAuthenticationPayload(payload).publicKey
+      passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(payload).publicKey
 
     assertEquals(
       challenge.b64Decode().b64Encode(),
@@ -224,7 +224,7 @@ class PasskeyPayloadMapperTest {
       """.trimIndent()
 
     val registerPasskeyResponse =
-      passkeyPayloadMapper.mapToPasskeyCreationResponse(payload)
+      passkeyPayloadMapper.mapToCreatePasskeyResponse(payload)
 
     assertEquals(id, registerPasskeyResponse.id)
     assertEquals(rawId, registerPasskeyResponse.rawId)

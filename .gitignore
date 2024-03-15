@@ -2,7 +2,9 @@
 .gradle
 .idea
 .DS_Store
-build
+/build/
+*/build/*
+!*/build/dokka/
 captures
 .externalNativeBuild
 .cxx

@@ -33,7 +33,7 @@ class AuthenticatePasskeyTest {
         runBlocking {
           val result =
             twilioPasskey.authenticate(
-              challengePayload = "{invalid}",
+              authenticatePayload = "{invalid}",
               appContext = AppContext(activity),
             )
           assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)

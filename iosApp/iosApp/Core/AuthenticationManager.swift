@@ -43,7 +43,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
         
-        let response = try await twilioPasskey.authenticate(challengePayload: json, appContext: AppContext(uiWindow: window))
+        let response = try await twilioPasskey.authenticate(authenticatePayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? AuthenticatePasskeyResult.Success {
                 finishSignIn(with: success.authenticatePasskeyResponse)
         } else if let error = response as? AuthenticatePasskeyResult.Error {
@@ -61,7 +61,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
 
-        let response = try await twilioPasskey.create(challengePayload: json, appContext: AppContext(uiWindow: window))
+        let response = try await twilioPasskey.create(createPayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? CreatePasskeyResult.Success {
             finishSignUp(
                 for: username,
