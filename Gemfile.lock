@@ -52,9 +52,9 @@ GEM
     net-http (0.4.1)
       uri
     no_proxy_fix (0.1.2)
-    nokogiri (1.16.0-arm64-darwin)
+    nokogiri (1.16.3-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.16.0-x86_64-linux)
+    nokogiri (1.16.3-x86_64-linux)
       racc (~> 1.4)
     octokit (8.0.0)
       faraday (>= 1, < 3)
