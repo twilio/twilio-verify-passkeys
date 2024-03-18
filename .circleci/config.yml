@@ -435,10 +435,10 @@ workflows:
             - ios-unit-tests
       - android-generate-aar:
           requires:
-            - android-unit-tests
+            - android-instrumented-tests
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
           requires:
-            - android-unit-tests
+            - android-instrumented-tests
             - ios-unit-tests
           filters:
             branches:
