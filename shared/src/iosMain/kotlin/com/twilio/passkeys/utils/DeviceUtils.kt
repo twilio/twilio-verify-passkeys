@@ -18,15 +18,27 @@ package com.twilio.passkeys.utils
 
 import platform.UIKit.UIDevice
 
+/**
+ * Utility class for device-related operations.
+ *
+ * @property device The device instance used for accessing device-specific information.
+ */
 internal class DeviceUtils(private val device: UIDevice = UIDevice()) {
   /**
    * Check if current device OS version is supported
-   * e.g.
-   * deviceOSVersion = 16.0.1, minOSVersionSupported = 16.0.2 should return false
-   * deviceOSVersion = 16.0.0, minOSVersionSupported = 15.0.0 should return true
-   * deviceOSVersion = 16.3.0, minOSVersionSupported = 16.3.0 should return true
+   *
+   * @param minOSVersionSupported The minimum OS version required for support.
+   * @return `true` if the current device OS version is equal to or greater than the minimum supported version; `false` otherwise.
+   *
+   * @see UIDevice.systemVersion
    */
   fun isOSVersionSupported(minOSVersionSupported: String): Boolean {
+    /**
+     * e.g.
+     * deviceOSVersion = 16.0.1, minOSVersionSupported = 16.0.2 should return false
+     * deviceOSVersion = 16.0.0, minOSVersionSupported = 15.0.0 should return true
+     * deviceOSVersion = 16.3.0, minOSVersionSupported = 16.3.0 should return true
+     */
     val result = device.systemVersion.compareTo(minOSVersionSupported)
     return result >= 0
   }

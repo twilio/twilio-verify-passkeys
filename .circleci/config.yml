@@ -9,13 +9,31 @@ aliases:
       ~/passkeys-sdk
   - &unit-test-folder-result
       ~/test-results/junit
+  - &tmp-workspace
+      tmp/workspace
+  - &env-vars-file
+      env_vars
 
 executors:
+  ubuntu-small-executor:
+    #https://circleci:com/developer/images/image/cimg/base
+    docker:
+      - image: cimg/base:2024.02
+    resource_class: small
+    working_directory: *workspace
+
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2023.12.1
-    resource_class: large
+      - image: cimg/android:2024.01.1
+    resource_class: medium
+    working_directory: *workspace
+
+  android-node-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1-node
+    resource_class: medium
     working_directory: *workspace
 
   mac-os-executor:
@@ -226,6 +244,139 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
+  publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - run:
+          name: Generate signing key ring file
+          command: |
+            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
+      - run:
+          name: Publish SDK to internal repository
+          command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
+      - run:
+          name: Save internal repository link
+          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  generate-android-sample-app-using-internal-sdk:
+    executor: android-node-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Set sample backend URL
+          command: |
+            ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
+      - run:
+          name: Generate APK with maven repo url
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            echo $REPO_NAME
+            echo $REPO_URL
+            
+            ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - run:
+          name: Install Firebase CLI
+          command: npm install --save-dev firebase-tools
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+      - run:
+          name: Save distributed app link
+          command: |
+            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_APP_DOWNLOAD_URL
+            
+            CREATED_PIPELINE=$(curl --request POST \
+              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+              --header "Circle-Token: $CIRCLE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{
+                "branch":"appium-main",
+                "parameters":{
+                  "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
+                  "triggering-pipeline-id":"<< pipeline.id >>"
+                }
+              }' \
+              | jq -r '.id'
+            )
+            echo "Created pipeline: $CREATED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  check-status-of-triggered-pipeline:
+    executor: ubuntu-small-executor
+
+    steps:
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            
+            echo $CREATED_PIPELINE
+            created_workflow_status=$(curl --request GET \
+                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --header "Circle-Token: $CIRCLE_TOKEN" \
+                --header "Content-Type: application/json" \
+              | jq -r '.items[0].status'
+            )
+            echo $created_workflow_status
+            if [[ "$created_workflow_status" != "success" ]]; then
+              echo "Workflow not successful - ${created_workflow_status}"
+              (exit -1) 
+            fi
+            
+            echo "Created workflow successful"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
 workflows:
   build-all:
     jobs:
@@ -253,3 +404,25 @@ workflows:
       - android-generate-aar:
           requires:
             - android-unit-test
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            - android-unit-test
+            - ios-unit-test
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
+      - generate-android-sample-app-using-internal-sdk:
+          requires:
+            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
+      - run-internal-sdk-e2e-tests:
+          requires:
+            - generate-android-sample-app-using-internal-sdk
+      - wait-for-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-internal-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          requires:
+            - wait-for-internal-sdk-e2e-tests

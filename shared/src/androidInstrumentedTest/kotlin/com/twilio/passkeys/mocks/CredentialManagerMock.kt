@@ -72,7 +72,7 @@ val createPasskeyChallengePayload =
     "attestation": "none"
   }
   """.trimIndent()
-val creationResponse =
+internal val creationResponse =
   CreatePasskeyDto(
     id = "6ySmhJd6qGUMCthiqszyb4Od4U6TFn0v3DLz-1EZrNQ",
     rawId = "eb24a684977aa8650c0ad862aaccf26f839de14e93167d2fdc32f3fb5119acd4",
@@ -116,7 +116,7 @@ val authenticatePasskeyChallengePayload =
     }
   }
   """.trimIndent()
-val authenticationResponse =
+internal val authenticationResponse =
   AuthenticatePasskeyDto(
     rawId = "eb24a684977aa8650c0ad862aaccf26f839de14e93167d2fdc32f3fb5119acd4",
     id = "6ySmhJd6qGUMCthiqszyb4Od4U6TFn0v3DLz-1EZrNQ",

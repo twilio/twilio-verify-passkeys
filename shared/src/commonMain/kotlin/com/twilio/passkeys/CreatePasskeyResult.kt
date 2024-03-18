@@ -19,8 +19,21 @@ package com.twilio.passkeys
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.models.CreatePasskeyResponse
 
+/**
+ * Sealed class representing the result of creating a passkey.
+ */
 sealed class CreatePasskeyResult {
+  /**
+   * Represents a successful passkey creation result.
+   *
+   * @param createPasskeyResponse The response containing information about the created passkey.
+   */
   data class Success(val createPasskeyResponse: CreatePasskeyResponse) : CreatePasskeyResult()
 
+  /**
+   * Represents an error that occurred during passkey creation.
+   *
+   * @param error The exception representing the error.
+   */
   data class Error(val error: TwilioException) : CreatePasskeyResult()
 }

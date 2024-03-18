@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+
 package com.twilio.passkeys
 
 import com.twilio.passkeys.exception.TwilioException
@@ -62,10 +64,19 @@ internal enum class Attachment(val value: String) {
   CROSS_PLATFORM("cross-platform"),
 }
 
+/**
+ * Represents the Twilio Passkey class responsible for managing passkey operations.
+ *
+ * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
+ * @property deviceUtils The utility class for device-related operations.
+ */
 actual class TwilioPasskey private constructor(
   private val passkeyPayloadMapper: PasskeyPayloadMapper = PasskeyPayloadMapper,
   private val deviceUtils: DeviceUtils = DeviceUtils(),
 ) {
+  /**
+   * Constructor for creating an instance of [TwilioPasskey].
+   */
   constructor() : this(
     passkeyPayloadMapper = PasskeyPayloadMapper,
   )
@@ -178,6 +189,13 @@ actual class TwilioPasskey private constructor(
     }
   }
 
+  /**
+   * Creates a passkey using the provided [createPasskeyRequest] and [appContext].
+   *
+   * @param createPasskeyRequest The request for creating the passkey.
+   * @param appContext The [UIWindow] context.
+   * @return The result of creating the passkey.
+   */
   actual suspend fun create(
     createPasskeyRequest: CreatePasskeyRequest,
     appContext: AppContext,
@@ -211,19 +229,33 @@ actual class TwilioPasskey private constructor(
       }
     }
 
+  /**
+   * Creates a passkey using the provided [createPayload] and [appContext].
+   *
+   * @param createPayload The payload for creating the passkey.
+   * @param appContext The [UIWindow] context.
+   * @return The result of creating the passkey.
+   */
   actual suspend fun create(
-    challengePayload: String,
+    createPayload: String,
     appContext: AppContext,
   ): CreatePasskeyResult {
     return try {
       val createPasskeyRequest =
-        passkeyPayloadMapper.mapToPasskeyCreationPayload(challengePayload)
+        passkeyPayloadMapper.mapToCreatePasskeyRequest(createPayload)
       create(createPasskeyRequest, appContext)
     } catch (e: Exception) {
       CreatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
     }
   }
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePasskeyRequest] and [appContext].
+   *
+   * @param authenticatePasskeyRequest The request for authenticating the passkey.
+   * @param appContext The [UIWindow] context.
+   * @return The result of authenticating the passkey.
+   */
   actual suspend fun authenticate(
     authenticatePasskeyRequest: AuthenticatePasskeyRequest,
     appContext: AppContext,
@@ -252,13 +284,20 @@ actual class TwilioPasskey private constructor(
       }
     }
 
+  /**
+   * Authenticates a passkey using the provided [authenticatePayload] and [appContext].
+   *
+   * @param authenticatePayload The payload for authenticating the passkey.
+   * @param appContext The [UIWindow] context.
+   * @return The result of authenticating the passkey.
+   */
   actual suspend fun authenticate(
-    challengePayload: String,
+    authenticatePayload: String,
     appContext: AppContext,
   ): AuthenticatePasskeyResult {
     return try {
       val authenticatePasskeyRequest =
-        passkeyPayloadMapper.mapToPasskeyAuthenticationPayload(challengePayload)
+        passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(authenticatePayload)
       authenticate(authenticatePasskeyRequest, appContext)
     } catch (e: Exception) {
       AuthenticatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
@@ -286,8 +325,19 @@ actual class TwilioPasskey private constructor(
   }
 }
 
+/**
+ * Converts NSData to a URL-safe string.
+ *
+ * @receiver The NSData to be converted.
+ * @return The URL-safe string representation of the NSData.
+ */
 internal fun NSData.toUrlSafeString(): String =
   this.base64Encoding().replace("+", "-")
     .replace("/", "_").replace("=", "")
 
+/**
+ * Represents the UI window context.
+ *
+ * @property uiWindow The active UIWindow where the Passkey Dialogs will be presented.
+ */
 actual class AppContext(val uiWindow: UIWindow)
