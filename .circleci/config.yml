@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   android: circleci/android@2.3.0
   ruby: circleci/ruby@2.1.0
+  gcp-cli: circleci/gcp-cli@3.1.1
 
 aliases:
   - &workspace
@@ -81,7 +82,7 @@ commands:
           name: Danger check
           command: bundle exec danger <<parameters.danger_params>> --verbose --remove-previous-comments
 
-  move_directory:
+  move-directory:
     parameters:
       from:
         description: directory to move
@@ -91,6 +92,12 @@ commands:
         type: string
     steps:
       - run: cp -R <<parameters.from>> <<parameters.to>>
+
+  install-firebase-cli:
+    steps:
+      - run:
+          name: Install Firebase CLI
+          command: npm install --save-dev firebase-tools
 
 jobs:
   assemble:
@@ -103,11 +110,21 @@ jobs:
       - ruby/install-deps
       - run:
           name: Assemble build
-          command: ./gradlew assembleDebug assembleDebugAndroidTest
+          command: ./gradlew assembleDebug :shared:assembleRelease assembleDebugAndroidTest
+      - move-directory:
+          from: shared/build/outputs/apk/androidTest/debug/
+          to: builds
+      - move-directory:
+          from: shared/build/outputs/aar/
+          to: builds
       - danger-check:
           danger_params: --danger_id=assemble --dangerfile=dangerfiles/dangerfile_pr_validation
       - android/save-gradle-cache
       - android/save-build-cache
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - builds
 
   lint-check:
     executor: ruby-executor
@@ -142,7 +159,7 @@ jobs:
       - android/save-gradle-cache
       - android/save-build-cache
 
-  android-unit-test:
+  android-unit-tests:
     executor: android-executor
 
     steps:
@@ -166,7 +183,22 @@ jobs:
       - store_artifacts:
           path: /home/circleci/test-results/
 
-  ios-unit-test:
+  android-instrumented-tests:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - gcp-cli/setup
+      - run:
+          name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
+          command: |
+            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
+
+  ios-unit-tests:
     executor: mac-os-executor
 
     steps:
@@ -198,8 +230,7 @@ jobs:
       - store_artifacts:
           path: "shared/build/outputs/sizeReport"
           destination: sizeReport
-      - run: mkdir -p builds
-      - move_directory:
+      - move-directory:
           from: shared/build/outputs/sizeReport/
           to: builds
       - danger-check:
@@ -232,13 +263,13 @@ jobs:
 
     steps:
       - checkout
+      - attach_workspace:
+          at: *workspace
       - run:
           name: Create aars
           command: |
-            ./gradlew :shared:assembleDebug
-            mv shared/build/outputs/aar/shared-debug.aar TwilioPasskeys-debug.aar
-            ./gradlew :shared:assembleRelease
-            mv shared/build/outputs/aar/shared-release.aar TwilioPasskeys.aar
+            mv builds/aar/shared-debug.aar TwilioPasskeys-debug.aar
+            mv builds/aar/shared-release.aar TwilioPasskeys.aar
       - store_artifacts:
           path: TwilioPasskeys-debug.aar
       - store_artifacts:
@@ -293,9 +324,7 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - run:
-          name: Install Firebase CLI
-          command: npm install --save-dev firebase-tools
+      - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
@@ -414,24 +443,27 @@ workflows:
       - detekt-check:
           requires:
             - assemble
-      - android-unit-test:
+      - android-unit-tests:
           requires:
             - lint-check
             - detekt-check
-      - ios-unit-test:
+      - android-instrumented-tests:
+          requires:
+            - android-unit-tests
+      - ios-unit-tests:
           requires:
             - lint-check
             - detekt-check
       - ios-generate-framework:
           requires:
-            - ios-unit-test
+            - ios-unit-tests
       - android-generate-aar:
           requires:
-            - android-unit-test
+            - android-instrumented-tests
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
           requires:
-            - android-unit-test
-            - ios-unit-test
+            - android-instrumented-tests
+            - ios-unit-tests
           filters:
             branches:
               only:

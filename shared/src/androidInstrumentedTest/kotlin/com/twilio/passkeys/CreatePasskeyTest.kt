@@ -22,6 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.mocks.createPasskeyChallengePayload
 import kotlinx.coroutines.runBlocking
+import org.junit.Ignore
 import org.junit.Test
 
 class CreatePasskeyTest {
@@ -45,6 +46,7 @@ class CreatePasskeyTest {
   }
 
   @Test
+  @Ignore("Not working with FTL devices")
   fun createCredential_withNoCreateOptions_fails() {
     launchActivity<TestActivity>().use { scenario ->
       scenario.onActivity { activity ->
