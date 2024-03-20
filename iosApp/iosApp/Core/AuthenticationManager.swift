@@ -19,7 +19,7 @@ public enum User {
     }
 }
 
-let domain: String = "passkey-sample-9652.twil.io"
+let domain: String = "passkey-demo-5706.twil.io"
 
 class AuthenticationManager: NSObject, ObservableObject {
 
