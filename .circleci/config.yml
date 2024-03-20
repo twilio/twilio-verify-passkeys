@@ -209,6 +209,29 @@ jobs:
           paths:
             - builds
 
+  ios-sdk-size-report:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Build and measure
+          command: |
+            cd iosApp
+            bundle exec fastlane size_demo_app
+      - danger-check:
+          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+      - persist_to_workspace:
+            root: .
+            paths:
+              - iosApp/IPAs/iosApp.ipa
+
   ios-generate-framework:
     executor: mac-os-executor
 
@@ -312,7 +335,36 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-internal-sdk-e2e-tests:
+  generate-ios-sample-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Configure GCloud App Distribution service
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            cd iosApp
+            bundle exec fastlane deploy_demo_app
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: .
+          paths:
+            - iosApp/fastlane/firebase_url.txt
+
+  run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     steps:
@@ -324,7 +376,7 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-            
+
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
@@ -348,7 +400,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-status-of-triggered-pipeline:
+  check-status-of-triggered-android-pipeline:
     executor: ubuntu-small-executor
 
     steps:
@@ -358,7 +410,7 @@ jobs:
           name: Check triggered workflow status
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            
+
             echo $CREATED_PIPELINE
             created_workflow_status=$(curl --request GET \
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
@@ -371,32 +423,79 @@ jobs:
               echo "Workflow not successful - ${created_workflow_status}"
               (exit -1) 
             fi
-            
+
             echo "Created workflow successful"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-  ios-sdk-size-report:
-    executor: mac-os-executor
+
+  run-ios-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
 
     steps:
       - checkout
-      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
       - run:
-          name: Install Gem dependencies
+          name: Start automation pipeline to run E2E tests
           command: |
-            cd iosApp
-            bundle install
+            firebase_url=$(cat iosApp/fastlane/firebase_url.txt)
+            echo "Firebase URL: $firebase_url"
+            echo "export FIREBASE_URL=$firebase_url" >> $BASH_ENV
+            echo $FIREBASE_URL
+
+            CREATED_PIPELINE=$(curl --request POST \
+              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+              --header "Circle-Token: $CIRCLE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{
+                "branch":"aorozcobuiles/ACCSEC-33579/EndToEndTestPipelineConnection",
+                "parameters":{
+                  "ios-app-url":"'"$FIREBASE_URL"'",
+                  "triggering-pipeline-id":"<< pipeline.id >>"
+                }
+              }' \
+              | jq -r '.id'
+            )
+            echo "<< pipeline.id >>"
+            echo "Created pipeline: $CREATED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  check-status-of-triggered-ios-pipeline:
+    executor: ubuntu-small-executor
+
+    steps:
+      - attach_workspace:
+          at: *workspace
       - run:
-          name: Configure GCloud App Distribution service
-          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
-      - run:
-          name: Build and measure
+          name: Check triggered workflow status
           command: |
-            cd iosApp
-            bundle exec fastlane size_demo_app
-      - danger-check:
-          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+
+            echo $CREATED_PIPELINE
+            created_workflow_status=$(curl --request GET \
+                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --header "Circle-Token: $CIRCLE_TOKEN" \
+                --header "Content-Type: application/json" \
+              | jq -r '.items[0].status'
+            )
+            echo $created_workflow_status
+            if [[ "$created_workflow_status" != "success" ]]; then
+              echo "Workflow not successful - ${created_workflow_status}"
+              (exit -1) 
+            fi
+
+            echo "Created workflow successful"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   build-all:
@@ -440,13 +539,32 @@ workflows:
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-internal-sdk-e2e-tests:
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
+      - run-ios-internal-sdk-e2e-tests:
+          requires:
+            - generate-ios-sample-app-using-internal-sdk
+      - run-android-internal-sdk-e2e-tests:
           requires:
             - generate-android-sample-app-using-internal-sdk
+      - wait-for-ios-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-ios-internal-sdk-e2e-tests
+      - check-status-of-triggered-ios-pipeline:
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
       - wait-for-internal-sdk-e2e-tests:
           type: approval
           requires:
-            - run-internal-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
+            - run-android-internal-sdk-e2e-tests
+      - check-status-of-triggered-android-pipeline:
           requires:
             - wait-for-internal-sdk-e2e-tests

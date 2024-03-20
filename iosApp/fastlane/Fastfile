@@ -76,6 +76,14 @@ platform :ios do
       impact = (framework_size_mb / app_size_mb) * 100  # Calculate the impact of the framework on the total size
       File.open("sizes.txt", "a") { |file| file.write("#{framework_name}: #{'%.1f' % framework_size_mb} MB, Impact: #{'%.1f' % impact}%\n") }
     end
+  end
+
+  desc "Deploy Sample App to Firebase"
+  lane :deploy_demo_app do
+    # Get the current directory
+    puts "Printing files"
+    puts `ls -l -p ../`
+    puts `ls -l -p ../IPAs/`
 
     # Get the last commit message
     last_commit = last_git_commit
@@ -85,13 +93,21 @@ platform :ios do
     app_distribution_key = "gcloud-app-distribution-service-key.json"
     key_file = "#{ENV["HOME"]}/#{app_distribution_key}"
 
+    # Get ipa path
+    current_directory = Dir.pwd
+    ipa_file_path = "#{current_directory}/../IPAs/iosApp.ipa"
+    puts "IPA file path: #{ipa_file_path}"
+
     # Distribute the app
-    firebase_app_distribution(
+    firebase_url = firebase_app_distribution(
       app: ENV["SAMPLE_APP_FIREBASE_ID"],
-      ipa_path: ipa_path,
+      ipa_path: ipa_file_path,
       groups: ENV["FIREBASE_APP_DISTRIBUTION_GROUP"],
       service_credentials_file: key_file,
       release_notes: commit_message
     )
+
+    # Write the Firebase URL to a file
+    File.open("firebase_url.txt", "w") { |file| file.write(firebase_url) }
   end
 end
