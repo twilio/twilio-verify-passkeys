@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+#### Bug Fixes
+- df06cefb6c5faa36b36d9d4df0632cda4120aaca - test3 - Sergio Fierro
+
+#### Features
+- 3647968ec2d8964c65daada1c28309dbbfe7c812 - test2 - Sergio Fierro
+
+- c24c8bce1000899774df507d2f57994e993d9625 - test1 - Sergio Fierro
+
+#### Miscellaneous Chores
+- e8d07211a5a803bc619298da78d7cc30bb42a578 - **(version)** 0.0.2 - Sergio Fierro
+
+- - -
+
 ## 0.0.2 - 2024-04-03
 
 - - -
