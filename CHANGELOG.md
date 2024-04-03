@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file. See [conven
 
 - - -
 #### Bug Fixes
+- 6779f351e2b7e1812b3ed69486189c25a9ec0377 - test5 - Sergio Fierro
+
+- 94d1c6d44467b523523f13c5687932b32ba50111 - test4 - Sergio Fierro
+
+
+- - -
+
+#### Bug Fixes
 - df06cefb6c5faa36b36d9d4df0632cda4120aaca - test3 - Sergio Fierro
 
 #### Features
