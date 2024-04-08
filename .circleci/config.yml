@@ -478,7 +478,7 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"aorozcobuiles/ACCSEC-33579/EndToEndTestPipelineConnection",
+                "branch":"appium-main",
                 "parameters":{
                   "ios-app-url":"'"$FIREBASE_URL"'",
                   "triggering-pipeline-id":"<< pipeline.id >>"
