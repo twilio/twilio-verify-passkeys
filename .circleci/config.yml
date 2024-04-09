@@ -411,10 +411,10 @@ jobs:
           command: |
             cd iosApp
             bundle exec fastlane simulator_app
-            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app TwilioPasskeys-debug.app
-            tar -cvzf TwilioPasskeys-debug.tar.gz TwilioPasskeys-debug.app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
+            tar -cvzf sample-app.tar.gz sample-app.app
       - store_artifacts:
-          path: iosApp/TwilioPasskeys-debug.tar.gz
+          path: iosApp/sample-app.tar.gz
 
   run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
