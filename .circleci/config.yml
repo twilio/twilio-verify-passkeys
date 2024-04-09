@@ -411,7 +411,7 @@ jobs:
           command: |
             cd iosApp
             bundle exec fastlane simulator_app
-            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app TwilioPasskeys-debug.app
+            mv iosApp/simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app TwilioPasskeys-debug.app
       - store_artifacts:
           path: TwilioPasskeys-debug.app
 
