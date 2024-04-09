@@ -393,6 +393,28 @@ jobs:
           paths:
             - iosApp/fastlane/firebase_url.txt
 
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Generate simulator build
+          command: |
+            cd iosApp
+            bundle exec fastlane simulator_app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app TwilioPasskeys-debug.app
+      - store_artifacts:
+          path: TwilioPasskeys-debug.app
+
   run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
@@ -556,6 +578,9 @@ workflows:
       - ios-generate-framework:
           requires:
             - ios-unit-tests
+      - generate-ios-simulator-app-using-internal-sdk:
+          requires:
+            - ios-generate-framework
       - android-generate-aar:
           requires:
             - android-instrumented-tests

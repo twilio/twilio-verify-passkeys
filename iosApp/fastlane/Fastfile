@@ -78,6 +78,20 @@ platform :ios do
     end
   end
 
+  desc "Generate simulator build"
+  lane :simulator_app do
+    gym(
+      scheme: "iosApp",
+      project: "iosApp.xcodeproj",
+      silent: true,
+      skip_package_ipa: true,
+      skip_archive: true,
+      destination: "generic/platform=iOS Simulator",
+      configuration: "Debug",
+      derived_data_path: "simulator_build/",
+    )
+  end
+
   desc "Deploy Sample App to Firebase"
   lane :deploy_demo_app do
     # Get the current directory
