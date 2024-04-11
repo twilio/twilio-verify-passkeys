@@ -3,7 +3,7 @@ import java.io.BufferedReader
 import kotlin.system.exitProcess
 
 if (args.size != 2) {
-  println("Usage ./requires_release.kts {{from_tag_string}} {{check_only_ios_boolean}}")
+  println("Usage ./generate_changelog.kts {{from_tag_string}} {{check_only_ios_boolean}}")
   exitProcess(400)
 }
 
@@ -18,25 +18,44 @@ fun generateChangelog(fromTag: String, checkOnlyIOS: Boolean): String {
 
   val changelog = StringBuilder("# Changelog\n\n")
 
-  val breakingChanges = mutableListOf<String>()
+//  val breakingChanges = mutableListOf<String>()
   val categorizedCommits = commits
-    .filter { it.matches(Regex("^(feat|fix|docs|style|refactor|perf|test|chore)!?(\\(.+\\))?: .+", RegexOption.DOT_MATCHES_ALL)) }
-    .groupBy { commit ->
-      Regex("^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?!?:")
-        .find(commit)?.value?.trim()?.trimEnd('!', ':') ?: "others"
+    .filter { it.matches(Regex("^(feat|fix|docs|style|refactor|perf|test|chore)!?(\\(.+\\))?: .+", RegexOption.DOT_MATCHES_ALL)) }.groupBy {
+      when {
+        it.matches(Regex("^(feat)!?(\\(.+\\))?: .+")) -> ConventionalCommit.FEAT
+        it.matches(Regex("^(fix)!?(\\(.+\\))?: .+")) -> ConventionalCommit.FIX
+        it.matches(Regex("^(docs)!?(\\(.+\\))?: .+")) -> ConventionalCommit.DOCS
+        it.matches(Regex("^(style)!?(\\(.+\\))?: .+")) -> ConventionalCommit.STYLE
+        it.matches(Regex("^(refactor)!?(\\(.+\\))?: .+")) -> ConventionalCommit.REFACTOR
+        it.matches(Regex("^(perf)!?(\\(.+\\))?: .+")) -> ConventionalCommit.PERF
+        it.matches(Regex("^(test)!?(\\(.+\\))?: .+")) -> ConventionalCommit.TEST
+        it.matches(Regex("^(chore)!?(\\(.+\\))?: .+")) -> ConventionalCommit.CHORE
+        else -> ConventionalCommit.GENERAL_CHANGE
+      }
     }
+//    .groupBy { commit ->
+//
+//      Regex("^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?!?:")
+//        .find(commit)?.value?.trim()?.trimEnd('!', ':') ?: "others"
+//    }
 
   println("categorizedCommits $categorizedCommits")
   categorizedCommits.forEach { (type, messages) ->
-    changelog.append("## ${type.replaceFirstChar { it.uppercase() }}\n")
+    changelog.append("## ${type.title}\n")
     messages.distinct().forEach { message ->
       val description = message.lineSequence().first().substringAfter(": ").capitalize()
       val scope = Regex("\\((.*?)\\)").find(message)?.groupValues?.get(1)?.let { "($it)" } ?: ""
       val isBreaking = message.contains("BREAKING CHANGE:") || message.contains("!")
 
-      if (isBreaking) breakingChanges.add("$description $scope")
+//      if (isBreaking) breakingChanges.add("$description $scope")
 
-      changelog.append("- $description $scope\n")
+      val fullDescription = StringBuilder("- ")
+      if (scope.isNotBlank()) {
+        fullDescription.append("**$scope** ")
+      }
+      fullDescription.append(description)
+
+      changelog.append("$fullDescription\n")
       if (isBreaking) {
         val breakingChangeDescription = message.lineSequence()
           .firstOrNull { it.startsWith("BREAKING CHANGE:") }
@@ -49,9 +68,9 @@ fun generateChangelog(fromTag: String, checkOnlyIOS: Boolean): String {
     changelog.append("\n")
   }
 
-  if (breakingChanges.isNotEmpty()) {
-    changelog.insertAfter("# Changelog\n\n", "## Breaking Changes\n\n${breakingChanges.joinToString("\n") { "- $it" }}\n\n")
-  }
+//  if (breakingChanges.isNotEmpty()) {
+//    changelog.insertAfter("# Changelog\n\n", "## Breaking Changes\n\n${breakingChanges.joinToString("\n") { "- $it" }}\n\n")
+//  }
 
   return changelog.toString()
 }
@@ -77,3 +96,15 @@ fun getCommitHistory(fromTag: String): List<String> {
 
 
 fun BufferedReader.readToEnd() = this.lineSequence().joinToString("\n")
+
+enum class ConventionalCommit(val title: String) {
+  FEAT("\uD83D\uDE80 Features"),
+  FIX("\uD83D\uDC1B Bug Fixes"),
+  DOCS("\uD83D\uDCDA Documentation"),
+  STYLE("\uD83C\uDFA8 Styling"),
+  REFACTOR("\uD83D\uDE9C Refactor"),
+  PERF("⚡\uFE0F Performance"),
+  TEST("\uD83E\uDDEA Testing"),
+  CHORE("\uD83E\uDDF9 Chore"),
+  GENERAL_CHANGE("\uD83D\uDD04 Improvements")
+}
