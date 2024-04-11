@@ -14,25 +14,25 @@ val changelogType = if (args[1] == "KMP") {
   ChangelogType.IOS
 } else {
   println("Bad usage: {{changelog_for}} parameter accepts KMP or iOS")
-  exitProcess (400)
+  exitProcess(400)
 }
 
 println(generateChangelog(gitTag, changelogType))
 
 fun generateChangelog(fromTag: String, changelogType: ChangelogType): String {
   val commits = getCommitHistory(fromTag)
-//  println(commits)
+  println(commits)
 
   val changelog = StringBuilder("# Changelog\n\n")
 
   val regexFilter = if (changelogType == ChangelogType.IOS) {
     Regex(
-      "^(${ConventionalCommit.FEAT.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.FIX.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.DOCS.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.STYLE.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.REFACTOR.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.PERF.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.TEST.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.CHORE.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\]))!?(\\(.+\\))?: .+",
+      "^(${ConventionalCommit.FEAT.prefix}|${ConventionalCommit.FIX.prefix}|${ConventionalCommit.DOCS.prefix}|${ConventionalCommit.STYLE.prefix}|${ConventionalCommit.REFACTOR.prefix}|${ConventionalCommit.PERF.prefix}|${ConventionalCommit.TEST.prefix}|${ConventionalCommit.CHORE.prefix})(\\[(?i)ios\\])?(?!\\[(?i)android\\])!?(\\(.+\\))?:.+",
       RegexOption.DOT_MATCHES_ALL
     )
   } else {
     Regex(
-      "^(${ConventionalCommit.FEAT.prefix}|${ConventionalCommit.FIX.prefix}|${ConventionalCommit.DOCS.prefix}|${ConventionalCommit.STYLE.prefix}|${ConventionalCommit.REFACTOR.prefix}|${ConventionalCommit.PERF.prefix}|${ConventionalCommit.TEST.prefix}|${ConventionalCommit.CHORE.prefix})!?(\\(.+\\))?: .+",
+      "^(${ConventionalCommit.FEAT.prefix}|${ConventionalCommit.FIX.prefix}|${ConventionalCommit.DOCS.prefix}|${ConventionalCommit.STYLE.prefix}|${ConventionalCommit.REFACTOR.prefix}|${ConventionalCommit.PERF.prefix}|${ConventionalCommit.TEST.prefix}|${ConventionalCommit.CHORE.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+",
       RegexOption.DOT_MATCHES_ALL
     )
   }
@@ -40,19 +40,22 @@ fun generateChangelog(fromTag: String, changelogType: ChangelogType): String {
     .filter {
       it.matches(regexFilter)
     }.groupBy {
+      if (it == "fix[iOS](messaging): This is a fix for only ios"){
+        println("SERGIO")
+      }
       when {
-        it.matches(Regex("^(${ConventionalCommit.FEAT.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.FEAT
-        it.matches(Regex("^(${ConventionalCommit.FIX.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.FIX
-        it.matches(Regex("^(${ConventionalCommit.DOCS.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.DOCS
-        it.matches(Regex("^(${ConventionalCommit.STYLE.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.STYLE
-        it.matches(Regex("^(${ConventionalCommit.REFACTOR.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.REFACTOR
-        it.matches(Regex("^(${ConventionalCommit.PERF.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.PERF
-        it.matches(Regex("^(${ConventionalCommit.TEST.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.TEST
-        it.matches(Regex("^(${ConventionalCommit.CHORE.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.CHORE
+        it.matches(Regex("^(${ConventionalCommit.FEAT.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.FEAT
+        it.matches(Regex("^(${ConventionalCommit.FIX.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.FIX
+        it.matches(Regex("^(${ConventionalCommit.DOCS.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.DOCS
+        it.matches(Regex("^(${ConventionalCommit.STYLE.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.STYLE
+        it.matches(Regex("^(${ConventionalCommit.REFACTOR.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.REFACTOR
+        it.matches(Regex("^(${ConventionalCommit.PERF.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.PERF
+        it.matches(Regex("^(${ConventionalCommit.TEST.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.TEST
+        it.matches(Regex("^(${ConventionalCommit.CHORE.prefix})!?(\\[.+\\])?(\\(.+\\))?:.+")) -> ConventionalCommit.CHORE
         else -> ConventionalCommit.GENERAL_CHANGE
       }
     }
-//  println("categorizedCommits $categorizedCommits")
+  println("categorizedCommits $categorizedCommits")
   categorizedCommits.forEach { (type, messages) ->
     changelog.append("## ${type.title}\n")
     messages.distinct().forEach { message ->
