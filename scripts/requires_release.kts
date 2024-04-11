@@ -26,21 +26,25 @@ fun getCommitHistory(fromTag: String): List<String> {
 }
 
 fun determineReleaseType(commits: List<String>, checkOnlyIOS: Boolean): ReleaseType {
-  val releaseType: ReleaseType = if (checkOnlyIOS) {
+  val breaking = "breaking"
+  val feat = "feat"
+  val fix = "fix"
+  val releaseType = if (checkOnlyIOS) {
     when {
-      commits.any { it.matches("^breaking(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.MAJOR
-      commits.any { it.matches("^feat(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.MINOR
-      commits.any { it.matches("^fix(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.PATCH
+      commits.any { it.matches("^$breaking(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.MAJOR
+      commits.any { it.matches("^$feat(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.MINOR
+      commits.any { it.matches("^$fix(\\[(?i)ios\\])?(?!\\[(?i)android\\]).*\$".toRegex()) } -> ReleaseType.PATCH
       else -> ReleaseType.NONE
     }
   } else {
     when {
-      commits.any { it.matches("^breaking.*:.*\$".toRegex()) } -> ReleaseType.MAJOR
-      commits.any { it.matches("^feat.*:.*\$".toRegex()) } -> ReleaseType.MINOR
-      commits.any { it.matches("^fix.*:.*\$".toRegex()) } -> ReleaseType.PATCH
+      commits.any { it.matches("^$breaking.*:.*\$".toRegex()) } -> ReleaseType.MAJOR
+      commits.any { it.matches("^$feat.*:.*\$".toRegex()) } -> ReleaseType.MINOR
+      commits.any { it.matches("^$fix.*:.*\$".toRegex()) } -> ReleaseType.PATCH
       else -> ReleaseType.NONE
     }
   }
+  println(releaseType)
   return releaseType
 }
 
