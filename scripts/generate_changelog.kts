@@ -3,51 +3,61 @@ import java.io.BufferedReader
 import kotlin.system.exitProcess
 
 if (args.size != 2) {
-  println("Usage ./generate_changelog.kts {{from_tag_string}} {{check_only_ios_boolean}}")
+  println("Usage ./generate_changelog.kts {{from_tag_string}} {{changelog_for}}")
   exitProcess(400)
 }
 
 val gitTag = args[0]
-val checkOnlyIOS = args[1].toBooleanStrict()
+val changelogType = if (args[1] == "KMP") {
+  ChangelogType.KMP
+} else if (args[1] == "iOS") {
+  ChangelogType.IOS
+} else {
+  println("Bad usage: {{changelog_for}} parameter accepts KMP or iOS")
+  exitProcess (400)
+}
 
-println(generateChangelog(gitTag, checkOnlyIOS))
+println(generateChangelog(gitTag, changelogType))
 
-fun generateChangelog(fromTag: String, checkOnlyIOS: Boolean): String {
+fun generateChangelog(fromTag: String, changelogType: ChangelogType): String {
   val commits = getCommitHistory(fromTag)
-  println(commits)
+//  println(commits)
 
   val changelog = StringBuilder("# Changelog\n\n")
 
-//  val breakingChanges = mutableListOf<String>()
+  val regexFilter = if (changelogType == ChangelogType.IOS) {
+    Regex(
+      "^(${ConventionalCommit.FEAT.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.FIX.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.DOCS.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.STYLE.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.REFACTOR.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.PERF.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.TEST.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\])|${ConventionalCommit.CHORE.prefix}(\\[(?i)ios\\])?(?!\\[(?i)android\\]))!?(\\(.+\\))?: .+",
+      RegexOption.DOT_MATCHES_ALL
+    )
+  } else {
+    Regex(
+      "^(${ConventionalCommit.FEAT.prefix}|${ConventionalCommit.FIX.prefix}|${ConventionalCommit.DOCS.prefix}|${ConventionalCommit.STYLE.prefix}|${ConventionalCommit.REFACTOR.prefix}|${ConventionalCommit.PERF.prefix}|${ConventionalCommit.TEST.prefix}|${ConventionalCommit.CHORE.prefix})!?(\\(.+\\))?: .+",
+      RegexOption.DOT_MATCHES_ALL
+    )
+  }
   val categorizedCommits = commits
-    .filter { it.matches(Regex("^(feat|fix|docs|style|refactor|perf|test|chore)!?(\\(.+\\))?: .+", RegexOption.DOT_MATCHES_ALL)) }.groupBy {
+    .filter {
+      it.matches(regexFilter)
+    }.groupBy {
       when {
-        it.matches(Regex("^(feat)!?(\\(.+\\))?: .+")) -> ConventionalCommit.FEAT
-        it.matches(Regex("^(fix)!?(\\(.+\\))?: .+")) -> ConventionalCommit.FIX
-        it.matches(Regex("^(docs)!?(\\(.+\\))?: .+")) -> ConventionalCommit.DOCS
-        it.matches(Regex("^(style)!?(\\(.+\\))?: .+")) -> ConventionalCommit.STYLE
-        it.matches(Regex("^(refactor)!?(\\(.+\\))?: .+")) -> ConventionalCommit.REFACTOR
-        it.matches(Regex("^(perf)!?(\\(.+\\))?: .+")) -> ConventionalCommit.PERF
-        it.matches(Regex("^(test)!?(\\(.+\\))?: .+")) -> ConventionalCommit.TEST
-        it.matches(Regex("^(chore)!?(\\(.+\\))?: .+")) -> ConventionalCommit.CHORE
+        it.matches(Regex("^(${ConventionalCommit.FEAT.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.FEAT
+        it.matches(Regex("^(${ConventionalCommit.FIX.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.FIX
+        it.matches(Regex("^(${ConventionalCommit.DOCS.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.DOCS
+        it.matches(Regex("^(${ConventionalCommit.STYLE.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.STYLE
+        it.matches(Regex("^(${ConventionalCommit.REFACTOR.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.REFACTOR
+        it.matches(Regex("^(${ConventionalCommit.PERF.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.PERF
+        it.matches(Regex("^(${ConventionalCommit.TEST.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.TEST
+        it.matches(Regex("^(${ConventionalCommit.CHORE.prefix})!?(\\(.+\\))?: .+")) -> ConventionalCommit.CHORE
         else -> ConventionalCommit.GENERAL_CHANGE
       }
     }
-//    .groupBy { commit ->
-//
-//      Regex("^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?!?:")
-//        .find(commit)?.value?.trim()?.trimEnd('!', ':') ?: "others"
-//    }
-
-  println("categorizedCommits $categorizedCommits")
+//  println("categorizedCommits $categorizedCommits")
   categorizedCommits.forEach { (type, messages) ->
     changelog.append("## ${type.title}\n")
     messages.distinct().forEach { message ->
       val description = message.lineSequence().first().substringAfter(": ").capitalize()
-      val scope = Regex("\\((.*?)\\)").find(message)?.groupValues?.get(1)?.let { "($it)" } ?: ""
-      val isBreaking = message.contains("BREAKING CHANGE:") || message.contains("!")
-
-//      if (isBreaking) breakingChanges.add("$description $scope")
+      val scope = Regex("\\((.*?)\\)").find(message)?.groupValues?.get(1)?.let { "(${it.capitalize()})" } ?: ""
 
       val fullDescription = StringBuilder("- ")
       if (scope.isNotBlank()) {
@@ -56,35 +66,14 @@ fun generateChangelog(fromTag: String, checkOnlyIOS: Boolean): String {
       fullDescription.append(description)
 
       changelog.append("$fullDescription\n")
-      if (isBreaking) {
-        val breakingChangeDescription = message.lineSequence()
-          .firstOrNull { it.startsWith("BREAKING CHANGE:") }
-          ?.substringAfter("BREAKING CHANGE:")
-          ?.trim()
-          ?: "Refer to commit for details."
-        changelog.append("  - **BREAKING CHANGE**: $breakingChangeDescription\n")
-      }
     }
     changelog.append("\n")
   }
 
-//  if (breakingChanges.isNotEmpty()) {
-//    changelog.insertAfter("# Changelog\n\n", "## Breaking Changes\n\n${breakingChanges.joinToString("\n") { "- $it" }}\n\n")
-//  }
-
   return changelog.toString()
 }
 
-fun StringBuilder.insertAfter(search: String, insertion: String): StringBuilder {
-  val index = this.indexOf(search)
-  if (index != -1) {
-    this.insert(index + search.length, insertion)
-  }
-  return this
-}
-
 fun String.capitalize() = replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-
 
 fun getCommitHistory(fromTag: String): List<String> {
   val process: Process = ProcessBuilder("git", "log", "--pretty=format:%s", "$fromTag..HEAD").start()
@@ -94,17 +83,19 @@ fun getCommitHistory(fromTag: String): List<String> {
   return output
 }
 
+enum class ConventionalCommit(val title: String, val prefix: String) {
+  FEAT("\uD83D\uDE80 Features", "feat"),
+  FIX("\uD83D\uDC1B Bug Fixes", "fix"),
+  DOCS("\uD83D\uDCDA Documentation", "docs"),
+  STYLE("\uD83C\uDFA8 Styling", "style"),
+  REFACTOR("\uD83D\uDE9C Refactor", "refactor"),
+  PERF("⚡\uFE0F Performance", "perf"),
+  TEST("\uD83E\uDDEA Testing", "test"),
+  CHORE("\uD83E\uDDF9 Chore", "chore"),
+  GENERAL_CHANGE("\uD83D\uDD04 Improvements", "")
+}
 
-fun BufferedReader.readToEnd() = this.lineSequence().joinToString("\n")
-
-enum class ConventionalCommit(val title: String) {
-  FEAT("\uD83D\uDE80 Features"),
-  FIX("\uD83D\uDC1B Bug Fixes"),
-  DOCS("\uD83D\uDCDA Documentation"),
-  STYLE("\uD83C\uDFA8 Styling"),
-  REFACTOR("\uD83D\uDE9C Refactor"),
-  PERF("⚡\uFE0F Performance"),
-  TEST("\uD83E\uDDEA Testing"),
-  CHORE("\uD83E\uDDF9 Chore"),
-  GENERAL_CHANGE("\uD83D\uDD04 Improvements")
+enum class ChangelogType {
+  KMP,
+  IOS
 }
