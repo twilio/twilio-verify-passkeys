@@ -20,11 +20,7 @@ fun generateChangelog(fromTag: String, checkOnlyIOS: Boolean): String {
 
   val breakingChanges = mutableListOf<String>()
   val categorizedCommits = commits
-//    .filter { it.matches(Regex("^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?: .+")) }
-
     .filter { it.matches(Regex("^(feat|fix|docs|style|refactor|perf|test|chore)!?(\\(.+\\))?: .+", RegexOption.DOT_MATCHES_ALL)) }
-//    .groupBy { it.substringBefore("(").substringBefore(":") }
-
     .groupBy { commit ->
       Regex("^(feat|fix|docs|style|refactor|perf|test|chore)(\\(.+\\))?!?:")
         .find(commit)?.value?.trim()?.trimEnd('!', ':') ?: "others"
