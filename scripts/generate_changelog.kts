@@ -13,7 +13,7 @@ val platform = if (args[1].lowercase() == Platform.KMP.name.lowercase()) {
 } else if (args[1].lowercase() == Platform.IOS.name.lowercase()) {
   Platform.IOS
 } else {
-  println("Bad usage: {{changelog_for}} parameter accepts KMP or iOS")
+  println("Bad usage: {{platform}} parameter accepts KMP or iOS")
   exitProcess(400)
 }
 
