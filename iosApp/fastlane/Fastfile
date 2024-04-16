@@ -80,12 +80,23 @@ platform :ios do
 
   desc "Generate simulator build"
   lane :simulator_app do
+    match(
+      type: "development",
+      app_identifier: ["com.passkeys.twilio.sampleCode"]
+    )
+    settings_to_override = {
+      :BUNDLE_IDENTIFIER => "com.passkeys.twilio.sampleCode",
+      :PROVISIONING_PROFILE_SPECIFIER => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
+      :DEVELOPMENT_TEAM => ENV["VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM"],
+    }
     gym(
       scheme: "iosApp",
       project: "iosApp.xcodeproj",
       silent: true,
       skip_package_ipa: true,
       skip_archive: true,
+      export_method: "development",
+      xcargs: settings_to_override,
       destination: "generic/platform=iOS Simulator",
       configuration: "Debug",
       derived_data_path: "simulator_build/",
