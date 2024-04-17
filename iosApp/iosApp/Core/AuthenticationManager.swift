@@ -84,7 +84,7 @@ class AuthenticationManager: NSObject, ObservableObject {
     ) {
         Task {
             do {
-                let result = try await worker.registrationVerification(request: .init(
+                _ = try await worker.registrationVerification(request: .init(
                     rawId: response.rawId,
                     id: response.id,
                     clientDataJson: response.clientDataJSON,

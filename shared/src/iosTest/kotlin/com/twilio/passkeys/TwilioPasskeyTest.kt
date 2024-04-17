@@ -16,15 +16,142 @@
 
 package com.twilio.passkeys
 
+import com.twilio.passkeys.exception.TwilioException
+import com.twilio.passkeys.mocks.ATTESTATION_OBJECT
+import com.twilio.passkeys.mocks.AUTHENTICATOR_ATTACHMENT
+import com.twilio.passkeys.mocks.AUTHENTICATOR_RESULT_PAYLOAD
+import com.twilio.passkeys.mocks.AuthorizationControllerWrapperMock
+import com.twilio.passkeys.mocks.CLIENT_DATA_JSON_AUTHENTICATE
+import com.twilio.passkeys.mocks.CLIENT_DATA_JSON_CREATE
+import com.twilio.passkeys.mocks.ID
+import com.twilio.passkeys.mocks.RAW_ID
+import com.twilio.passkeys.mocks.SIGNATURE
+import com.twilio.passkeys.mocks.TYPE
+import com.twilio.passkeys.mocks.USER_HANDLE
+import com.twilio.passkeys.mocks.authenticatePayload
+import com.twilio.passkeys.mocks.createPasskeyChallengePayload
+import com.twilio.passkeys.mocks.createResultPayload
+import com.twilio.passkeys.mocks.transports
 import kotlinx.coroutines.test.runTest
+import platform.UIKit.UIWindow
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.test.Test
+import kotlin.test.assertTrue
+import kotlin.test.fail
 
 @OptIn(ExperimentalNativeApi::class)
 class TwilioPasskeyTest {
+  // region Properties
+  private val passkeyPayloadMapper = PasskeyPayloadMapper
+  private val authControllerWrapper: AuthorizationControllerWrapperMock = AuthorizationControllerWrapperMock()
+  private val twilioPasskey = TwilioPasskey(passkeyPayloadMapper, authControllerWrapper)
+  // endregion
+
+  // region Tests
   @Test
-  fun `Example test`() =
+  fun `Test Passkey Creation With A Valid Response Should Succeed`() =
     runTest {
-      assert(true)
+      // Given
+      val createPasskeyResponse = passkeyPayloadMapper.mapToCreatePasskeyResponse(registrationResultJson = createResultPayload)
+      authControllerWrapper.createPasskeyResultValue = CreatePasskeyResult.Success(createPasskeyResponse)
+
+      // When
+      val result = twilioPasskey.create(createPayload = createPasskeyChallengePayload, appContext = AppContext(UIWindow()))
+
+      // Then
+      when (result) {
+        is CreatePasskeyResult.Success -> {
+          val response = result.createPasskeyResponse
+          assertTrue { response.id.equals(ID) }
+          assertTrue { response.rawId.equals(RAW_ID) }
+          assertTrue { response.authenticatorAttachment.equals(AUTHENTICATOR_ATTACHMENT) }
+          assertTrue { response.type.equals(TYPE) }
+          assertTrue { response.attestationObject.equals(ATTESTATION_OBJECT) }
+          assertTrue { response.clientDataJSON.equals(CLIENT_DATA_JSON_CREATE) }
+          assertTrue { response.transports.equals(transports) }
+        }
+        is CreatePasskeyResult.Error -> {
+          val error = result.error
+          fail("An error was found while creating the passkey: $error")
+        }
+      }
     }
+
+  @Test
+  fun `Test Passkey Creation With An Invalid Response Should Fail`() =
+    runTest {
+      // Given
+      val expectedError = TwilioException("Invalid Response Error", INVALID_RESPONSE_ERROR)
+      authControllerWrapper.createPasskeyResultValue = CreatePasskeyResult.Error(expectedError)
+
+      // When
+      val result = twilioPasskey.create(createPayload = createPasskeyChallengePayload, appContext = AppContext(UIWindow()))
+
+      // Then
+      when (result) {
+        is CreatePasskeyResult.Success -> {
+          fail("It shouldn't succeed")
+        }
+        is CreatePasskeyResult.Error -> {
+          val error = result.error
+          assertTrue { error.message.equals(expectedError.message) }
+        }
+      }
+    }
+
+  @Test
+  fun `Test Passkey Authentication With A Valid Response Should Succeed`() =
+    runTest {
+      // Given
+      val authenticatePasskeyResponse =
+        passkeyPayloadMapper.mapToAuthenticatePasskeyResponse(authenticatePasskeyResultJson = AUTHENTICATOR_RESULT_PAYLOAD)
+      authControllerWrapper.authenticatePasskeyResultValue =
+        AuthenticatePasskeyResult.Success(authenticatePasskeyResponse)
+
+      // When
+      val result = twilioPasskey.authenticate(authenticatePayload = authenticatePayload, appContext = AppContext(UIWindow()))
+
+      // Then
+      when (result) {
+        is AuthenticatePasskeyResult.Success -> {
+          val response = result.authenticatePasskeyResponse
+          print(response)
+          assertTrue { response.id.equals(ID) }
+          assertTrue { response.rawId.equals(RAW_ID) }
+          assertTrue { response.authenticatorAttachment.equals(AUTHENTICATOR_ATTACHMENT) }
+          assertTrue { response.type.equals(TYPE) }
+          assertTrue { response.clientDataJSON.equals(CLIENT_DATA_JSON_AUTHENTICATE) }
+          assertTrue { response.signature.equals(SIGNATURE) }
+          assertTrue { response.userHandle.equals(USER_HANDLE) }
+        }
+        is AuthenticatePasskeyResult.Error -> {
+          val error = result.error
+          fail("An error was found while creating the passkey: $error")
+        }
+      }
+    }
+
+  @Test
+  fun `Test Passkey Authentication With An Invalid Response Should Fail`() =
+    runTest {
+      // Given
+      val expectedError = TwilioException("Invalid Response Error", INVALID_RESPONSE_ERROR)
+      authControllerWrapper.authenticatePasskeyResultValue = AuthenticatePasskeyResult.Error(expectedError)
+
+      // When
+      val result = twilioPasskey.authenticate(authenticatePayload = authenticatePayload, appContext = AppContext(UIWindow()))
+
+      // Then
+      when (result) {
+        is AuthenticatePasskeyResult.Success -> {
+          fail("It shouldn't succeed")
+        }
+        is AuthenticatePasskeyResult.Error -> {
+          val error = result.error
+          assertTrue { error.message.equals(expectedError.message) }
+        }
+      }
+    }
+
+  // endregion
 }
