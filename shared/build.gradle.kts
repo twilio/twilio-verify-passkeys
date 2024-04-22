@@ -108,6 +108,16 @@ signing {
 kotlin {
   applyDefaultHierarchyTemplate()
 
+  js(IR) {
+    browser {
+      webpackTask {
+        output.library = "myLibrary"
+        output.libraryTarget = "var"
+      }
+    }
+    binaries.executable()
+  }
+
   androidTarget {
     mavenPublication {
       artifactId = "$libId-android"
@@ -145,6 +155,8 @@ kotlin {
         implementation(libs.kotlin.coroutines.test)
       }
     }
+
+    val jsMain by getting
   }
 
   multiplatformSwiftPackage {

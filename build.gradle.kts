@@ -83,6 +83,7 @@ allprojects {
       "src/commonMain/kotlin",
       "src/iosMain/kotlin",
       "src/iosTest/kotlin",
+      "src/jsMain/kotlin"
     )
   }
 
