@@ -24,14 +24,13 @@ external fun authenticateJs(domain: String): String
 @JsExport
 @JsName("TwilioPasskey")
 class TwilioPasskeyClass {
-  fun create(username: String, domain: String) {
+  fun create(username: String, domain: String): String {
     val status = createJs(username, domain);
-    console.log(status)
+    return status
   }
 
-  fun authenticate(domain: String) {
-    val status = authenticateJs(domain)
-    console.log(status)
+  fun authenticate(domain: String): String {
+    return authenticateJs(domain)
   }
 }
 
@@ -70,9 +69,3 @@ actual class TwilioPasskey private constructor(
 }
 
 actual class AppContext()
-
-@JsExport
-@JsName("hello")
-fun hello() {
-  console.log("Hello Kotlin/JS")
-}

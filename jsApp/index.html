@@ -167,6 +167,14 @@
 </body>
 <script type="text/javascript" src="../shared/build/dist/js/productionExecutable/shared.js"></script>
 <script>
+  const usernameElement = document.getElementById("usr_input");
+
+  window.intlTelInput(usernameElement, {
+            initialCountry: "us",
+            showSelectedDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@19.5.3/build/js/utils.js",
+        });
+
   const checkAvalibility = () => {}
   const login = () => {}
   const signIn = () => {}
