@@ -19,7 +19,7 @@ val createPasskeyChallengePayload =
       "name": "Example"
     },
     "user": {
-      "id": "WUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0NjA3YjIxOTEyYg",
+      "id": "PLACEHOLDERIDWUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0N",
       "name": "user1",
       "displayName": "User One"
     },
@@ -46,7 +46,7 @@ val createPasskeyChallengePayload =
 
 const val RP_ID = "example.com"
 const val RP_NAME = "Example"
-const val USER_ID = "WUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0NjA3YjIxOTEyYg"
+const val USER_ID = "PLACEHOLDERIDWUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0N"
 const val USER_NAME = "user1"
 const val USER_DISPLAY_NAME = "User One"
 const val CREATE_CHALLENGE = "WUYwNDhkMWE3ZWMzYTJhNjk3MDA1OWMyNzY2YmJjN2UwZg"
@@ -199,7 +199,7 @@ val authenticatePayload =
 
 const val SIGNATURE =
   "MEYCIQDDs662ykELzpmxkQaOR6HY5GwO7nX5z7jc7q9GbWZmvwIhAMEm4VBjWKzn60eGF8VtO6uqkRtSQpJvixCEy9Pr6E4o"
-const val USER_HANDLE = "WUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0NjA3YjIxOTEyYg"
+const val USER_HANDLE = "PLACEHOLDERIDWUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0N"
 const val CLIENT_DATA_JSON_AUTHENTICATE =
   "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiV1VNd05EazRaV05sWXpaaFpXWXdZV1ZpWmpSbU5tSmtaakJr" +
     "TVRabE9HVXlOdyIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5jb20iLCJjcm9zc09yaWdpbiI6ZmFsc2V9"

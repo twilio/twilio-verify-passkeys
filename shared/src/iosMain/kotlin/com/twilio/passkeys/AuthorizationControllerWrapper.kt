@@ -32,7 +32,7 @@ interface IAuthorizationControllerWrapper {
  * @property deviceUtils The utility class for device-related operations.
  */
 class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
-  private var authController: ASAuthorizationController? = null
+  private lateinit var authController: ASAuthorizationController
   private var createPasskeyCompletion: ((CreatePasskeyResult) -> Unit)? = null
   private var authenticatePasskeyCompletion: ((AuthenticatePasskeyResult) -> Unit)? = null
   private val deviceUtils: DeviceUtils = DeviceUtils()
@@ -43,8 +43,8 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
   ) {
     this.createPasskeyCompletion = completion
     this.authController = authController
-    this.authController?.delegate = createPasskeyDelegate
-    this.authController?.performRequests()
+    this.authController.delegate = createPasskeyDelegate
+    this.authController.performRequests()
   }
 
   override fun authenticatePasskey(
@@ -53,8 +53,8 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
   ) {
     this.authenticatePasskeyCompletion = completion
     this.authController = authController
-    this.authController?.delegate = authenticatePasskeyDelegate
-    this.authController?.performRequests()
+    this.authController.delegate = authenticatePasskeyDelegate
+    this.authController.performRequests()
   }
 
   private val createPasskeyDelegate =
