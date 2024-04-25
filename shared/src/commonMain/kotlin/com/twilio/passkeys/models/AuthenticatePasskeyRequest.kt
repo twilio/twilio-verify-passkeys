@@ -17,15 +17,21 @@
 package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 @Serializable
 data class AuthenticatePasskeyRequest(val publicKey: AuthenticatePasskeyRequestPublicKey)
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 @Serializable
 data class AuthenticatePasskeyRequestPublicKey(
   var challenge: String,
-  val timeout: Long,
+  val timeout: Int,
   val rpId: String,
-  val allowCredentials: List<KeyCredential>,
+  val allowCredentials: Array<KeyCredential>,
   val userVerification: String,
 )

@@ -146,7 +146,7 @@
       </div>
       <button type="button" class="btn continue_btn" id="continue" onclick="login()" disabled>Continue</button>
       <span class="separator">&#8213; or &#8213;</span>
-      <button type="button" class="btn passkey_btn" onclick="signIn()">Sign in with passkey</button>
+      <button type="button" class="btn passkey_btn" onclick="signIn()" id="signInButton">Sign in with passkey</button>
     </div>
   </div>
   <div id="modal" class="invisible">
@@ -154,7 +154,7 @@
     <p>Harness your device capabilities for a fast<br> passkey login with maximun security.</p>
     <a>Learn more &rarr;</a>
     <div class="input_container modal_input">
-      <button class="btn continue_btn enable" onclick="signUp()">Continue</button>
+      <button class="btn continue_btn enable" onclick="signUp()" id="signUpButton">Continue</button>
       <a class="skip_btn">Skip</a>
     </div>
   </div>
@@ -167,18 +167,143 @@
 </body>
 <script type="text/javascript" src="../shared/build/dist/js/productionExecutable/shared.js"></script>
 <script>
-  const usernameElement = document.getElementById("usr_input");
+    let sessionUsername = sessionStorage.getItem("session");
 
-  window.intlTelInput(usernameElement, {
-            initialCountry: "us",
-            showSelectedDialCode: true,
-            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@19.5.3/build/js/utils.js",
-        });
+    const loadApp = (username) => {
+        document.getElementById("welcome").innerHTML = `Welcome ${username}`
+        document.getElementById("modal").classList.add("invisible");
+        document.getElementById("container").classList.add("invisible");
+        document.getElementById("app").classList.remove("invisible");
+    }
 
-  const checkAvalibility = () => {}
-  const login = () => {}
-  const signIn = () => {}
-  const signUp = () => {}
-  const logOut = () => {}
+    if (sessionUsername) {
+        loadApp(sessionUsername)
+    }
+
+    const usernameElement = document.getElementById("usr_input");
+    const errorElement = document.getElementById("error");
+    const continueButton = document.getElementById("continue");
+    window.intlTelInput(usernameElement, {
+        initialCountry: "auto",
+        geoIpLookup: callback => {
+            fetch("https://ipapi.co/json")
+            .then(res => res.json())
+            .then(data => callback(data.country_code))
+            .catch(() => callback("us"));
+        },
+        showSelectedDialCode: true,
+        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@19.5.3/build/js/utils.js",
+    });
+
+    const twilioPasskey = new myLibrary.com.twilio.passkeys.TwilioPasskey.withMapper
+
+    const checkAvalibility = () => {
+        const username = usernameElement.value
+        if(username) {
+            continueButton.classList.add("enable");
+            continueButton.disabled = false;
+        } else {
+            continueButton.classList.remove("enable");
+            continueButton.disabled = true;
+        }
+    }
+
+    const login = () => {
+        const authenticationCard = document.getElementById("container");
+        const passkeyCard = document.getElementById("modal");
+        authenticationCard.classList.add("invisible");
+        passkeyCard.classList.remove("invisible");
+    }
+
+    const signIn = async () => {
+        try {
+            const response = await fetch("https://passkey-demo-kotlin-5589.twil.io/authentication/start");
+            const responseJSON = await response.json();
+
+            const { authenticatePasskeyResponse } = await twilioPasskey.authenticate(JSON.stringify(responseJSON))
+            const authentication = await fetch('https://passkey-demo-kotlin-5589.twil.io/authentication/verification', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    id: authenticatePasskeyResponse.id,
+                    rawId: authenticatePasskeyResponse.rawId,
+                    type: authenticatePasskeyResponse.type,
+                    clientDataJson: authenticatePasskeyResponse.clientDataJSON,
+                    authenticatorData: authenticatePasskeyResponse.authenticatorData,
+                    signature: authenticatePasskeyResponse.signature,
+                    userHandle: authenticatePasskeyResponse.userHandle
+                })
+            });
+
+            const authenticationJSON = await authentication.json();
+            const {status, identity} = authenticationJSON
+            if(status === "approved") {
+                sessionStorage.setItem('session', identity);
+                loadApp(identity);
+            } else {
+                console.log(status);
+            }
+        } catch (error) {
+            console.log(err);
+        }
+    }
+
+    const signUp = async () => {
+        const username = usernameElement.value
+
+        const buttonElement = document.getElementById("signUpButton")
+        buttonElement.disabled = true
+        buttonElement.classList.remove("enable");
+        buttonElement.textContent = "Loading..."
+
+        try {
+            const response = await fetch("https://passkey-demo-kotlin-5589.twil.io/registration/start", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    username: username
+                })
+            });
+
+            const responseJSON = await response.json();
+            const { createPasskeyResponse } = await twilioPasskey.create(JSON.stringify(responseJSON))
+            
+            const verificationResponse = await fetch("https://passkey-demo-kotlin-5589.twil.io/registration/verification", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    id: createPasskeyResponse.id,
+                    attestationObject: createPasskeyResponse.attestationObject,
+                    rawId: createPasskeyResponse.rawId,
+                    clientDataJson: createPasskeyResponse.clientDataJSON,
+                    transports: createPasskeyResponse.transports
+                })
+            });
+
+            const verRespJSON = await verificationResponse.json();
+            const { status } = verRespJSON
+            if (status === 'verified') {
+                sessionStorage.setItem('session', username);
+                loadApp(username);
+                buttonElement.disabled = false
+                buttonElement.classList.add("enable");
+                buttonElement.textContent = "Continue"
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+  
+    const logOut = () => {
+        sessionStorage.removeItem("session");
+        document.getElementById("app").classList.add("invisible");
+        document.getElementById("container").classList.remove("invisible");
+    }
 </script>
 </html>

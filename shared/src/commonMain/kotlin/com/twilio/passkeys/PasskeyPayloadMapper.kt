@@ -30,7 +30,11 @@ import com.twilio.passkeys.models.CreatePasskeyResponse
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 internal object PasskeyPayloadMapper {
   @OptIn(ExperimentalSerializationApi::class)
   private val json =
@@ -57,6 +61,7 @@ internal object PasskeyPayloadMapper {
     return authenticatePasskeyRequest
   }
 
+
   fun mapToPasskeyCreationResponse(registrationResultJson: String): CreatePasskeyResponse {
     val createPasskeyDto = json.decodeFromString<CreatePasskeyDto>(registrationResultJson)
     return CreatePasskeyResponse(
@@ -69,6 +74,7 @@ internal object PasskeyPayloadMapper {
       transports = createPasskeyDto.response.transports,
     )
   }
+
 
   fun mapToAuthenticatePasskeyResponse(authenticatePasskeyResultJson: String): AuthenticatePasskeyResponse {
     val authenticatePasskeyDto =
@@ -85,6 +91,7 @@ internal object PasskeyPayloadMapper {
     )
   }
 
+  /*
   fun mapException(e: Exception): TwilioException {
     return when (e) {
       is SerializationException, is IllegalArgumentException, is IndexOutOfBoundsException ->
@@ -95,4 +102,5 @@ internal object PasskeyPayloadMapper {
       else -> TwilioException(UNKNOWN_ERROR, e.message.toString())
     }
   }
+   */
 }

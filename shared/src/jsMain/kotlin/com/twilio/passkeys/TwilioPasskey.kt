@@ -3,41 +3,25 @@ package com.twilio.passkeys
 
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyRequest
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlin.js.Promise
 
-suspend fun nativeCreate(
-  challengePayload: String,
-): CreatePasskeyRequest {
-  return PasskeyPayloadMapper.mapToPasskeyCreationPayload(challengePayload)
-}
-
-
-@JsModule("./create")
+@JsModule("./CredentialManager")
 @JsNonModule
-@JsName("createJs")
-external fun createJs(username: String, domain: String): String
-
-@JsModule("./authenticate")
-@JsNonModule
-@JsName("authenticateJs")
-external fun authenticateJs(domain: String): String
-
-@JsExport
-@JsName("TwilioPasskey")
-class TwilioPasskeyClass {
-  fun create(username: String, domain: String): String {
-    val status = createJs(username, domain);
-    return status
-  }
-
-  fun authenticate(domain: String): String {
-    return authenticateJs(domain)
+@JsName("CredentialManager")
+external class CredentialManager {
+  companion object {
+    fun createCredential(createPasskeyRequest: String): Promise<String>
+    fun getCredential(authenticatePasskeyRequest: String): Promise<String>
   }
 }
 
 
-actual class TwilioPasskey private constructor(
+actual open class TwilioPasskey private constructor(
   private val passkeysPayloadMapper: PasskeyPayloadMapper
 ) {
+
   constructor() : this(
     passkeysPayloadMapper = PasskeyPayloadMapper
   )
@@ -65,6 +49,53 @@ actual class TwilioPasskey private constructor(
     appContext: AppContext
   ): AuthenticatePasskeyResult {
     TODO("Not yet implemented")
+  }
+}
+
+
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+@JsName("TwilioPasskey")
+class TwilioPasskeyJS private constructor(
+  private val credentialManager: CredentialManager.Companion,
+  private val passkeysPayloadMapper: PasskeyPayloadMapper
+) {
+
+  @JsName("withMapper")
+  constructor() : this(
+    CredentialManager,
+    PasskeyPayloadMapper
+  )
+
+
+  private fun create(createPasskeyRequest: CreatePasskeyRequest): Promise<CreatePasskeyResult> {
+    val requestJson = Json.encodeToString(createPasskeyRequest)
+    return CredentialManager.createCredential(requestJson).then {
+      CreatePasskeyResult.Success(passkeysPayloadMapper.mapToPasskeyCreationResponse(it))
+    }
+  }
+
+
+  fun create(
+    challengePayload: String,
+  ): Promise<CreatePasskeyResult> {
+    val createPasskeyRequest = passkeysPayloadMapper.mapToPasskeyCreationPayload(challengePayload)
+    return create(createPasskeyRequest)
+  }
+
+  private fun authenticate(
+    authenticatePasskeyRequest: AuthenticatePasskeyRequest,
+  ): Promise<AuthenticatePasskeyResult> {
+    val requestJson = Json.encodeToString(authenticatePasskeyRequest.publicKey)
+    return CredentialManager.getCredential(requestJson).then {
+      AuthenticatePasskeyResult.Success(passkeysPayloadMapper.mapToAuthenticatePasskeyResponse(it))
+    }
+  }
+
+  fun authenticate(challengePayload: String): Promise<AuthenticatePasskeyResult> {
+    val authenticatePasskeyRequest =
+      passkeysPayloadMapper.mapToPasskeyAuthenticationPayload(challengePayload)
+    return authenticate(authenticatePasskeyRequest)
   }
 }
 

@@ -18,7 +18,11 @@ package com.twilio.passkeys
 
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 sealed class AuthenticatePasskeyResult {
   data class Success(val authenticatePasskeyResponse: AuthenticatePasskeyResponse) :
     AuthenticatePasskeyResult()

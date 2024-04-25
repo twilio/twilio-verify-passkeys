@@ -17,10 +17,12 @@
 package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
+import kotlin.js.JsExport
 
+@JsExport
 @Serializable
 data class KeyCredential(
   val id: String,
   val type: String,
-  val transports: List<String>,
+  val transports: Array<String>,
 )

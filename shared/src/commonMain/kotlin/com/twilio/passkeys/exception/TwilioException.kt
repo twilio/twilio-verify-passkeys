@@ -16,11 +16,16 @@
 
 package com.twilio.passkeys.exception
 
+import kotlin.js.JsExport
+import kotlin.js.JsName
+
 internal const val INVALID_JSON_PAYLOAD_ERROR = "INVALID_JSON_PAYLOAD"
 internal const val UNKNOWN_ERROR = "UNKNOWN"
 
+@JsExport
 data class TwilioException(
   val message: String,
 ) {
+  @JsName("withType")
   constructor(type: String, message: String) : this("$type: $message")
 }

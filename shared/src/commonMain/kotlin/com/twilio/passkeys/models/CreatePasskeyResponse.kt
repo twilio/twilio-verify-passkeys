@@ -17,7 +17,13 @@
 package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+import kotlin.js.JsName
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+@JsName("CreatePasskeyResponse")
 data class CreatePasskeyResponse(
   val id: String,
   val rawId: String,
@@ -25,9 +31,11 @@ data class CreatePasskeyResponse(
   val type: String,
   val attestationObject: String,
   val clientDataJSON: String,
-  val transports: List<String>,
+  val transports: Array<String>,
 )
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 @Serializable
 data class CreatePasskeyDto(
   val id: String,
@@ -37,9 +45,11 @@ data class CreatePasskeyDto(
   val response: CreatePasskeyResponseDto,
 )
 
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 @Serializable
 data class CreatePasskeyResponseDto(
   val attestationObject: String,
   val clientDataJSON: String,
-  val transports: List<String>,
+  val transports: Array<String>,
 )
