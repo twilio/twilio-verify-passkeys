@@ -7,9 +7,9 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
-BINARY_DOWNLOAD_URI=$(grep -o '"binaryDownloadUri":"[^"]*' "$1" | grep -o '[^"]*$')
+BINARY_DOWNLOAD_URI=$(grep -o '"binaryDownloadUri":"[^"]*' "$1" | grep -o '[^"]*$' | head -n 1)
 
-#echo "Binary Download URI: $BINARY_DOWNLOAD_URI"
+echo "Binary Download URI: $BINARY_DOWNLOAD_URI"
 ANDROID_APP_DOWNLOAD_URL=$BINARY_DOWNLOAD_URI
 
 FOLDER_TO_SAVE_URL=$2
