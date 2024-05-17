@@ -370,6 +370,9 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - run:
+          name: Test
+          command: echo $ANDROID_APP_DOWNLOAD_URL
       - persist_to_workspace:
           root: *workspace
           paths:
