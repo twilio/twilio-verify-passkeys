@@ -275,7 +275,7 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
-  publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+  publish-kmp-sdk-to-nexus-internal-release-repository:
     executor: android-executor
 
     steps:
@@ -300,7 +300,41 @@ jobs:
           paths:
             - *tmp-workspace
 
-  generate-android-sample-app-using-internal-sdk:
+  generate-android-sample-app-using-local-sdk:
+    executor: android-node-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Set sample backend URL
+          command: |
+            ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
+      - run:
+          name: Generate APK
+          command: |
+            ./gradlew :androidApp:assembleRelease
+      - install-firebase-cli
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+      - run:
+          name: Save distributed app link
+          command: |
+            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  generate-android-sample-app-using-internal-release-sdk:
     executor: android-node-executor
 
     steps:
@@ -341,7 +375,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-internal-sdk-e2e-tests:
+  run-android-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     steps:
@@ -460,25 +494,42 @@ workflows:
       - android-generate-aar:
           requires:
             - android-instrumented-tests
-      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+      - generate-android-sample-app-using-local-sdk:
           requires:
             - android-instrumented-tests
             - ios-unit-tests
+      - run-android-sdk-e2e-tests:
+          name: run-android-local-sdk-e2e-tests
+          requires:
+            - generate-android-sample-app-using-local-sdk
+      - wait-for-android-local-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-local-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          name: check-android-local-sdk-e2e-tests-result
+          requires:
+            - wait-for-android-local-sdk-e2e-tests
+      - publish-kmp-sdk-to-nexus-internal-release-repository:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
           filters:
             branches:
               only:
                 - /release.*/
                 - /hotfix.*/
-      - generate-android-sample-app-using-internal-sdk:
+      - generate-android-sample-app-using-internal-release-sdk:
           requires:
-            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-internal-sdk-e2e-tests:
+            - publish-kmp-sdk-to-nexus-internal-release-repository
+      - run-android-sdk-e2e-tests:
+          name: run-android-internal-release-sdk-e2e-tests
           requires:
-            - generate-android-sample-app-using-internal-sdk
-      - wait-for-internal-sdk-e2e-tests:
+            - generate-android-sample-app-using-internal-release-sdk
+      - wait-for-android-internal-release-sdk-e2e-tests:
           type: approval
           requires:
-            - run-internal-sdk-e2e-tests
+            - run-android-internal-release-sdk-e2e-tests
       - check-status-of-triggered-pipeline:
+          name: check-android-internal-release-sdk-e2e-tests-result
           requires:
-            - wait-for-internal-sdk-e2e-tests
+            - wait-for-android-internal-release-sdk-e2e-tests
