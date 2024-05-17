@@ -387,7 +387,7 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-            
+            echo "TEST"
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
