@@ -400,8 +400,8 @@ jobs:
                 "branch":"sfierro/Fix-e2e-test-CI-pipeline",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
-                  "trigger-android-workflow":"true",
-                  "trigger-ios-workflow":"false",
+                  "trigger-android-workflow":true,
+                  "trigger-ios-workflow":false,
                   "triggering-pipeline-id":"<< pipeline.id >>",
                   "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
