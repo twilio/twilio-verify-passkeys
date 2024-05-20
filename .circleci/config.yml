@@ -438,7 +438,7 @@ jobs:
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
-              | jq -r '.items[] | select(.name == << parameters.workflow_name_to_check >>) | .status')
+              | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status')
             )
             echo $created_workflow_status
             if [[ "$created_workflow_status" != "success" ]]; then
