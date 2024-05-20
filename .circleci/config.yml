@@ -403,7 +403,7 @@ jobs:
                   "trigger-android-workflow":"true",
                   "trigger-ios-workflow":"false",
                   "triggering-pipeline-id":"<< pipeline.id >>",
-                  "triggering-pipeline-waiting-job-name":<< parameters.waiting_job_name >>
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
               }' \
               | jq -r '.id'
