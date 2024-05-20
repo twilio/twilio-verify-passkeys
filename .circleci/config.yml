@@ -370,9 +370,6 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - run:
-          name: Test
-          command: echo $ANDROID_APP_DOWNLOAD_URL
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -390,13 +387,13 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-            echo "TEST"
+            
             CREATED_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"appium-main",
+                "branch":"sfierro/Fix-e2e-test-CI-pipeline",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
                   "triggering-pipeline-id":"<< pipeline.id >>"
@@ -417,6 +414,10 @@ jobs:
   check-status-of-triggered-pipeline:
     executor: ubuntu-small-executor
 
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
     steps:
       - attach_workspace:
           at: *workspace
@@ -430,7 +431,7 @@ jobs:
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
-              | jq -r '.items[0].status'
+              | jq -r '.items[] | select(.name == << parameters.workflow_name_to_check >>) | .status')
             )
             echo $created_workflow_status
             if [[ "$created_workflow_status" != "success" ]]; then
@@ -511,6 +512,7 @@ workflows:
             - run-android-local-sdk-e2e-tests
       - check-status-of-triggered-pipeline:
           name: check-android-local-sdk-e2e-tests-result
+          workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
       - publish-kmp-sdk-to-nexus-internal-release-repository:
@@ -534,5 +536,6 @@ workflows:
             - run-android-internal-release-sdk-e2e-tests
       - check-status-of-triggered-pipeline:
           name: check-android-internal-release-sdk-e2e-tests-result
+          workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-internal-release-sdk-e2e-tests
