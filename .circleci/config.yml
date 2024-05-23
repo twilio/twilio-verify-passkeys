@@ -285,8 +285,17 @@ jobs:
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
-            release_type=$(ruby scripts/versioning/require_release.rb false)
-            echo $release_type
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo $KMP_RELEASE_TYPE
+            
+            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
 
   should-release-ios-version:
     executor: ruby-executor
@@ -298,14 +307,37 @@ jobs:
       - run:
           name: Check commit history to determinate the type of release for iOS SDK
           command: |
-            release_type=$(ruby scripts/versioning/require_release.rb true)
-            echo $release_type
+            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+            echo $IOS_RELEASE_TYPE
+            
+            ./scripts/add_env_variable_to_file.sh IOS_RELEASE_TYPE $IOS_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
 
   publish-kmp-sdk-to-nexus-internal-release-repository:
     executor: android-executor
 
     steps:
       - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check if should release
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $KMP_RELEASE_TYPE
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
+              echo "No new release triggered"
+              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
+              exit 0
+            else
+              echo "Found a new $KMP_RELEASE_TYPE release"
+              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
       - android/restore-build-cache
       - android/restore-gradle-cache
       - run:
@@ -568,14 +600,15 @@ workflows:
       - publish-kmp-sdk-to-nexus-internal-release-repository:
           requires:
             - should-release-kmp-version
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kmp-sdk-to-nexus-internal-release-repository
+          when: << pipeline.parameters.PipelineContinue >>
       - run-android-sdk-e2e-tests:
           name: run-android-internal-release-sdk-e2e-tests
           waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
