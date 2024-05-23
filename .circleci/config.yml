@@ -285,8 +285,8 @@ jobs:
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
-            RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
-            echo $RELEASE_TYPE
+            release_type=$(ruby scripts/versioning/require_release.rb false)
+            echo $release_type
 
   should-release-ios-version:
     executor: ruby-executor
@@ -297,8 +297,9 @@ jobs:
           at: *workspace
       - run:
           name: Check commit history to determinate the type of release for iOS SDK
-          command: RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
-      - run: echo $RELEASE_TYPE
+          command: |
+            release_type=$(ruby scripts/versioning/require_release.rb true)
+            echo $release_type
 
   publish-kmp-sdk-to-nexus-internal-release-repository:
     executor: android-executor
