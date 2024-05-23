@@ -284,7 +284,9 @@ jobs:
           at: *workspace
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
-          command:  ruby scripts/require_release.rb false
+          command:  |
+            ls
+            ruby scripts/versioning/require_release.rb false
 
   should-release-ios-version:
     executor: ruby-executor
@@ -295,7 +297,7 @@ jobs:
           at: *workspace
       - run:
           name: Check commit history to determinate the type of release for iOS SDK
-          command: ruby scripts/require_release.rb true
+          command: ruby scripts/versioning/require_release.rb true
 
   publish-kmp-sdk-to-nexus-internal-release-repository:
     executor: android-executor
