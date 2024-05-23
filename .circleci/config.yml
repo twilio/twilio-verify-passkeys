@@ -326,18 +326,18 @@ jobs:
       - checkout
       - attach_workspace:
           at: *workspace
-      - run:
-          name: Check if should release
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $KMP_RELEASE_TYPE
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
-              echo "No new release triggered"
-#              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
-#              exit 0
-            else
-              echo "Found a new $KMP_RELEASE_TYPE release"
-#              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
+#      - run:
+#          name: Check if should release
+#          command: |
+#            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+#            echo $KMP_RELEASE_TYPE
+#            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
+#              echo "No new release triggered"
+##              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
+##              exit 0
+#            else
+#              echo "Found a new $KMP_RELEASE_TYPE release"
+##              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
       - android/restore-build-cache
       - android/restore-gradle-cache
       - run:
