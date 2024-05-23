@@ -276,7 +276,7 @@ jobs:
           path: TwilioPasskeys.aar
 
   should-release-kmp-version:
-    executor: ubuntu-small-executor
+    executor: ruby-executor
 
     steps:
       - checkout
@@ -287,7 +287,7 @@ jobs:
           command:  ruby scripts/require_release.rb false
 
   should-release-ios-version:
-    executor: ubuntu-small-executor
+    executor: ruby-executor
 
     steps:
       - checkout
@@ -546,16 +546,16 @@ workflows:
           requires:
             - wait-for-android-local-sdk-e2e-tests
       - should-release-kmp-version:
-          requires:
-            - check-android-local-sdk-e2e-tests-result
+#          requires:
+#            - check-android-local-sdk-e2e-tests-result
 #          filters:
 #            branches:
 #              only:
 #                - /release.*/
 #                - /hotfix.*/
       - should-release-ios-version:
-          requires:
-            - check-android-local-sdk-e2e-tests-result
+#          requires:
+#            - check-android-local-sdk-e2e-tests-result
 #          filters:
 #            branches:
 #              only:
