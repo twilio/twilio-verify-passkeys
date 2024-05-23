@@ -545,7 +545,7 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-      - should-release-kmp-version:
+      - should-release-kmp-version
 #          requires:
 #            - check-android-local-sdk-e2e-tests-result
 #          filters:
@@ -553,7 +553,7 @@ workflows:
 #              only:
 #                - /release.*/
 #                - /hotfix.*/
-      - should-release-ios-version:
+      - should-release-ios-version
 #          requires:
 #            - check-android-local-sdk-e2e-tests-result
 #          filters:
