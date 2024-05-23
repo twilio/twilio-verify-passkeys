@@ -333,11 +333,11 @@ jobs:
             echo $KMP_RELEASE_TYPE
             if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
               echo "No new release triggered"
-              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
-              exit 0
+#              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
+#              exit 0
             else
               echo "Found a new $KMP_RELEASE_TYPE release"
-              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
+#              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
       - android/restore-build-cache
       - android/restore-gradle-cache
       - run:
@@ -581,34 +581,31 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-      - should-release-kmp-version
-#          requires:
-#            - check-android-local-sdk-e2e-tests-result
+
+  release:
+    jobs:
+      - should-release-kmp-version:
+          requires:
+            - assemble
 #          filters:
 #            branches:
 #              only:
 #                - /release.*/
 #                - /hotfix.*/
-      - should-release-ios-version
-#          requires:
-#            - check-android-local-sdk-e2e-tests-result
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
+      - should-release-ios-version:
+          requires:
+            - assemble
       - publish-kmp-sdk-to-nexus-internal-release-repository:
           requires:
             - should-release-kmp-version
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
+#                      filters:
+#                        branches:
+#                          only:
+#                            - /release.*/
+#                            - /hotfix.*/
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kmp-sdk-to-nexus-internal-release-repository
-          when: << pipeline.parameters.PipelineContinue >>
       - run-android-sdk-e2e-tests:
           name: run-android-internal-release-sdk-e2e-tests
           waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
