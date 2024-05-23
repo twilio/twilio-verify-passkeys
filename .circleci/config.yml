@@ -275,6 +275,28 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
+  should-release-kmp-version:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check commit history to determinate the type of release for KMP SDK
+          command:  ruby scripts/require_release.rb false
+
+  should-release-ios-version:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check commit history to determinate the type of release for iOS SDK
+          command: ruby scripts/require_release.rb true
+
   publish-kmp-sdk-to-nexus-internal-release-repository:
     executor: android-executor
 
@@ -523,14 +545,25 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-      - publish-kmp-sdk-to-nexus-internal-release-repository:
+      - should-release-kmp-version:
           requires:
             - check-android-local-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
+      - should-release-ios-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
+#          filters:
+#            branches:
+#              only:
+#                - /release.*/
+#                - /hotfix.*/
+      - publish-kmp-sdk-to-nexus-internal-release-repository:
+          requires:
+            - should-release-kmp-version
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kmp-sdk-to-nexus-internal-release-repository
