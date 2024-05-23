@@ -564,6 +564,11 @@ workflows:
       - publish-kmp-sdk-to-nexus-internal-release-repository:
           requires:
             - should-release-kmp-version
+          filters:
+            branches:
+              only:
+                - /release.*/
+                - /hotfix.*/
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kmp-sdk-to-nexus-internal-release-repository
