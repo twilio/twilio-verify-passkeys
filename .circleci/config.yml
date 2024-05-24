@@ -305,14 +305,12 @@ jobs:
           command:  |
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
-            echo 'export KMP_RELEASE_TYPE=$KMP_RELEASE_TYPE' >> $BASH_ENV
-#            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-#              echo "No need to release a new version"
-#              circleci-agent step halt
-#            else
-#              echo "Starting a new $KMP_RELEASE_TYPE release"
-#            fi
-
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $KMP_RELEASE_TYPE release"
+            fi
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
