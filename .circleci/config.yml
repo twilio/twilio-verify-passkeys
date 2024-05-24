@@ -4,6 +4,7 @@ orbs:
   android: circleci/android@2.3.0
   ruby: circleci/ruby@2.1.0
   gcp-cli: circleci/gcp-cli@3.1.1
+  continuation: circleci/continuation@1.0.0
 
 aliases:
   - &workspace
@@ -309,6 +310,9 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - continuation/continue:
+          configuration_path: .circleci/release_kmp.yml
+          parameters: '{"version-type": "ASD"}'
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -607,23 +611,23 @@ workflows:
       #                            - /hotfix.*/
 
 
-  release-android:
-    jobs:
-      - generate-android-sample-app-using-internal-release-sdk:
-          requires:
-            - should-release-kmp-version
-            - publish-kmp-sdk-to-nexus-internal-release-repository
-      - run-android-sdk-e2e-tests:
-          name: run-android-internal-release-sdk-e2e-tests
-          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
-          requires:
-            - generate-android-sample-app-using-internal-release-sdk
-      - wait-for-android-internal-release-sdk-e2e-tests:
-          type: approval
-          requires:
-            - run-android-internal-release-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
-          name: check-android-internal-release-sdk-e2e-tests-result
-          workflow_name_to_check: "android-tests"
-          requires:
-            - wait-for-android-internal-release-sdk-e2e-tests
+#  release-android:
+#    jobs:
+#      - generate-android-sample-app-using-internal-release-sdk:
+#          requires:
+#            - should-release-kmp-version
+#            - publish-kmp-sdk-to-nexus-internal-release-repository
+#      - run-android-sdk-e2e-tests:
+#          name: run-android-internal-release-sdk-e2e-tests
+#          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
+#          requires:
+#            - generate-android-sample-app-using-internal-release-sdk
+#      - wait-for-android-internal-release-sdk-e2e-tests:
+#          type: approval
+#          requires:
+#            - run-android-internal-release-sdk-e2e-tests
+#      - check-status-of-triggered-pipeline:
+#          name: check-android-internal-release-sdk-e2e-tests-result
+#          workflow_name_to_check: "android-tests"
+#          requires:
+#            - wait-for-android-internal-release-sdk-e2e-tests

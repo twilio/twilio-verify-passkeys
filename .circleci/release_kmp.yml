@@ -1,0 +1,92 @@
+version: 2.1
+
+parameters:
+  version-type:
+    type: string
+    default: "NONE"
+
+aliases:
+  - &workspace
+      ~/passkeys-sdk
+  - &tmp-workspace
+      tmp/workspace
+  - &env-vars-file
+      env_vars
+
+executors:
+  ubuntu-small-executor:
+    #https://circleci:com/developer/images/image/cimg/base
+    docker:
+      - image: cimg/base:2024.02
+    resource_class: small
+    working_directory: *workspace
+
+  android-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1
+    resource_class: medium
+    working_directory: *workspace
+
+  android-node-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1-node
+    resource_class: medium
+    working_directory: *workspace
+
+  mac-os-executor:
+    macos:
+      xcode: "15.1.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: *workspace
+
+  ruby-executor:
+    docker:
+      - image: cimg/ruby:3.3.0
+    working_directory: *workspace
+
+jobs:
+  should-release-kmp-version:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check commit history to determinate the type of release for KMP SDK
+          command: |
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo $KMP_RELEASE_TYPE
+
+            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo "SERGIO"
+            echo << pipeline.parameters.version-type >>
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+workflows:
+  release-kmp:
+    jobs:
+      - should-release-kmp-version
+#      - generate-android-sample-app-using-internal-release-sdk
+#      - run-android-sdk-e2e-tests:
+#          name: run-android-internal-release-sdk-e2e-tests
+#          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
+#          requires:
+#            - generate-android-sample-app-using-internal-release-sdk
+#      - wait-for-android-internal-release-sdk-e2e-tests:
+#          type: approval
+#          requires:
+#            - run-android-internal-release-sdk-e2e-tests
+#      - check-status-of-triggered-pipeline:
+#          name: check-android-internal-release-sdk-e2e-tests-result
+#          workflow_name_to_check: "android-tests"
+#          requires:
+#            - wait-for-android-internal-release-sdk-e2e-tests
