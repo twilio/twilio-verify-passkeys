@@ -305,7 +305,8 @@ jobs:
           command:  |
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
-            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo 'export KMP_RELEASE_TYPE=$KMP_RELEASE_TYPE' >> $BASH_ENV
+#            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
 #            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
 #              echo "No need to release a new version"
 #              circleci-agent step halt
