@@ -319,7 +319,7 @@ jobs:
             ENV_VARS_FILE: *env-vars-file
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
-          parameters: '{"version-type": "Hello"}'
+          parameters: '{"version-type": "'$KMP_RELEASE_TYPE'"}'
 #      - persist_to_workspace:
 #          root: *workspace
 #          paths:
