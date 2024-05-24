@@ -115,7 +115,7 @@ commands:
             else
               echo "Found a new $KMP_RELEASE_TYPE release"
           
-          
+setup: true
 
 jobs:
   assemble:
