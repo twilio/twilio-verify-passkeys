@@ -41,6 +41,7 @@ begin
 
   next_version = "#{next_major}.#{next_minor}.#{next_patch}"
   GradlePropertyUtils.set_property(property, next_version)
+  puts "New version = #{next_version}"
 rescue ArgumentError => e
   raise e, e.message
 end

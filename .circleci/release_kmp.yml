@@ -78,6 +78,36 @@ jobs:
           paths:
             - *tmp-workspace
 
+  prepare-new-version:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Version bump
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            CHANGELOG=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
+            echo "CHANGELOG = $CHANGELOG"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - run:
+           name: Generate changelog
+           command: |
+             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+             ruby scripts/versioning/generate_changelog.rb false
+           environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - run: git status
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: android-executor
 
@@ -87,6 +117,7 @@ jobs:
           at: *workspace
       - android/restore-build-cache
       - android/restore-gradle-cache
+      - run: git status
       - run:
           name: Generate signing key ring file
           command: |
@@ -226,9 +257,12 @@ workflows:
   release-kmp:
     jobs:
       - release-type
-      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+      - prepare-new-version:
           requires:
             - release-type
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            - prepare-new-version
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
