@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   version-type:
     type: string
-    default: "NONE"
+    default: "TEST"
 
 orbs:
   android: circleci/android@2.3.0

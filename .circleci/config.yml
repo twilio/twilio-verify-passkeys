@@ -298,21 +298,23 @@ jobs:
 
     steps:
       - checkout
-#      - attach_workspace:
-#          at: *workspace
+      - attach_workspace:
+          at: *workspace
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
-            
             echo "Release type = $KMP_RELEASE_TYPE"
-  
 #            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-#              echo "No new release triggered"
+#              echo "No need to release a new version"
 #              circleci-agent step halt
 #            else
-#              echo "Found a new $KMP_RELEASE_TYPE release"
+#              echo "Starting a new $KMP_RELEASE_TYPE release"
 #            fi
+            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
           parameters: '{"version-type": "$KMP_RELEASE_TYPE"}'
