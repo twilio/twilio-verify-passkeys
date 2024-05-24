@@ -297,8 +297,9 @@ jobs:
     executor: ruby-executor
 
     steps:
-      - attach_workspace:
-          at: *workspace
+      - checkout
+#      - attach_workspace:
+#          at: *workspace
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
@@ -315,6 +316,10 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
           parameters: '{"version-type": "$KMP_RELEASE_TYPE"}'
+#      - persist_to_workspace:
+#          root: *workspace
+#          paths:
+#            - *tmp-workspace
 
   should-release-ios-version:
     executor: ruby-executor
