@@ -301,17 +301,18 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Check commit history to determinate the type of release for KMP SDK
+          name: Determinate the type of release for KMP SDK
           command:  |
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
+            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
 #            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
 #              echo "No need to release a new version"
 #              circleci-agent step halt
 #            else
 #              echo "Starting a new $KMP_RELEASE_TYPE release"
 #            fi
-            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -331,7 +332,7 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Check commit history to determinate the type of release for iOS SDK
+          name: Determinate the type of release for iOS SDK
           command: |
             IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
             echo $IOS_RELEASE_TYPE
