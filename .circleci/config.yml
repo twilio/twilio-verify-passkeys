@@ -297,9 +297,6 @@ jobs:
     executor: ruby-executor
 
     steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
@@ -307,23 +304,15 @@ jobs:
             
             echo "Release type = $KMP_RELEASE_TYPE"
   
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-              echo "No new release triggered"
-              circleci-agent step halt
-            else
-              echo "Found a new $KMP_RELEASE_TYPE release"
-            fi
-#            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+#            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+#              echo "No new release triggered"
+#              circleci-agent step halt
+#            else
+#              echo "Found a new $KMP_RELEASE_TYPE release"
+#            fi
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
           parameters: '{"version-type": "$KMP_RELEASE_TYPE"}'
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - *tmp-workspace
 
   should-release-ios-version:
     executor: ruby-executor
