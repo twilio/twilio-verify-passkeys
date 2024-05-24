@@ -228,7 +228,7 @@ workflows:
       - release-type
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
           requires:
-            release-type
+            - release-type
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
