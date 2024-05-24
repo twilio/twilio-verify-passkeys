@@ -5,6 +5,9 @@ parameters:
     type: string
     default: "NONE"
 
+orbs:
+  android: circleci/android@2.3.0
+
 aliases:
   - &workspace
       ~/passkeys-sdk
@@ -45,6 +48,13 @@ executors:
     docker:
       - image: cimg/ruby:3.3.0
     working_directory: *workspace
+
+commands:
+  install-firebase-cli:
+    steps:
+      - run:
+          name: Install Firebase CLI
+          command: npm install --save-dev firebase-tools
 
 jobs:
   should-release-kmp-version:
