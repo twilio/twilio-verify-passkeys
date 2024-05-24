@@ -297,6 +297,8 @@ jobs:
     executor: ruby-executor
 
     steps:
+      - attach_workspace:
+          at: *workspace
       - run:
           name: Check commit history to determinate the type of release for KMP SDK
           command:  |
