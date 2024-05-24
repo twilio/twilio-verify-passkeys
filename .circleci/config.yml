@@ -99,6 +99,23 @@ commands:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
 
+  check-release-type:
+    steps:
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check if should release
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo "Release type = $KMP_RELEASE_TYPE"
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
+              echo "No new release triggered"
+              exit 0
+            else
+              echo "Found a new $KMP_RELEASE_TYPE release"
+          
+          
+
 jobs:
   assemble:
     executor: android-executor
@@ -324,20 +341,7 @@ jobs:
 
     steps:
       - checkout
-      - attach_workspace:
-          at: *workspace
-#      - run:
-#          name: Check if should release
-#          command: |
-#            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-#            echo $KMP_RELEASE_TYPE
-#            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
-#              echo "No new release triggered"
-##              echo "export PIPELINE_CONTINUE=false" >> $BASH_ENV
-##              exit 0
-#            else
-#              echo "Found a new $KMP_RELEASE_TYPE release"
-##              echo "export PIPELINE_CONTINUE=true" >> $BASH_ENV
+      - check-release-type
       - android/restore-build-cache
       - android/restore-gradle-cache
       - run:
@@ -397,6 +401,7 @@ jobs:
 
     steps:
       - checkout
+      - check-release-type
       - android/restore-build-cache
       - android/restore-gradle-cache
       - attach_workspace:
@@ -581,28 +586,32 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-
-  release:
-    jobs:
-      - should-release-kmp-version:
+      - should-release-kmp-version
+#          requires:
+#            - assemble
+            #          filters:
+            #            branches:
+            #              only:
+            #                - /release.*/
+            #                - /hotfix.*/
+      - should-release-ios-version
+#          requires:
+#            - assemble
+      - release-android:
           requires:
-            - assemble
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
-      - should-release-ios-version:
-          requires:
-            - assemble
+            - should-release-kmp-version
       - publish-kmp-sdk-to-nexus-internal-release-repository:
           requires:
             - should-release-kmp-version
-#                      filters:
-#                        branches:
-#                          only:
-#                            - /release.*/
-#                            - /hotfix.*/
+      #                      filters:
+      #                        branches:
+      #                          only:
+      #                            - /release.*/
+      #                            - /hotfix.*/
+
+
+  release-android:
+    jobs:
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kmp-sdk-to-nexus-internal-release-repository
