@@ -306,7 +306,6 @@ jobs:
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
             echo 'export KMP_RELEASE_TYPE=$KMP_RELEASE_TYPE' >> $BASH_ENV
-#            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
 #            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
 #              echo "No need to release a new version"
 #              circleci-agent step halt
@@ -319,11 +318,6 @@ jobs:
             ENV_VARS_FILE: *env-vars-file
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
-          parameters: '{"version-type": "'$KMP_RELEASE_TYPE'"}'
-#      - persist_to_workspace:
-#          root: *workspace
-#          paths:
-#            - *tmp-workspace
 
   should-release-ios-version:
     executor: ruby-executor

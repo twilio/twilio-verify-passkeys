@@ -1,10 +1,5 @@
 version: 2.1
 
-parameters:
-  version-type:
-    type: string
-    default: "TEST"
-
 orbs:
   android: circleci/android@2.3.0
 
@@ -57,14 +52,41 @@ commands:
           command: npm install --save-dev firebase-tools
 
 jobs:
+  release-type:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Determinate the type of release for KMP SDK
+          command: |
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo "Release type = $KMP_RELEASE_TYPE"
+            
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+              echo "Fail as there is no need to release a new version"
+              exit 1
+            fi
+            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: android-executor
 
     steps:
       - checkout
+      - attach_workspace:
+          at: *workspace
       - android/restore-build-cache
       - android/restore-gradle-cache
-      - run: echo << pipeline.parameters.version-type >>
       - run:
           name: Generate signing key ring file
           command: |
@@ -203,7 +225,10 @@ jobs:
 workflows:
   release-kmp:
     jobs:
-      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
+      - release-type
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            release-type
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
