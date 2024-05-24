@@ -75,7 +75,6 @@ jobs:
 
     steps:
       - checkout
-      - check-release-type
       - android/restore-build-cache
       - android/restore-gradle-cache
       - attach_workspace:
