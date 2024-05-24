@@ -597,9 +597,6 @@ workflows:
       - should-release-ios-version
 #          requires:
 #            - assemble
-      - release-android:
-          requires:
-            - should-release-kmp-version
       - publish-kmp-sdk-to-nexus-internal-release-repository:
           requires:
             - should-release-kmp-version
@@ -614,6 +611,7 @@ workflows:
     jobs:
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
+            - should-release-kmp-version
             - publish-kmp-sdk-to-nexus-internal-release-repository
       - run-android-sdk-e2e-tests:
           name: run-android-internal-release-sdk-e2e-tests
