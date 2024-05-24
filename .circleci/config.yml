@@ -328,9 +328,14 @@ jobs:
           name: Determinate the type of release for iOS SDK
           command: |
             IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
-            echo $IOS_RELEASE_TYPE
+            echo "Release type = $IOS_RELEASE_TYPE"
             
-            ./scripts/add_env_variable_to_file.sh IOS_RELEASE_TYPE $IOS_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $IOS_RELEASE_TYPE release"
+            fi
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
