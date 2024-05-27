@@ -99,6 +99,7 @@ jobs:
            command: |
              source "$TMP_WORKSPACE/$ENV_VARS_FILE"
              ruby scripts/versioning/generate_changelog.rb false
+             ls
            environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
