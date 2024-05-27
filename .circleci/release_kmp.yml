@@ -33,17 +33,6 @@ executors:
     resource_class: medium
     working_directory: *workspace
 
-  mac-os-executor:
-    macos:
-      xcode: "15.1.0"
-    resource_class: macos.m1.medium.gen1
-    working_directory: *workspace
-
-  ruby-executor:
-    docker:
-      - image: cimg/ruby:3.3.0
-    working_directory: *workspace
-
 commands:
   install-firebase-cli:
     steps:
@@ -66,9 +55,10 @@ jobs:
             echo "Release type = $KMP_RELEASE_TYPE"
             
             if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-              echo "Fail as there is no need to release a new version"
+              echo "No need to release a new version"
               exit 1
             fi
+            
             ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
@@ -89,7 +79,9 @@ jobs:
           name: Version bump
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE
+            NEXT_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
+            
+            ./scripts/add_env_variable_to_file.sh NEXT_VERSION $NEXT_VERSION $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -289,11 +281,27 @@ jobs:
       - run:
           name: Commit Changelog and new version update
           command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+
             git config --global user.email $GITHUB_USER_EMAIL
             git config --global user.name $GITHUB_USER_NAME
             git add gradle.properties CHANGELOG.md
-            git commit -m "Version bump [skip ci]"
+            git commit -m "Release ${NEXT_VERSION} [skip ci]"
             git push origin sfierro/ACCSEC-33463-Automate-versioning
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - run:
+          name: Create GitHub release
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
+            SDK_VERSION="${NEXT_VERSION}-kmp"
+            
+            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION $RELEASE_NOTES
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   release-kmp:
