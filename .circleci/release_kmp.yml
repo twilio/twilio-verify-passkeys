@@ -85,7 +85,7 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             NEXT_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
-            
+            echo "Next version = ${NEXT_VERSION}"
             ./scripts/add_env_variable_to_file.sh NEXT_VERSION $NEXT_VERSION $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
