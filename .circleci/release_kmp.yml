@@ -89,8 +89,7 @@ jobs:
           name: Version bump
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            CHANGELOG=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
-            echo "CHANGELOG = $CHANGELOG"
+            ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -98,8 +97,23 @@ jobs:
            name: Generate changelog
            command: |
              source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-             ruby scripts/versioning/generate_changelog.rb false
-             ls
+             CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb false)
+             echo "CHANGELOG = $CHANGELOG"
+             
+             # Store Changelog to later be used as release notes
+             ./scripts/add_env_variable_to_file.sh KMP_RELEASE_NOTES $CHANGELOG $TMP_WORKSPACE $ENV_VARS_FILE
+
+             CHANGELOG_FILE="CHANGELOG.md"
+             if [ ! -f "$CHANGELOG_FILE" ]; then
+               # If the file doesn't exist, create it and add a header
+               echo -e "# Changelog\n" > "$CHANGELOG_FILE"
+             fi
+
+             # Create the new content by placing $CHANGELOG after the title
+             NEW_CONTENT=$(echo -e "$(head -n 1 "$CHANGELOG_FILE")\n\n$CHANGELOG\n$(tail -n +2 "$CHANGELOG_FILE")")
+
+             # Overwrite the changelog file with the new content
+             echo -e "$NEW_CONTENT" > "$CHANGELOG_FILE"
            environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -118,7 +132,6 @@ jobs:
           at: *workspace
       - android/restore-build-cache
       - android/restore-gradle-cache
-      - run: git status
       - run:
           name: Generate signing key ring file
           command: |
@@ -254,6 +267,19 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
+  perform-release:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run: git status
+      - run: |
+          git add gradle.properties CHANGELOG.md
+          git commit -m "Version bump [skip ci]"
+          git push origin sfierro/ACCSEC-33463-Automate-versioning
+
 workflows:
   release-kmp:
     jobs:
@@ -281,3 +307,6 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-internal-release-sdk-e2e-tests
+      - perform-release:
+          requires:
+            - check-status-of-triggered-pipeline
