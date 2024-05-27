@@ -309,4 +309,4 @@ workflows:
             - wait-for-android-internal-release-sdk-e2e-tests
       - perform-release:
           requires:
-            - check-status-of-triggered-pipeline
+            - check-android-internal-release-sdk-e2e-tests-result
