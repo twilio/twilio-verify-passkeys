@@ -99,13 +99,6 @@ jobs:
              CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb false)
              echo "CHANGELOG = $CHANGELOG"
              
-             # Store Changelog to later be used as release notes
-             echo KMP_RELEASE_NOTES
-             echo $CHANGELOG
-             echo $TMP_WORKSPACE
-             echo $ENV_VARS_FILE
-             ./scripts/add_env_variable_to_file.sh KMP_RELEASE_NOTES $CHANGELOG $TMP_WORKSPACE $ENV_VARS_FILE
-
              CHANGELOG_FILE="CHANGELOG.md"
              if [ ! -f "$CHANGELOG_FILE" ]; then
                # If the file doesn't exist, create it and add a header
