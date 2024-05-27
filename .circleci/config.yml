@@ -679,7 +679,7 @@ workflows:
           type: approval
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
-      - check-status-triggered-pipeline:
+      - check-status-of-triggered-pipeline:
           name: check-simulator-ios-sdk-e2e-tests-result
           workflow_name_to_check: "ios-tests"
           requires:
@@ -688,7 +688,7 @@ workflows:
       #     type: approval
       #     requires:
       #       - run-android-internal-sdk-e2e-tests
-      # - check-status-triggered-pipeline:
+      # - check-status-of-triggered-pipeline:
       #     name: check-android-sdk-e2e-tests-result
       #     workflow_name_to_check: "android-tests"
       #     requires:
