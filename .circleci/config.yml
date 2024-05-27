@@ -400,7 +400,7 @@ jobs:
       - checkout
       - ruby/install-deps
       - attach_workspace:
-          at: .
+          at: *workspace
       - run:
           name: Install Gem dependencies
           command: |
