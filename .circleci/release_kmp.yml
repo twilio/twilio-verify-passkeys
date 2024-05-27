@@ -275,8 +275,8 @@ jobs:
           at: *workspace
       - run: git status
       - run: |
-          git config --global user.email "svc.authid-sdk-ci@twilio.com"
-          git config --global user.name "authid-sdk-ci"
+          git config --global user.email $GITHUB_USER_EMAIL
+          git config --global user.name $GITHUB_USER_NAME
           git add gradle.properties CHANGELOG.md
           git commit -m "Version bump [skip ci]"
           git push origin sfierro/ACCSEC-33463-Automate-versioning
