@@ -33,6 +33,11 @@ executors:
     resource_class: medium
     working_directory: *workspace
 
+  ruby-executor:
+    docker:
+      - image: cimg/ruby:3.3.0
+    working_directory: *workspace
+    
 commands:
   install-firebase-cli:
     steps:
