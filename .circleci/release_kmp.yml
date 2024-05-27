@@ -106,7 +106,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *tmp-workspace
+            - *workspace
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: android-executor
