@@ -268,18 +268,32 @@ jobs:
 
     steps:
       - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Publish to Maven
+          command: |
+            echo "TODO: promote SDK from internal to prod Maven"
+
+  post-release:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
       - add_ssh_keys:
           fingerprints:
             - "SHA256:jlET/LhJBQ1/mLF8z20k3V4DlYSiUZZske4zrwp49wQ"
       - attach_workspace:
           at: *workspace
       - run: git status
-      - run: |
-          git config --global user.email $GITHUB_USER_EMAIL
-          git config --global user.name $GITHUB_USER_NAME
-          git add gradle.properties CHANGELOG.md
-          git commit -m "Version bump [skip ci]"
-          git push origin sfierro/ACCSEC-33463-Automate-versioning
+      - run:
+          name: Commit Changelog and new version update
+          command: |
+            git config --global user.email $GITHUB_USER_EMAIL
+            git config --global user.name $GITHUB_USER_NAME
+            git add gradle.properties CHANGELOG.md
+            git commit -m "Version bump [skip ci]"
+            git push origin sfierro/ACCSEC-33463-Automate-versioning
 
 workflows:
   release-kmp:
@@ -311,3 +325,6 @@ workflows:
       - perform-release:
           requires:
             - check-android-internal-release-sdk-e2e-tests-result
+      - post-release:
+          requires:
+            - perform-release
