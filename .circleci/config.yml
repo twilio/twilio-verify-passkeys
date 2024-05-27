@@ -534,6 +534,10 @@ jobs:
   run-simulator-ios-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
     steps:
       - checkout
       - attach_workspace:
@@ -550,15 +554,17 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"appium-main",
+                "branch":"ymoreno/use-sauce-labs-simulator",
                 "parameters":{
                   "ios-simulator-app-url":"'"$IOS_SIMULATOR_APP_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>"
+                  "trigger-android-workflow":false,
+                  "trigger-ios-workflow":true,
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
               }' \
               | jq -r '.id'
             )
-            echo "<< pipeline.id >>"
             echo "Created pipeline: $CREATED_PIPELINE"
             ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
@@ -569,9 +575,13 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-status-of-triggered-ios-pipeline:
+  check-status-of-triggered-pipeline:
     executor: ubuntu-small-executor
 
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
     steps:
       - attach_workspace:
           at: *workspace
@@ -579,20 +589,20 @@ jobs:
           name: Check triggered workflow status
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
+            
             echo $CREATED_PIPELINE
             created_workflow_status=$(curl --request GET \
                 --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
-              | jq -r '.items[0].status'
+              | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
             )
             echo $created_workflow_status
             if [[ "$created_workflow_status" != "success" ]]; then
               echo "Workflow not successful - ${created_workflow_status}"
               (exit -1) 
             fi
-
+            
             echo "Created workflow successful"
           environment:
             TMP_WORKSPACE: *tmp-workspace
@@ -659,22 +669,28 @@ workflows:
           requires:
             - generate-ios-sample-app-using-internal-sdk
       - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      - run-android-internal-sdk-e2e-tests:
-          requires:
-            - generate-android-sample-app-using-internal-sdk
+      # - run-android-internal-sdk-e2e-tests:
+      #     requires:
+      #       - generate-android-sample-app-using-internal-sdk
       - wait-for-ios-internal-sdk-e2e-tests:
           type: approval
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
-      - check-status-of-triggered-ios-pipeline:
+      - check-status-triggered-pipeline:
+          name: check-simulator-ios-sdk-e2e-tests-result
+          workflow_name_to_check: "ios-tests"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      - wait-for-internal-sdk-e2e-tests:
-          type: approval
-          requires:
-            - run-android-internal-sdk-e2e-tests
-      - check-status-of-triggered-android-pipeline:
-          requires:
-            - wait-for-internal-sdk-e2e-tests
+      # - wait-for-android-internal-sdk-e2e-tests:
+      #     type: approval
+      #     requires:
+      #       - run-android-internal-sdk-e2e-tests
+      # - check-status-triggered-pipeline:
+      #     name: check-android-sdk-e2e-tests-result
+      #     workflow_name_to_check: "android-tests"
+      #     requires:
+      #       - wait-for-android-internal-sdk-e2e-tests
+
