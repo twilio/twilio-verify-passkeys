@@ -107,7 +107,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - twilio-verify-passkeys
+            - .
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: android-executor
