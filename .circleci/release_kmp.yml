@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - checkout
-      - add_ssh_key:
+      - add_ssh_keys:
           fingerprints:
             - "SHA256:jlET/LhJBQ1/mLF8z20k3V4DlYSiUZZske4zrwp49wQ"
       - attach_workspace:
