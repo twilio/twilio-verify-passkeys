@@ -37,7 +37,7 @@ executors:
     docker:
       - image: cimg/ruby:3.3.0
     working_directory: *workspace
-    
+
 commands:
   install-firebase-cli:
     steps:
