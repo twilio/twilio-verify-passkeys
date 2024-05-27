@@ -273,7 +273,7 @@ jobs:
             echo "TODO: promote SDK from internal to prod Maven"
 
   post-release:
-    executor: ubuntu-small-executor
+    executor: ruby-executor
 
     steps:
       - checkout
