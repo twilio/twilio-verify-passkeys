@@ -413,6 +413,7 @@ jobs:
             bundle exec fastlane simulator_app
             mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
             zip -r sample-app.zip sample-app.app
+            echo "https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
       - store_artifacts:
           path: iosApp/sample-app.zip
 
