@@ -656,14 +656,12 @@ workflows:
               only:
                 - /release.*/
                 - /hotfix.*/
-      - run-ios-internal-sdk-e2e-tests:
-          requires:
-            - generate-ios-sample-app-using-internal-sdk
       - run-simulator-ios-internal-sdk-e2e-tests:
           waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
       - run-android-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-internal-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-internal-sdk
       - wait-for-ios-internal-sdk-e2e-tests:
