@@ -313,6 +313,6 @@ workflows:
       - perform-release:
           requires:
             - check-android-internal-release-sdk-e2e-tests-result
-#      - post-release:
-#          requires:
-#            - perform-release
+      - post-release:
+          requires:
+            - perform-release
