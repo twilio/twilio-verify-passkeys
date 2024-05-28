@@ -490,10 +490,10 @@ workflows:
       - android-generate-aar:
           requires:
             - android-instrumented-tests
-      - generate-android-sample-app-using-local-sdk
-#          requires:
-#            - android-instrumented-tests
-#            - ios-unit-tests
+      - generate-android-sample-app-using-local-sdk:
+          requires:
+            - android-instrumented-tests
+            - ios-unit-tests
       - run-android-local-sdk-e2e-tests:
           waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
@@ -506,19 +506,10 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-      - should-release-kmp-version
-#          requires:
-#            - check-android-local-sdk-e2e-tests-result
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
-      - should-release-ios-version
-#          requires:
-#            - check-android-local-sdk-e2e-tests-result
-#          filters:
-#            branches:
-#              only:
-#                - /release.*/
-#                - /hotfix.*/
+      - should-release-kmp-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main
