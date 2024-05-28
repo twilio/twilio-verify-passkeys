@@ -440,7 +440,7 @@ jobs:
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
 
-            CREATED_PIPELINE=$(curl --request POST \
+            CREATED_ANDROID_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
@@ -453,8 +453,8 @@ jobs:
               }' \
               | jq -r '.id'
             )
-            echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo "Created pipeline: $CREATED_ANDROID_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_ANDROID_PIPELINE $CREATED_ANDROID_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -462,35 +462,6 @@ jobs:
           root: *workspace
           paths:
             - *tmp-workspace
-
-  check-status-of-triggered-android-pipeline:
-    executor: ubuntu-small-executor
-
-    steps:
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Check triggered workflow status
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
-            echo $CREATED_PIPELINE
-            created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
-                --header "Circle-Token: $CIRCLE_TOKEN" \
-                --header "Content-Type: application/json" \
-              | jq -r '.items[0].status'
-            )
-            echo $created_workflow_status
-            if [[ "$created_workflow_status" != "success" ]]; then
-              echo "Workflow not successful - ${created_workflow_status}"
-              (exit -1) 
-            fi
-
-            echo "Created workflow successful"
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
 
   run-ios-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
@@ -507,7 +478,7 @@ jobs:
             echo "export FIREBASE_URL=$firebase_url" >> $BASH_ENV
             echo $FIREBASE_URL
 
-            CREATED_PIPELINE=$(curl --request POST \
+            CREATED_IOS_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
@@ -521,8 +492,8 @@ jobs:
               | jq -r '.id'
             )
             echo "<< pipeline.id >>"
-            echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo "Created pipeline: $CREATED_IOS_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -549,7 +520,7 @@ jobs:
 
             echo $IOS_SIMULATOR_APP_URL
 
-            CREATED_PIPELINE=$(curl --request POST \
+            CREATED_IOS_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
@@ -565,8 +536,8 @@ jobs:
               }' \
               | jq -r '.id'
             )
-            echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo "Created pipeline: $CREATED_IOS_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -582,6 +553,9 @@ jobs:
       workflow_name_to_check:
         default: ""
         type: string
+      created_pipeline:
+        default: ""
+        type: string
     steps:
       - attach_workspace:
           at: *workspace
@@ -590,9 +564,10 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             
-            echo $CREATED_PIPELINE
+            created_pipeline = $"<< parameters.created_pipeline >>"
+            echo $created_pipeline
             created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --url "https://circleci.com/api/v2/pipeline/${created_pipeline}/workflow" \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
               | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
@@ -682,6 +657,7 @@ workflows:
       - check-status-of-triggered-pipeline:
           name: check-simulator-ios-sdk-e2e-tests-result
           workflow_name_to_check: "ios-tests"
+          created_pipeline: "CREATED_IOS_PIPELINE"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
       # - wait-for-android-internal-sdk-e2e-tests:
@@ -691,6 +667,7 @@ workflows:
       # - check-status-of-triggered-pipeline:
       #     name: check-android-sdk-e2e-tests-result
       #     workflow_name_to_check: "android-tests"
+      #     created_pipeline: "CREATED_ANDROID_PIPELINE"
       #     requires:
       #       - wait-for-android-internal-sdk-e2e-tests
 
