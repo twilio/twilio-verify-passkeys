@@ -429,6 +429,7 @@ jobs:
 
   run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
+
     parameters:
       waiting_job_name:
         default: ""
@@ -472,6 +473,11 @@ jobs:
 
   run-ios-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
 
     steps:
       - checkout
