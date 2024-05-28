@@ -200,25 +200,10 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-
-            CREATED_PIPELINE=$(curl --request POST \
-              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
-              --header "Circle-Token: $CIRCLE_TOKEN" \
-              --header "Content-Type: application/json" \
-              --data '{
-                "branch":"sfierro/Fix-e2e-test-CI-pipeline",
-                "parameters":{
-                  "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
-                  "trigger-android-workflow":true,
-                  "trigger-ios-workflow":false,
-                  "triggering-pipeline-id":"<< pipeline.id >>",
-                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
-                }
-              }' \
-              | jq -r '.id'
-            )
-            echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            
+            TRIGGERED_PIPELINE=$(./scripts/trigger_e2e_test_pipeline.sh $ANDROID_APP_DOWNLOAD_URL << pipeline.id >> << parameters.waiting_job_name >> true false)
+            echo "Triggered pipeline: TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -242,9 +227,9 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
 
-            echo $CREATED_PIPELINE
+            echo $ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE
             created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --url "https://circleci.com/api/v2/pipeline/${ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE}/workflow" \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
               | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
