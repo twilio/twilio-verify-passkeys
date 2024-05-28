@@ -565,8 +565,9 @@ jobs:
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             
             echo "<< parameters.created_pipeline >>"
+            echo "<< parameters.workflow_name_to_check >>"
             created_workflow_status=$(curl --request GET \
-                --url 'https://circleci.com/api/v2/pipeline/"<< parameters.created_pipeline >>"/workflow' \
+                --url https://circleci.com/api/v2/pipeline/<< parameters.created_pipeline >>/workflow \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
               | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
