@@ -105,11 +105,6 @@ platform :ios do
 
   desc "Deploy Sample App to Firebase"
   lane :deploy_demo_app do
-    # Get the current directory
-    puts "Printing files"
-    puts `ls -l -p ../`
-    puts `ls -l -p ../IPAs/`
-
     # Get the last commit message
     last_commit = last_git_commit
     commit_message = last_commit[:message]
