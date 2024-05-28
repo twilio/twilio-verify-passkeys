@@ -226,21 +226,15 @@ jobs:
           name: Check triggered workflow status
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
             echo $ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE
-            created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE}/workflow" \
-                --header "Circle-Token: $CIRCLE_TOKEN" \
-                --header "Content-Type: application/json" \
-              | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
-            )
-            echo $created_workflow_status
-            if [[ "$created_workflow_status" != "success" ]]; then
-              echo "Workflow not successful - ${created_workflow_status}"
+            
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+            
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
               (exit -1) 
             fi
-
-            echo "Created workflow successful"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -262,9 +256,6 @@ jobs:
 
     steps:
       - checkout
-#      - add_ssh_keys:
-#          fingerprints:
-#            - "SHA256:jlET/LhJBQ1/mLF8z20k3V4DlYSiUZZske4zrwp49wQ"
       - attach_workspace:
           at: *workspace
       - run: git status
@@ -277,7 +268,7 @@ jobs:
             git config --global user.name $GITHUB_USER_NAME
             git add gradle.properties CHANGELOG.md
             git commit -m "Release ${NEXT_VERSION} [skip ci]"
-            git push origin sfierro/ACCSEC-33463-Automate-versioning
+            git push origin $CIRCLE_BRANCH
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
