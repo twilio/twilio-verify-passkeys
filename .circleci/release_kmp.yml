@@ -184,7 +184,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-android-sdk-e2e-tests:
+  run-android-internal-release-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -212,7 +212,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-status-of-triggered-pipeline:
+  check-android-internal-release-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
@@ -306,8 +306,7 @@ workflows:
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-android-sdk-e2e-tests:
-          name: run-android-internal-release-sdk-e2e-tests
+      - run-android-internal-release-sdk-e2e-tests:
           waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-internal-release-sdk
@@ -315,8 +314,7 @@ workflows:
           type: approval
           requires:
             - run-android-internal-release-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
-          name: check-android-internal-release-sdk-e2e-tests-result
+      - check-android-internal-release-sdk-e2e-tests-result:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-internal-release-sdk-e2e-tests

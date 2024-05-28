@@ -506,7 +506,7 @@ workflows:
           type: approval
           requires:
             - run-android-local-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
+      - check-android-local-sdk-e2e-tests-result:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
