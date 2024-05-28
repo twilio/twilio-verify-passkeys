@@ -429,6 +429,10 @@ jobs:
 
   run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
 
     steps:
       - checkout
@@ -445,10 +449,13 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"appium-main",
+                "branch":"ymoreno/use-sauce-labs-simulator",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>"
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "trigger-android-workflow":true,
+                  "trigger-ios-workflow":false,
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
               }' \
               | jq -r '.id'
@@ -486,7 +493,10 @@ jobs:
                 "branch":"appium-main",
                 "parameters":{
                   "ios-app-url":"'"$FIREBASE_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>"
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "trigger-android-workflow":false,
+                  "trigger-ios-workflow":true,
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
               }' \
               | jq -r '.id'
@@ -623,11 +633,11 @@ workflows:
           requires:
             - android-instrumented-tests
             - ios-unit-tests
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
+          # filters:
+          #   branches:
+          #     only:
+          #       - /release.*/
+          #       - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
@@ -647,27 +657,27 @@ workflows:
           waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      # - run-android-internal-sdk-e2e-tests:
-      #     requires:
-      #       - generate-android-sample-app-using-internal-sdk
+      - run-android-internal-sdk-e2e-tests:
+          requires:
+            - generate-android-sample-app-using-internal-sdk
       - wait-for-ios-internal-sdk-e2e-tests:
           type: approval
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
+      - wait-for-android-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-internal-sdk-e2e-tests
       - check-status-of-triggered-pipeline:
           name: check-simulator-ios-sdk-e2e-tests-result
           workflow_name_to_check: "ios-tests"
           created_pipeline: "$CREATED_IOS_PIPELINE"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      # - wait-for-android-internal-sdk-e2e-tests:
-      #     type: approval
-      #     requires:
-      #       - run-android-internal-sdk-e2e-tests
-      # - check-status-of-triggered-pipeline:
-      #     name: check-android-sdk-e2e-tests-result
-      #     workflow_name_to_check: "android-tests"
-      #     created_pipeline: "$CREATED_ANDROID_PIPELINE"
-      #     requires:
-      #       - wait-for-android-internal-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          name: check-android-sdk-e2e-tests-result
+          workflow_name_to_check: "android-tests"
+          created_pipeline: "$CREATED_ANDROID_PIPELINE"
+          requires:
+            - wait-for-android-internal-sdk-e2e-tests
 
