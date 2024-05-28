@@ -564,10 +564,9 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             
-            created_pipeline = $"<< parameters.created_pipeline >>"
-            echo $created_pipeline
+            echo "<< parameters.created_pipeline >>"
             created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${created_pipeline}/workflow" \
+                --url 'https://circleci.com/api/v2/pipeline/"<< parameters.created_pipeline >>"/workflow' \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
               | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
@@ -657,7 +656,7 @@ workflows:
       - check-status-of-triggered-pipeline:
           name: check-simulator-ios-sdk-e2e-tests-result
           workflow_name_to_check: "ios-tests"
-          created_pipeline: "CREATED_IOS_PIPELINE"
+          created_pipeline: "$CREATED_IOS_PIPELINE"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
       # - wait-for-android-internal-sdk-e2e-tests:
@@ -667,7 +666,7 @@ workflows:
       # - check-status-of-triggered-pipeline:
       #     name: check-android-sdk-e2e-tests-result
       #     workflow_name_to_check: "android-tests"
-      #     created_pipeline: "CREATED_ANDROID_PIPELINE"
+      #     created_pipeline: "$CREATED_ANDROID_PIPELINE"
       #     requires:
       #       - wait-for-android-internal-sdk-e2e-tests
 
