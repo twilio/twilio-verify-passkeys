@@ -450,7 +450,7 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"ymoreno/use-sauce-labs-simulator",
+                "branch":"appium-main",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
                   "triggering-pipeline-id":"<< pipeline.id >>",
@@ -541,7 +541,7 @@ jobs:
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
               --data '{
-                "branch":"ymoreno/use-sauce-labs-simulator",
+                "branch":"appium-main",
                 "parameters":{
                   "ios-simulator-app-url":"'"$IOS_SIMULATOR_APP_URL"'",
                   "trigger-android-workflow":false,
@@ -639,11 +639,6 @@ workflows:
           requires:
             - android-instrumented-tests
             - ios-unit-tests
-          # filters:
-          #   branches:
-          #     only:
-          #       - /release.*/
-          #       - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
@@ -651,11 +646,6 @@ workflows:
           requires:
             - ios-sdk-size-report
             - ios-generate-framework
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
       - run-simulator-ios-internal-sdk-e2e-tests:
           waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
