@@ -9,7 +9,7 @@ TRIGGERED_PIPELINE=$1
 WORKFLOW_NAME_TO_CHECK=$2
 
 # Fetch the workflow status for the triggered pipeline
-TRIGGERED_PIPELINE_STATUS=$(curl --silent --fail --request GET \
+TRIGGERED_PIPELINE_STATUS=$(curl --request GET \
   --url "https://circleci.com/api/v2/pipeline/${TRIGGERED_PIPELINE}/workflow" \
   --header "Circle-Token: $CIRCLE_TOKEN" \
   --header "Content-Type: application/json" | \
