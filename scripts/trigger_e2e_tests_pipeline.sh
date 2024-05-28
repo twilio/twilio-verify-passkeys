@@ -20,7 +20,7 @@ TRIGGERED_PIPELINE=$(curl --request POST \
     "parameters":{
       "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
       "trigger-android-workflow":'"$TRIGGER_ANDROID_WORKFLOW"',
-      "trigger-ios-workflow":'"$TRIGGER_IOS_WORKFLOW"'
+      "trigger-ios-workflow":'"$TRIGGER_IOS_WORKFLOW"',
       "triggering-pipeline-id":"'"$TRIGGERING_PIPELINE_ID"'",
       "triggering-pipeline-waiting-job-name":"'"$TRIGGERING_PIPELINE_WAITING_JOB_NAME"'"
     }
