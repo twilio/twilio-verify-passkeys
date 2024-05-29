@@ -258,6 +258,29 @@ jobs:
           paths:
             - builds
 
+  ios-sdk-size-report:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Build and measure
+          command: |
+            cd iosApp
+            bundle exec fastlane size_demo_app
+      - danger-check:
+          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+      - persist_to_workspace:
+            root: .
+            paths:
+              - iosApp/IPAs/iosApp.ipa
+
   ios-generate-framework:
     executor: mac-os-executor
 
@@ -378,7 +401,99 @@ jobs:
           paths:
             - *tmp-workspace
 
+  generate-ios-sample-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Configure GCloud App Distribution service
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            cd iosApp
+            bundle exec fastlane deploy_demo_app
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: .
+          paths:
+            - iosApp/fastlane/firebase_url.txt
+
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Generate simulator build
+          command: |
+            cd iosApp
+            bundle exec fastlane simulator_app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
+            zip -r sample-app.zip sample-app.app
+            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
+            echo $IOS_SIMULATOR_APP_URL
+            cd ..
+            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - store_artifacts:
+          path: iosApp/sample-app.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
   run-android-local-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_APP_DOWNLOAD_URL
+            
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
+            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-simulator-ios-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -393,12 +508,11 @@ jobs:
           name: Start automation pipeline to run E2E tests
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_APP_DOWNLOAD_URL
-            echo << pipeline.id >>
-            echo $CIRCLE_WORKFLOW_ID
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
+            echo $IOS_SIMULATOR_APP_URL
+
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
             echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -435,27 +549,33 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
-  ios-sdk-size-report:
-    executor: mac-os-executor
+  check-simulator-ios-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
 
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
     steps:
       - checkout
-      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
       - run:
-          name: Install Gem dependencies
+          name: Check triggered workflow status
           command: |
-            cd iosApp
-            bundle install
-      - run:
-          name: Configure GCloud App Distribution service
-          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
-      - run:
-          name: Build and measure
-          command: |
-            cd iosApp
-            bundle exec fastlane size_demo_app
-      - danger-check:
-          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
+
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
+              (exit -1) 
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   build-all:
@@ -487,6 +607,9 @@ workflows:
       - ios-generate-framework:
           requires:
             - ios-unit-tests
+      - generate-ios-simulator-app-using-internal-sdk:
+          requires:
+            - ios-generate-framework
       - android-generate-aar:
           requires:
             - android-instrumented-tests
@@ -506,6 +629,22 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - wait-for-ios-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-simulator-ios-internal-sdk-e2e-tests
+      - check-simulator-ios-sdk-e2e-tests-result:
+          workflow_name_to_check: "ios-tests"
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
       - should-release-kmp-version:
           requires:
             - check-android-local-sdk-e2e-tests-result
