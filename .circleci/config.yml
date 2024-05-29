@@ -240,6 +240,29 @@ jobs:
           paths:
             - builds
 
+  ios-sdk-size-report:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Build and measure
+          command: |
+            cd iosApp
+            bundle exec fastlane size_demo_app
+      - danger-check:
+          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+      - persist_to_workspace:
+            root: .
+            paths:
+              - iosApp/IPAs/iosApp.ipa
+
   ios-generate-framework:
     executor: mac-os-executor
 
@@ -341,8 +364,76 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-internal-sdk-e2e-tests:
+  generate-ios-sample-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Configure GCloud App Distribution service
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            cd iosApp
+            bundle exec fastlane deploy_demo_app
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: .
+          paths:
+            - iosApp/fastlane/firebase_url.txt
+
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Generate simulator build
+          command: |
+            cd iosApp
+            bundle exec fastlane simulator_app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
+            zip -r sample-app.zip sample-app.app
+            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
+            echo $IOS_SIMULATOR_APP_URL
+            cd ..
+            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - store_artifacts:
+          path: iosApp/sample-app.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-android-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
 
     steps:
       - checkout
@@ -353,8 +444,8 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-            
-            CREATED_PIPELINE=$(curl --request POST \
+
+            CREATED_ANDROID_PIPELINE=$(curl --request POST \
               --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
               --header "Circle-Token: $CIRCLE_TOKEN" \
               --header "Content-Type: application/json" \
@@ -362,13 +453,107 @@ jobs:
                 "branch":"appium-main",
                 "parameters":{
                   "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>"
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "trigger-android-workflow":true,
+                  "trigger-ios-workflow":false,
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
                 }
               }' \
               | jq -r '.id'
             )
-            echo "Created pipeline: $CREATED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_PIPELINE $CREATED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            echo "Created pipeline: $CREATED_ANDROID_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_ANDROID_PIPELINE $CREATED_ANDROID_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-ios-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            firebase_url=$(cat iosApp/fastlane/firebase_url.txt)
+            echo "Firebase URL: $firebase_url"
+            echo "export FIREBASE_URL=$firebase_url" >> $BASH_ENV
+            echo $FIREBASE_URL
+
+            CREATED_IOS_PIPELINE=$(curl --request POST \
+              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+              --header "Circle-Token: $CIRCLE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{
+                "branch":"appium-main",
+                "parameters":{
+                  "ios-app-url":"'"$FIREBASE_URL"'",
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "trigger-android-workflow":false,
+                  "trigger-ios-workflow":true,
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
+                }
+              }' \
+              | jq -r '.id'
+            )
+            echo "<< pipeline.id >>"
+            echo "Created pipeline: $CREATED_IOS_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-simulator-ios-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+
+            echo $IOS_SIMULATOR_APP_URL
+
+            CREATED_IOS_PIPELINE=$(curl --request POST \
+              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
+              --header "Circle-Token: $CIRCLE_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{
+                "branch":"appium-main",
+                "parameters":{
+                  "ios-simulator-app-url":"'"$IOS_SIMULATOR_APP_URL"'",
+                  "trigger-android-workflow":false,
+                  "trigger-ios-workflow":true,
+                  "triggering-pipeline-id":"<< pipeline.id >>",
+                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
+                }
+              }' \
+              | jq -r '.id'
+            )
+            echo "Created pipeline: $CREATED_IOS_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -380,6 +565,13 @@ jobs:
   check-status-of-triggered-pipeline:
     executor: ubuntu-small-executor
 
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
+      created_pipeline:
+        default: ""
+        type: string
     steps:
       - attach_workspace:
           at: *workspace
@@ -388,12 +580,13 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             
-            echo $CREATED_PIPELINE
+            echo "<< parameters.created_pipeline >>"
+            echo "<< parameters.workflow_name_to_check >>"
             created_workflow_status=$(curl --request GET \
-                --url "https://circleci.com/api/v2/pipeline/${CREATED_PIPELINE}/workflow" \
+                --url https://circleci.com/api/v2/pipeline/<< parameters.created_pipeline >>/workflow \
                 --header "Circle-Token: $CIRCLE_TOKEN" \
                 --header "Content-Type: application/json" \
-              | jq -r '.items[0].status'
+              | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
             )
             echo $created_workflow_status
             if [[ "$created_workflow_status" != "success" ]]; then
@@ -405,27 +598,6 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-  ios-sdk-size-report:
-    executor: mac-os-executor
-
-    steps:
-      - checkout
-      - ruby/install-deps
-      - run:
-          name: Install Gem dependencies
-          command: |
-            cd iosApp
-            bundle install
-      - run:
-          name: Configure GCloud App Distribution service
-          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
-      - run:
-          name: Build and measure
-          command: |
-            cd iosApp
-            bundle exec fastlane size_demo_app
-      - danger-check:
-          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
 
 workflows:
   build-all:
@@ -457,6 +629,9 @@ workflows:
       - ios-generate-framework:
           requires:
             - ios-unit-tests
+      - generate-ios-simulator-app-using-internal-sdk:
+          requires:
+            - ios-generate-framework
       - android-generate-aar:
           requires:
             - android-instrumented-tests
@@ -464,21 +639,39 @@ workflows:
           requires:
             - android-instrumented-tests
             - ios-unit-tests
-          filters:
-            branches:
-              only:
-                - /release.*/
-                - /hotfix.*/
       - generate-android-sample-app-using-internal-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-internal-sdk-e2e-tests:
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - run-android-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-internal-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-internal-sdk
-      - wait-for-internal-sdk-e2e-tests:
+      - wait-for-ios-internal-sdk-e2e-tests:
           type: approval
           requires:
-            - run-internal-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
+            - run-simulator-ios-internal-sdk-e2e-tests
+      - wait-for-android-internal-sdk-e2e-tests:
+          type: approval
           requires:
-            - wait-for-internal-sdk-e2e-tests
+            - run-android-internal-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          name: check-simulator-ios-sdk-e2e-tests-result
+          workflow_name_to_check: "ios-tests"
+          created_pipeline: "$CREATED_IOS_PIPELINE"
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
+      - check-status-of-triggered-pipeline:
+          name: check-android-sdk-e2e-tests-result
+          workflow_name_to_check: "android-tests"
+          created_pipeline: "$CREATED_ANDROID_PIPELINE"
+          requires:
+            - wait-for-android-internal-sdk-e2e-tests
+
