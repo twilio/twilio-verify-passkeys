@@ -17,7 +17,7 @@ DATA_PAYLOAD=$(jq -n \
 --arg triggering_workflow_id "$TRIGGERING_WORKFLOW_ID" \
 --arg triggering_workflow_waiting_job_name "$TRIGGERING_WORKFLOW_WAITING_JOB_NAME" \
 '{
-    "branch": "sfierro/approve-job-in-workflow",
+    "branch": "appium-main",
     "parameters": {
         "trigger-android-workflow": ($trigger_android_workflow | fromjson),
         "trigger-ios-workflow": ($trigger_ios_workflow | fromjson),
