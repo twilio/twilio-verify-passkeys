@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -ne 5 ]; then
-    echo "Usage: $0 <APP_DOWNLOAD_URL> <TRIGGERING_WORKFLOW_ID> <TRIGGERING_WORKFLOW_WAITING_JOB_NAME> <TRIGGER_ANDROID_WORKFLOW> <TRIGGER_IOS_TRIGGER_ANDROID_WORKFLOW>"
+    echo "Usage: $0 <APP_DOWNLOAD_URL> <TRIGGERING_WORKFLOW_ID> <TRIGGERING_WORKFLOW_WAITING_JOB_NAME> <TRIGGER_ANDROID_WORKFLOW> <TRIGGER_IOS_WORKFLOW>"
     exit 1
 fi
 
@@ -27,7 +27,7 @@ DATA_PAYLOAD=$(jq -n \
 }')
 
 if [ "$TRIGGER_IOS_WORKFLOW" == "true" ]; then
-    DATA_PAYLOAD=$(echo "$DATA_PAYLOAD" | jq --arg ios_app_url "$APP_DOWNLOAD_URL" '.parameters["ios-app-url"]=$ios_app_url')
+    DATA_PAYLOAD=$(echo "$DATA_PAYLOAD" | jq --arg ios_app_url "$APP_DOWNLOAD_URL" '.parameters["ios-simulator-app-url"]=$ios_app_url')
 else
     DATA_PAYLOAD=$(echo "$DATA_PAYLOAD" | jq --arg android_app_url "$APP_DOWNLOAD_URL" '.parameters["android-app-url"]=$android_app_url')
 fi
