@@ -6,6 +6,8 @@ orbs:
   gcp-cli: circleci/gcp-cli@3.1.1
   continuation: circleci/continuation@1.0.0
 
+setup: true
+
 aliases:
   - &workspace
       ~/passkeys-sdk
@@ -99,23 +101,6 @@ commands:
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
-
-  check-release-type:
-    steps:
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Check if should release
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo "Release type = $KMP_RELEASE_TYPE"
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ] then
-              echo "No new release triggered"
-              exit 0
-            else
-              echo "Found a new $KMP_RELEASE_TYPE release"
-          
-setup: true
 
 jobs:
   assemble:
@@ -324,7 +309,7 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determinate the type of release for KMP SDK
+          name: Determine the type of release for KMP SDK
           command:  |
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
@@ -348,7 +333,7 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determinate the type of release for iOS SDK
+          name: Determine the type of release for iOS SDK
           command: |
             IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
             echo "Release type = $IOS_RELEASE_TYPE"
