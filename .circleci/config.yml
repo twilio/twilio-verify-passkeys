@@ -4,6 +4,9 @@ orbs:
   android: circleci/android@2.3.0
   ruby: circleci/ruby@2.1.0
   gcp-cli: circleci/gcp-cli@3.1.1
+  continuation: circleci/continuation@1.0.0
+
+setup: true
 
 aliases:
   - &workspace
@@ -298,23 +301,49 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
-  publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
-    executor: android-executor
+  should-release-kmp-version:
+    executor: ruby-executor
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
       - run:
-          name: Generate signing key ring file
+          name: Determine the type of release for KMP SDK
+          command:  |
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo "Release type = $KMP_RELEASE_TYPE"
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $KMP_RELEASE_TYPE release"
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - continuation/continue:
+          configuration_path: .circleci/release_kmp.yml
+
+  should-release-ios-version:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Determine the type of release for iOS SDK
           command: |
-            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
-      - run:
-          name: Publish SDK to internal repository
-          command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
-      - run:
-          name: Save internal repository link
-          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log $TMP_WORKSPACE $ENV_VARS_FILE
+            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+            echo "Release type = $IOS_RELEASE_TYPE"
+            
+            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $IOS_RELEASE_TYPE release"
+            fi
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -323,7 +352,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  generate-android-sample-app-using-internal-sdk:
+  generate-android-sample-app-using-local-sdk:
     executor: android-node-executor
 
     steps:
@@ -337,21 +366,14 @@ jobs:
           command: |
             ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
       - run:
-          name: Generate APK with maven repo url
+          name: Generate APK
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
-            echo $REPO_NAME
-            echo $REPO_URL
-            
-            ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+            ./gradlew :androidApp:assembleDebug
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
-            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+            firebase appdistribution:distribute androidApp/build/outputs/apk/debug/androidApp-debug.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
       - run:
           name: Save distributed app link
           command: |
@@ -427,7 +449,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-android-internal-sdk-e2e-tests:
+  run-android-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -444,72 +466,10 @@ jobs:
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $ANDROID_APP_DOWNLOAD_URL
-
-            CREATED_ANDROID_PIPELINE=$(curl --request POST \
-              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
-              --header "Circle-Token: $CIRCLE_TOKEN" \
-              --header "Content-Type: application/json" \
-              --data '{
-                "branch":"appium-main",
-                "parameters":{
-                  "android-app-url":"'"$ANDROID_APP_DOWNLOAD_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>",
-                  "trigger-android-workflow":true,
-                  "trigger-ios-workflow":false,
-                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
-                }
-              }' \
-              | jq -r '.id'
-            )
-            echo "Created pipeline: $CREATED_ANDROID_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_ANDROID_PIPELINE $CREATED_ANDROID_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - *tmp-workspace
-
-  run-ios-internal-sdk-e2e-tests:
-    executor: ubuntu-small-executor
-
-    parameters:
-      waiting_job_name:
-        default: ""
-        type: string
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Start automation pipeline to run E2E tests
-          command: |
-            firebase_url=$(cat iosApp/fastlane/firebase_url.txt)
-            echo "Firebase URL: $firebase_url"
-            echo "export FIREBASE_URL=$firebase_url" >> $BASH_ENV
-            echo $FIREBASE_URL
-
-            CREATED_IOS_PIPELINE=$(curl --request POST \
-              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
-              --header "Circle-Token: $CIRCLE_TOKEN" \
-              --header "Content-Type: application/json" \
-              --data '{
-                "branch":"appium-main",
-                "parameters":{
-                  "ios-app-url":"'"$FIREBASE_URL"'",
-                  "triggering-pipeline-id":"<< pipeline.id >>",
-                  "trigger-android-workflow":false,
-                  "trigger-ios-workflow":true,
-                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
-                }
-              }' \
-              | jq -r '.id'
-            )
-            echo "<< pipeline.id >>"
-            echo "Created pipeline: $CREATED_IOS_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
+            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -533,27 +493,11 @@ jobs:
           name: Start automation pipeline to run E2E tests
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
             echo $IOS_SIMULATOR_APP_URL
 
-            CREATED_IOS_PIPELINE=$(curl --request POST \
-              --url https://circleci.com/api/v2/project/gh/twilio/twilio-verify-passkeys-tests/pipeline \
-              --header "Circle-Token: $CIRCLE_TOKEN" \
-              --header "Content-Type: application/json" \
-              --data '{
-                "branch":"appium-main",
-                "parameters":{
-                  "ios-simulator-app-url":"'"$IOS_SIMULATOR_APP_URL"'",
-                  "trigger-android-workflow":false,
-                  "trigger-ios-workflow":true,
-                  "triggering-pipeline-id":"<< pipeline.id >>",
-                  "triggering-pipeline-waiting-job-name":"<< parameters.waiting_job_name >>"
-                }
-              }' \
-              | jq -r '.id'
-            )
-            echo "Created pipeline: $CREATED_IOS_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh CREATED_IOS_PIPELINE $CREATED_IOS_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
+            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -562,39 +506,58 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-status-of-triggered-pipeline:
+  check-android-local-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
       workflow_name_to_check:
         default: ""
         type: string
-      created_pipeline:
-        default: ""
-        type: string
     steps:
+      - checkout
       - attach_workspace:
           at: *workspace
       - run:
           name: Check triggered workflow status
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
             
-            echo "<< parameters.created_pipeline >>"
-            echo "<< parameters.workflow_name_to_check >>"
-            created_workflow_status=$(curl --request GET \
-                --url https://circleci.com/api/v2/pipeline/<< parameters.created_pipeline >>/workflow \
-                --header "Circle-Token: $CIRCLE_TOKEN" \
-                --header "Content-Type: application/json" \
-              | jq -r '.items[] | select(.name == "<< parameters.workflow_name_to_check >>") | .status'
-            )
-            echo $created_workflow_status
-            if [[ "$created_workflow_status" != "success" ]]; then
-              echo "Workflow not successful - ${created_workflow_status}"
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+            
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
               (exit -1) 
             fi
-            
-            echo "Created workflow successful"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
+  check-simulator-ios-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
+
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
+
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
+              (exit -1) 
+            fi
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -635,13 +598,22 @@ workflows:
       - android-generate-aar:
           requires:
             - android-instrumented-tests
-      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+      - generate-android-sample-app-using-local-sdk:
           requires:
             - android-instrumented-tests
             - ios-unit-tests
-      - generate-android-sample-app-using-internal-sdk:
+      - run-android-local-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
-            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
+            - generate-android-sample-app-using-local-sdk
+      - wait-for-android-local-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-local-sdk-e2e-tests
+      - check-android-local-sdk-e2e-tests-result:
+          workflow_name_to_check: "android-tests"
+          requires:
+            - wait-for-android-local-sdk-e2e-tests
       - generate-ios-sample-app-using-internal-sdk:
           requires:
             - ios-sdk-size-report
@@ -650,28 +622,18 @@ workflows:
           waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      - run-android-internal-sdk-e2e-tests:
-          waiting_job_name: wait-for-android-internal-sdk-e2e-tests
-          requires:
-            - generate-android-sample-app-using-internal-sdk
       - wait-for-ios-internal-sdk-e2e-tests:
           type: approval
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
-      - wait-for-android-internal-sdk-e2e-tests:
-          type: approval
-          requires:
-            - run-android-internal-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
-          name: check-simulator-ios-sdk-e2e-tests-result
+      - check-simulator-ios-sdk-e2e-tests-result:
           workflow_name_to_check: "ios-tests"
-          created_pipeline: "$CREATED_IOS_PIPELINE"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      - check-status-of-triggered-pipeline:
-          name: check-android-sdk-e2e-tests-result
-          workflow_name_to_check: "android-tests"
-          created_pipeline: "$CREATED_ANDROID_PIPELINE"
+      - should-release-kmp-version:
           requires:
-            - wait-for-android-internal-sdk-e2e-tests
-
+            - check-android-local-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main
