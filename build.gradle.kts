@@ -155,5 +155,5 @@ fun getPropertyValue(key: String): String {
     } else {
       System.getenv(key)
     }
-  return property
+  return ""
 }

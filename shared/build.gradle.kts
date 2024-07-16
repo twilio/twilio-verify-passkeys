@@ -28,6 +28,9 @@ plugins {
   id("com.twilio.apkscale")
   id("co.touchlab.skie") version "0.6.1"
 }
+
+val isLocalPublication = project.findProperty("isLocalPublication") == "true"
+
 buildscript {
   dependencies {
     classpath(libs.dokka.versioning.plugin)
@@ -122,6 +125,11 @@ afterEvaluate {
   }
 }
 
+if(isLocalPublication) {
+  tasks.withType<Sign>().configureEach {
+    onlyIf { false }
+  }
+}
 // TODO: remove after https://youtrack.jetbrains.com/issue/KT-46466 is fixed
 project.tasks.withType(AbstractPublishToMaven::class.java).configureEach {
   dependsOn(project.tasks.withType(Sign::class.java))
