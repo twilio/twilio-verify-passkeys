@@ -41,16 +41,12 @@ import kotlinx.serialization.json.Json
  * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
  */
 actual class TwilioPasskey internal constructor(
-  private val credentialManager: CredentialManager,
   private val passkeyPayloadMapper: PasskeyPayloadMapper,
 ) {
   /**
-   * Constructor for creating a TwilioPasskey instance with the provided context.
-   *
-   * @param context The Android activity context.
+   * Constructor for creating a TwilioPasskey
    */
-  constructor(context: Context) : this(
-    CredentialManager.create(context),
+  constructor() : this(
     PasskeyPayloadMapper,
   )
 
@@ -66,6 +62,7 @@ actual class TwilioPasskey internal constructor(
     appContext: AppContext,
   ): CreatePasskeyResult {
     try {
+      val credentialManager = CredentialManager.create(appContext.activity.applicationContext)
       val requestJson = Json.encodeToString(createPasskeyRequest)
       val credentialManagerResult =
         credentialManager.createCredential(
@@ -118,6 +115,7 @@ actual class TwilioPasskey internal constructor(
     appContext: AppContext,
   ): AuthenticatePasskeyResult {
     try {
+      val credentialManager = CredentialManager.create(appContext.activity.applicationContext)
       val requestJson = Json.encodeToString(authenticatePasskeyRequest.publicKey)
       val getPublicKeyCredentialOption = GetPublicKeyCredentialOption(requestJson)
       val getCredRequest = GetCredentialRequest(listOf(getPublicKeyCredentialOption))

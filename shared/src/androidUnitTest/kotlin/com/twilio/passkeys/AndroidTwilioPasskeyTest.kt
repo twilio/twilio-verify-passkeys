@@ -38,6 +38,7 @@ import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCreden
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import com.google.common.truth.Truth.assertThat
 import com.twilio.passkeys.exception.TwilioException
+import io.mockk.MockK
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -46,18 +47,20 @@ import kotlinx.serialization.SerializationException
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.content.Context
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class AndroidTwilioPasskeyTest {
   private val credentialManager: CredentialManager = mockk()
   private val passkeyPayloadMapper: PasskeyPayloadMapper = mockk()
-  private val twilioPasskey = TwilioPasskey(credentialManager, passkeyPayloadMapper)
+  private val twilioPasskey = TwilioPasskey(passkeyPayloadMapper)
   private val activity: Activity = mockk()
   private val appContext = AppContext(activity)
-
+  private val context = mockk<Context>(relaxed = true)
   @Before
   fun before() {
+    every { activity.applicationContext } returns context
     every { passkeyPayloadMapper.mapToCreatePasskeyRequest(createPayload) } returns createPasskeyRequest
     every { passkeyPayloadMapper.mapToCreatePasskeyResponse(createResultPayload) } returns createPasskeyResponse
 

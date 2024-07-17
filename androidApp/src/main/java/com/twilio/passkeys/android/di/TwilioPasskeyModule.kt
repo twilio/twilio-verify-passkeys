@@ -37,10 +37,8 @@ import retrofit2.Retrofit
 @InstallIn(ViewModelComponent::class)
 class TwilioPasskeyModule {
   @Provides
-  fun provideTwilioPasskey(
-    @ApplicationContext context: Context,
-  ): TwilioPasskey {
-    return TwilioPasskey(context)
+  fun provideTwilioPasskey(): TwilioPasskey {
+    return TwilioPasskey()
   }
 
   private val json =
