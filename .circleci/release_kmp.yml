@@ -33,6 +33,12 @@ executors:
     resource_class: medium
     working_directory: *workspace
 
+  mac-os-executor:
+    macos:
+      xcode: "15.1.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: *workspace
+
   ruby-executor:
     docker:
       - image: cimg/ruby:3.3.0
@@ -44,6 +50,25 @@ commands:
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
+
+  install-android-sdk:
+    steps:
+      - run:
+          name: Install Homebrew
+          command: |
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - run:
+          name: Install Android SDK
+          command: |
+            brew tap homebrew/cask
+            brew install --cask android-sdk
+            brew install gradle
+      - run:
+          name: Set up Android SDK environment variables
+          command: |
+            echo 'export ANDROID_HOME=/usr/local/share/android-sdk' >> $BASH_ENV
+            echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH' >> $BASH_ENV
+            source $BASH_ENV      
 
 jobs:
   release-type:
@@ -117,14 +142,13 @@ jobs:
             - .
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
-    executor: android-executor
+    executor: mac-os-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - install-android-sdk
       - run:
           name: Generate signing key ring file
           command: |
@@ -144,7 +168,7 @@ jobs:
             - *tmp-workspace
 
   generate-android-sample-app-using-internal-release-sdk:
-    executor: android-node-executor
+    executor: android-executor
 
     steps:
       - checkout
