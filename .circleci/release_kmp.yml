@@ -66,22 +66,6 @@ commands:
               echo "org.gradle.daemon=false" >> "$PROJECT_GRADLE_DIR/gradle.properties"
           environment:
               PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
-      - run:
-          name: Install Homebrew
-          command: |
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      - run:
-          name: Install Android SDK
-          command: |
-            brew tap homebrew/cask
-            brew install --cask android-sdk
-            brew install gradle
-      - run:
-          name: Set up Android SDK environment variables
-          command: |
-            echo 'export ANDROID_HOME=/usr/local/share/android-sdk' >> $BASH_ENV
-            echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH' >> $BASH_ENV
-            source $BASH_ENV      
 
 jobs:
   release-type:
