@@ -70,12 +70,12 @@ internal enum class Attachment(val value: String) {
  * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
  * @property deviceUtils The utility class for device-related operations.
  */
-actual class TwilioPasskey private constructor(
+actual class TwilioPasskeys private constructor(
   private val passkeyPayloadMapper: PasskeyPayloadMapper = PasskeyPayloadMapper,
   private val deviceUtils: DeviceUtils = DeviceUtils(),
 ) {
   /**
-   * Constructor for creating an instance of [TwilioPasskey].
+   * Constructor for creating an instance of [TwilioPasskeys].
    */
   constructor() : this(
     passkeyPayloadMapper = PasskeyPayloadMapper,

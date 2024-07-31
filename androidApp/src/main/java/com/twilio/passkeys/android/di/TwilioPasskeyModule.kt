@@ -18,7 +18,7 @@ package com.twilio.passkeys.android.di
 
 import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.twilio.passkeys.TwilioPasskey
+import com.twilio.passkeys.TwilioPasskeys
 import com.twilio.passkeys.android.BuildConfig
 import com.twilio.passkeys.android.api.AuthenticateApi
 import com.twilio.passkeys.android.api.RegistrationApi
@@ -39,8 +39,8 @@ class TwilioPasskeyModule {
   @Provides
   fun provideTwilioPasskey(
     @ApplicationContext context: Context,
-  ): TwilioPasskey {
-    return TwilioPasskey(context)
+  ): TwilioPasskeys {
+    return TwilioPasskeys(context)
   }
 
   private val json =

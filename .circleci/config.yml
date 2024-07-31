@@ -631,11 +631,11 @@ workflows:
           workflow_name_to_check: "ios-tests"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      - should-release-kmp-version
-#      - should-release-kmp-version:
-#          requires:
-#            - check-android-local-sdk-e2e-tests-result
-#          filters:
-#            branches:
-#              only:
-#                - main
+#      - should-release-kmp-version
+      - should-release-kmp-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main
