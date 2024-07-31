@@ -573,9 +573,9 @@ workflows:
       - android-sdk-size-report:
           requires:
             - assemble
-#      - ios-sdk-size-report:
-#          requires:
-#            - assemble
+      - ios-sdk-size-report:
+          requires:
+            - assemble
       - detekt-check:
           requires:
             - assemble
@@ -615,22 +615,22 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
-#      - generate-ios-sample-app-using-internal-sdk:
-#          requires:
-#            - ios-sdk-size-report
-#            - ios-generate-framework
-#      - run-simulator-ios-internal-sdk-e2e-tests:
-#          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
-#          requires:
-#            - generate-ios-simulator-app-using-internal-sdk
-#      - wait-for-ios-internal-sdk-e2e-tests:
-#          type: approval
-#          requires:
-#            - run-simulator-ios-internal-sdk-e2e-tests
-#      - check-simulator-ios-sdk-e2e-tests-result:
-#          workflow_name_to_check: "ios-tests"
-#          requires:
-#            - wait-for-ios-internal-sdk-e2e-tests
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - wait-for-ios-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-simulator-ios-internal-sdk-e2e-tests
+      - check-simulator-ios-sdk-e2e-tests-result:
+          workflow_name_to_check: "ios-tests"
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
       - should-release-kmp-version:
           requires:
             - check-android-local-sdk-e2e-tests-result

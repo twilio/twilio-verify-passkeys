@@ -54,7 +54,7 @@ commands:
   install-android-sdk:
     parameters:
       gradle-dir:
-        default: *workspace
+        default: .
         type: string
     steps:
       - run:
