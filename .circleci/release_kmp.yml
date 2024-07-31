@@ -139,12 +139,14 @@ jobs:
             - .
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
-    executor: mac-os-executor
+    executor: android-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
+      - android/restore-build-cache
+      - android/restore-gradle-cache
 #      - install-android-sdk
       - run:
           name: Generate signing key ring file
@@ -165,7 +167,7 @@ jobs:
             - *tmp-workspace
 
   generate-android-sample-app-using-internal-release-sdk:
-    executor: android-executor
+    executor: android-node-executor
 
     steps:
       - checkout
