@@ -52,7 +52,20 @@ commands:
           command: npm install --save-dev firebase-tools
 
   install-android-sdk:
+    parameters:
+      gradle-dir:
+        default: *workspace
+        type: string
     steps:
+      - run:
+          name: "Download and setup android SDK"
+          command: |
+            ANDROID_SDK_ROOT="$HOME/android-sdk"
+              ./scripts/download-android-sdk.sh "$ANDROID_SDK_ROOT"
+              echo "sdk.dir=$ANDROID_SDK_ROOT" >> "$PROJECT_GRADLE_DIR/local.properties"
+              echo "org.gradle.daemon=false" >> "$PROJECT_GRADLE_DIR/gradle.properties"
+          environment:
+              PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
       - run:
           name: Install Homebrew
           command: |
