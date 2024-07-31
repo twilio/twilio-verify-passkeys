@@ -151,7 +151,8 @@ jobs:
           command: |
             ls
             pwd
-            echo $SIGNING_KEY | base64 -d >> "$(dirname "$0")/$SIGNING_SECRET_KEY_RING_FILE"
+            CURRENT_DIR=$(pwd)
+            echo $SIGNING_KEY | base64 -d >> "$CURRENT_DIR/$SIGNING_SECRET_KEY_RING_FILE"
             ls
             pwd
       - run:
