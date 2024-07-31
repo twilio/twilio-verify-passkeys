@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import TwilioPasskeys
+import TwilioPasskeysAuthentication
 import Combine
 import UIKit
 

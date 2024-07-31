@@ -7,7 +7,7 @@
 //
 
 import SwiftUI
-import TwilioPasskeys
+import TwilioPasskeysAuthentication
 
 struct SignUpView: View {
 

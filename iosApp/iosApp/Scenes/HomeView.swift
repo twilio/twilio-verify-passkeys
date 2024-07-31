@@ -8,7 +8,7 @@
 
 import Foundation
 import SwiftUI
-import TwilioPasskeys
+import TwilioPasskeysAuthentication
 
 struct HomeView: View {
 

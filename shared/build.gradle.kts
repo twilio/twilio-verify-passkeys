@@ -163,7 +163,7 @@ kotlin {
     }
   }
 
-  val xcFrameworkName = "TwilioPasskeys"
+  val xcFrameworkName = "TwilioPasskeysAuthentication"
   val xcf = XCFramework(xcFrameworkName)
   val iosTargets = listOf(iosX64(), iosArm64(), iosSimulatorArm64())
 
