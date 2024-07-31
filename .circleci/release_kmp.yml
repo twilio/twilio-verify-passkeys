@@ -145,7 +145,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: *workspace
-      - install-android-sdk
+#      - install-android-sdk
       - run:
           name: Generate signing key ring file
           command: |
