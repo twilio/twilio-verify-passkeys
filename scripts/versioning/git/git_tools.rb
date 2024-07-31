@@ -11,13 +11,18 @@ module GitTools
       sliced_parts = parts[0...-2]
       return sliced_parts.join("-")
     else
-      raise "Failed to get last tag: #{output}"
+      return ""
     end
   end
 
   # Function to get commit history from a given tag to HEAD
   def self.get_commit_history(from_tag)
-    command = "git log --pretty=format:%s #{from_tag}..HEAD"
+    if from_tag.strip.empty?
+      command = "git log --pretty=format:%s"
+    else
+      command = "git log --pretty=format:%s #{from_tag}..HEAD"
+    end
+
     output, status = Open3.capture2(command)
 
     if status.success?

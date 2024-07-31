@@ -1,6 +1,8 @@
-require_relative 'git/git_commits'
-require_relative 'util/boolean_utils'
-require_relative 'util/release_utils'
+# require_relative 'git/git_commits'
+require_relative 'git/git_tools'
+# require_relative 'util/boolean_utils'
+# require_relative 'util/release_utils'
+require_relative 'model/release_platform'
 require_relative 'util/gradle_property_utils'
 require_relative 'model/version_bump_type'
 
@@ -21,6 +23,14 @@ begin
 
   property = "sdkVersionName"
   current_sdk_version = GradlePropertyUtils.get_property(property)
+  # Check if it's the first release to prevent bumping and use the already set sdk version
+  platform = ReleasePlatform[:KMP]
+  last_tag = GitTools.get_last_tag(platform[:tag_suffix])
+  if last_tag.strip.empty?
+    puts current_sdk_version
+    return
+  end
+
   current_sdk_version = current_sdk_version.split('.')
 
   next_major = current_sdk_version[0].to_i
