@@ -149,12 +149,7 @@ jobs:
       - run:
           name: Generate signing key ring file
           command: |
-            ls
-            pwd
-            CURRENT_DIR=$(pwd)
-            echo $SIGNING_KEY | base64 -d >> "$CURRENT_DIR/$SIGNING_SECRET_KEY_RING_FILE"
-            ls
-            pwd
+            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
       - run:
           name: Publish SDK to internal repository
           command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
