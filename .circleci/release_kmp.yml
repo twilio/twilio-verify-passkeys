@@ -296,7 +296,7 @@ jobs:
 
             git config --global user.email $GITHUB_USER_EMAIL
             git config --global user.name $GITHUB_USER_NAME
-            git add gradle.properties CHANGELOG.md
+            git add gradle.properties CHANGELOG.md docs
             git commit -m "Release ${NEXT_VERSION} [skip ci]"
             git push origin $CIRCLE_BRANCH
           environment:
