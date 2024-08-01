@@ -1,7 +1,4 @@
-# require_relative 'git/git_commits'
 require_relative 'git/git_tools'
-# require_relative 'util/boolean_utils'
-# require_relative 'util/release_utils'
 require_relative 'model/release_platform'
 require_relative 'util/gradle_property_utils'
 require_relative 'model/version_bump_type'

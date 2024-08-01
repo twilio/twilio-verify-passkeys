@@ -270,9 +270,16 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Publish to Maven
+          name: Publish to Maven Central
           command: |
-            echo "TODO: promote SDK from internal to prod Maven"
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            echo $REPO_NAME
+            echo "Publishing to Maven Central"
+
+            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   post-release:
     executor: ruby-executor
@@ -332,9 +339,12 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-internal-release-sdk-e2e-tests
+      - wait-for-manual-approval-to-release:
+          type: approval
+          requires: check-android-internal-release-sdk-e2e-tests-result
       - perform-release:
           requires:
-            - check-android-internal-release-sdk-e2e-tests-result
+            - wait-for-manual-approval-to-release
       - post-release:
           requires:
             - perform-release

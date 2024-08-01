@@ -16,7 +16,6 @@ begin
   platform = is_ios_only ? ReleasePlatform[:IOS] : ReleasePlatform[:KMP]
   # Retrieve commits based on the specified platform
   commits = GitCommits.get_commits(platform)
-  
 
   puts ReleaseUtils.determine_release_type(commits, platform)
 rescue ArgumentError => e
