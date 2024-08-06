@@ -40,7 +40,7 @@ import kotlinx.serialization.json.Json
  * @property credentialManager The credential manager responsible for managing passkey credentials.
  * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
  */
-actual class TwilioPasskey internal constructor(
+actual class TwilioPasskeys internal constructor(
   private val credentialManager: CredentialManager,
   private val passkeyPayloadMapper: PasskeyPayloadMapper,
 ) {

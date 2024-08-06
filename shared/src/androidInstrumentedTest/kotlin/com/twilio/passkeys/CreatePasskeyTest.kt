@@ -26,8 +26,8 @@ import org.junit.Ignore
 import org.junit.Test
 
 class CreatePasskeyTest {
-  private val twilioPasskey =
-    TwilioPasskey(InstrumentationRegistry.getInstrumentation().context)
+  private val twilioPasskeys =
+    TwilioPasskeys(InstrumentationRegistry.getInstrumentation().context)
 
   @Test
   fun createCredential_withInvalidInput_fails() {
@@ -35,7 +35,7 @@ class CreatePasskeyTest {
       scenario.onActivity { activity ->
         runBlocking {
           val result =
-            twilioPasskey.create(
+            twilioPasskeys.create(
               createPayload = "{invalid}",
               appContext = AppContext(activity),
             )
@@ -52,7 +52,7 @@ class CreatePasskeyTest {
       scenario.onActivity { activity ->
         runBlocking {
           val result =
-            twilioPasskey.create(
+            twilioPasskeys.create(
               createPayload = createPasskeyChallengePayload,
               appContext = AppContext(activity),
             )

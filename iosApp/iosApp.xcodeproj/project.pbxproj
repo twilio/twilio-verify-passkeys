@@ -393,7 +393,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
-					TwilioPasskeys,
+					TwilioPasskeysAuthentication,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.passkeys.twilio.sampleCode;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -429,7 +429,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
-					TwilioPasskeys,
+					TwilioPasskeysAuthentication,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.passkeys.twilio.sampleCode;
 				PRODUCT_NAME = "$(TARGET_NAME)";

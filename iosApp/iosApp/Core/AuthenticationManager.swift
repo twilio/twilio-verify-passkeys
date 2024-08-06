@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import TwilioPasskeys
+import TwilioPasskeysAuthentication
 import Combine
 import UIKit
 
@@ -26,7 +26,7 @@ class AuthenticationManager: NSObject, ObservableObject {
     // MARK: - Properties
 
     private let worker: PasskeysWorker = .init(domain: domain)
-    private let twilioPasskey = TwilioPasskey()
+    private let twilioPasskeys = TwilioPasskeys()
     @Published public var currentUser: User? = nil
 
     var isSignedIn: Bool {
@@ -43,7 +43,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
         
-        let response = try await twilioPasskey.authenticate(authenticatePayload: json, appContext: AppContext(uiWindow: window))
+        let response = try await twilioPasskeys.authenticate(authenticatePayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? AuthenticatePasskeyResult.Success {
                 finishSignIn(with: success.authenticatePasskeyResponse)
         } else if let error = response as? AuthenticatePasskeyResult.Error {
@@ -61,7 +61,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
 
-        let response = try await twilioPasskey.create(createPayload: json, appContext: AppContext(uiWindow: window))
+        let response = try await twilioPasskeys.create(createPayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? CreatePasskeyResult.Success {
             finishSignUp(
                 for: username,

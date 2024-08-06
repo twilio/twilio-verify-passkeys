@@ -33,6 +33,12 @@ executors:
     resource_class: medium
     working_directory: *workspace
 
+  mac-os-executor:
+    macos:
+      xcode: "15.1.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: *workspace
+
   ruby-executor:
     docker:
       - image: cimg/ruby:3.3.0
@@ -44,6 +50,22 @@ commands:
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
+
+  install-android-sdk:
+    parameters:
+      gradle-dir:
+        default: .
+        type: string
+    steps:
+      - run:
+          name: "Download and setup android SDK"
+          command: |
+            ANDROID_SDK_ROOT="$HOME/android-sdk"
+              ./scripts/download_android_sdk.sh "$ANDROID_SDK_ROOT"
+              echo "sdk.dir=$ANDROID_SDK_ROOT" >> "$PROJECT_GRADLE_DIR/local.properties"
+              echo "org.gradle.daemon=false" >> "$PROJECT_GRADLE_DIR/gradle.properties"
+          environment:
+              PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
 
 jobs:
   release-type:
@@ -117,14 +139,13 @@ jobs:
             - .
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
-    executor: android-executor
+    executor: mac-os-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - install-android-sdk
       - run:
           name: Generate signing key ring file
           command: |
@@ -249,9 +270,16 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Publish to Maven
+          name: Publish to Maven Central
           command: |
-            echo "TODO: promote SDK from internal to prod Maven"
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            echo $REPO_NAME
+            echo "Publishing to Maven Central"
+
+            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   post-release:
     executor: ruby-executor
@@ -268,7 +296,7 @@ jobs:
 
             git config --global user.email $GITHUB_USER_EMAIL
             git config --global user.name $GITHUB_USER_NAME
-            git add gradle.properties CHANGELOG.md
+            git add gradle.properties CHANGELOG.md docs
             git commit -m "Release ${NEXT_VERSION} [skip ci]"
             git push origin $CIRCLE_BRANCH
           environment:
@@ -311,9 +339,12 @@ workflows:
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-internal-release-sdk-e2e-tests
+      - wait-for-manual-approval-to-release:
+          type: approval
+          requires: check-android-internal-release-sdk-e2e-tests-result
       - perform-release:
           requires:
-            - check-android-internal-release-sdk-e2e-tests-result
+            - wait-for-manual-approval-to-release
       - post-release:
           requires:
             - perform-release

@@ -30,6 +30,6 @@ dependencyResolutionManagement {
     mavenCentral()
   }
 }
-rootProject.name = "Passkeys"
+rootProject.name = "TwilioPasskeys"
 include(":androidApp")
 include(":shared")

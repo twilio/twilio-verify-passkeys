@@ -90,7 +90,7 @@ afterEvaluate {
         artifact(javadocJar)
 
         pom {
-          name.set("Twilio Verify Passkeys Android")
+          name.set("twilio-verify-passkeys")
           description.set(
             """
             Twilio Passkeys SDK enables developers to easily add Passkeys into their existing authentication flows 
@@ -163,7 +163,7 @@ kotlin {
     }
   }
 
-  val xcFrameworkName = "TwilioPasskeys"
+  val xcFrameworkName = "TwilioPasskeysAuthentication"
   val xcf = XCFramework(xcFrameworkName)
   val iosTargets = listOf(iosX64(), iosArm64(), iosSimulatorArm64())
 

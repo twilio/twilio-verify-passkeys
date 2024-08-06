@@ -52,7 +52,7 @@ import org.robolectric.RobolectricTestRunner
 class AndroidTwilioPasskeyTest {
   private val credentialManager: CredentialManager = mockk()
   private val passkeyPayloadMapper: PasskeyPayloadMapper = mockk()
-  private val twilioPasskey = TwilioPasskey(credentialManager, passkeyPayloadMapper)
+  private val twilioPasskeys = TwilioPasskeys(credentialManager, passkeyPayloadMapper)
   private val activity: Activity = mockk()
   private val appContext = AppContext(activity)
 
@@ -73,7 +73,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPayload = createPayload,
           appContext = appContext,
         )
@@ -105,7 +105,7 @@ class AndroidTwilioPasskeyTest {
     every { passkeyPayloadMapper.mapException(exception) } returns expectedException
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPayload = createPayload,
           appContext = appContext,
         )
@@ -123,7 +123,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -161,7 +161,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -185,7 +185,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -209,7 +209,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -233,7 +233,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -254,7 +254,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -278,7 +278,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.create(
+        twilioPasskeys.create(
           createPasskeyRequest = createPasskeyRequest,
           appContext = appContext,
         )
@@ -303,7 +303,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePayload = authenticatePayload,
           appContext = appContext,
         )
@@ -337,7 +337,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePayload = authenticatePayload,
           appContext = appContext,
         )
@@ -362,7 +362,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -398,7 +398,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -421,7 +421,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -444,7 +444,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -467,7 +467,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -490,7 +490,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -513,7 +513,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -536,7 +536,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
@@ -559,7 +559,7 @@ class AndroidTwilioPasskeyTest {
 
     runTest {
       val result =
-        twilioPasskey.authenticate(
+        twilioPasskeys.authenticate(
           authenticatePasskeyRequest = authenticatePasskeyRequest,
           appContext = appContext,
         )
