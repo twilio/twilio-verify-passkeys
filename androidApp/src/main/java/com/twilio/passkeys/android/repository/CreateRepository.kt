@@ -33,7 +33,7 @@ class CreateRepository
     suspend fun verification(
       rawId: String,
       id: String,
-      clientDataJson: String,
+      clientDataJSON: String,
       attestationObject: String,
       type: String,
       transports: List<String>,
@@ -42,7 +42,7 @@ class CreateRepository
         RegistrationVerificationRequest(
           rawId = rawId,
           id = id,
-          clientDataJson = clientDataJson,
+          clientDataJSON = clientDataJSON,
           attestationObject = attestationObject,
           type = type,
           transports = transports,

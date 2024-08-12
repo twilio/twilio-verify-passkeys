@@ -16,7 +16,7 @@ struct RegistrationStartRequest: Codable {
 struct RegistrationVerificationRequest: Codable {
     let rawId: String
     let id: String
-    let clientDataJson: String
+    let clientDataJSON: String
     let attestationObject: String
     let type: String
     let transports: [String]
@@ -81,7 +81,7 @@ struct PublicKey: Codable {
 struct VerificationRequest: Codable {
     var rawId: String
     var id: String
-    var clientDataJson: String
+    var clientDataJSON: String
     var userHandle: String?
     var signature: String?
     var authenticatorData: String?

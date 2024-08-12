@@ -32,7 +32,7 @@ class AuthenticateRepository
     suspend fun verification(
       rawId: String,
       id: String,
-      clientDataJson: String,
+      clientDataJSON: String,
       userHandle: String?,
       signature: String?,
       authenticatorData: String?,
@@ -41,7 +41,7 @@ class AuthenticateRepository
         AuthenticateVerificationRequest(
           rawId = rawId,
           id = id,
-          clientDataJson = clientDataJson,
+          clientDataJSON = clientDataJSON,
           userHandle = userHandle,
           signature = signature,
           authenticatorData = authenticatorData,
