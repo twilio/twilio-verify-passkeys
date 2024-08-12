@@ -23,6 +23,7 @@
 		864891B72BD1C51D00E18A1B /* APIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861AEF4A2B0EB40B005A097E /* APIManager.swift */; };
 		864891BA2BD1C51D00E18A1B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 058557D8273AAEEB004C7B11 /* Preview Assets.xcassets */; };
 		864891BB2BD1C51D00E18A1B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 058557BA273AAA24004C7B11 /* Assets.xcassets */; };
+		86ED79E82C6AA9410046B6C6 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86ED79E72C6AA9410046B6C6 /* Constants.swift */; };
 		86FB1FCB2B0BF33100992ABF /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FB1FCA2B0BF33100992ABF /* SignUpView.swift */; };
 		86FB1FCD2B0BF9DC00992ABF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FB1FCC2B0BF9DC00992ABF /* HomeView.swift */; };
 		86FB1FCF2B0BFA2E00992ABF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FB1FCE2B0BFA2E00992ABF /* LandingView.swift */; };
@@ -64,6 +65,7 @@
 		861AEF4F2B0EB484005A097E /* PasskeysWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysWorker.swift; sourceTree = "<group>"; };
 		864891C02BD1C51D00E18A1B /* iosAppWithoutSDK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosAppWithoutSDK.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		864891C12BD1C51D00E18A1B /* iosApp copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "iosApp copy-Info.plist"; path = "/Users/aorozcobuiles/Development/Twilio/Secondary/twilio-verify-passkeys/iosApp/iosApp copy-Info.plist"; sourceTree = "<absolute>"; };
+		86ED79E72C6AA9410046B6C6 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		86FB1FCA2B0BF33100992ABF /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		86FB1FCC2B0BF9DC00992ABF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		86FB1FCE2B0BFA2E00992ABF /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				7555FF8C242A565B00829871 /* Info.plist */,
 				2152FB032600AC8F00CF470E /* iOSApp.swift */,
 				058557D7273AAEEB004C7B11 /* Preview Content */,
+				86ED79E72C6AA9410046B6C6 /* Constants.swift */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -307,6 +310,7 @@
 				861AEF502B0EB484005A097E /* PasskeysWorker.swift in Sources */,
 				861AEF4E2B0EB43A005A097E /* PasskeysModels.swift in Sources */,
 				861AEF4B2B0EB40B005A097E /* APIManager.swift in Sources */,
+				86ED79E82C6AA9410046B6C6 /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

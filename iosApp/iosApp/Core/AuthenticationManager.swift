@@ -21,8 +21,6 @@ public enum User {
     }
 }
 
-let domain: String = "passkey-demo-5706.twil.io"
-
 class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Properties

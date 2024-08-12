@@ -273,16 +273,16 @@ jobs:
       - checkout
       - run:
           name: Create Framework
-          command: ./gradlew shared:assembleTwilioPasskeysXCFramework
+          command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
           command: |
-            ln -s shared/build/XCFrameworks/debug/TwilioPasskeys.xcframework TwilioPasskeys.xcframework
-            zip -r debugFramework.zip TwilioPasskeys.xcframework
-            rm TwilioPasskeys.xcframework
-            ln -s shared/build/XCFrameworks/release/TwilioPasskeys.xcframework TwilioPasskeys.xcframework
-            zip -r releaseFramework.zip TwilioPasskeys.xcframework
-            rm TwilioPasskeys.xcframework
+            ln -s shared/build/XCFrameworks/debug/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
+            zip -r debugFramework.zip TwilioPasskeysAuthentication.xcframework
+            rm TwilioPasskeysAuthentication.xcframework
+            ln -s shared/build/XCFrameworks/release/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
+            zip -r releaseFramework.zip TwilioPasskeysAuthentication.xcframework
+            rm TwilioPasskeysAuthentication.xcframework
       - store_artifacts:
           path: debugFramework.zip
       - store_artifacts:
@@ -368,12 +368,16 @@ jobs:
       - run:
           name: Publish XCFramework to GitHub
           command: |
-            mv releaseFramework.zip TwilioVerifyPasskeys.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioVerifyPasskeys.xcframework.zip | cut -d ' ' -f 1)
+            if [ ! -f releaseFramework.zip ]; then
+              echo "releaseFramework.zip not found in workspace"
+              exit 1
+            fi
+            mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
+            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
             echo "Checksum: $CHECKSUM"
             git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
             cd twilio-verify-passkeys-ios
-            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioVerifyPasskeys.xcframework.zip\",|" Package.swift
+            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
             sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
             git config --global user.email $GITHUB_USER_EMAIL
             git config --global user.name $GITHUB_USER_NAME
@@ -382,7 +386,7 @@ jobs:
             git tag "v$VERSION_BUMP"
             git push origin main
             gem install faraday
-            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$VERSION_BUMP" "TwilioVerifyPasskeys v$VERSION_BUMP" "${CHANGELOG}" ../TwilioVerifyPasskeys.xcframework.zip
+            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$VERSION_BUMP" "TwilioPasskeysAuthentication v$VERSION_BUMP" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
           shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
@@ -439,6 +443,12 @@ jobs:
           name: Configure GCloud App Distribution service
           command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
       - run:
+          name: Set sample backend URL
+          command: |
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_URL}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_URL}</string>|" iosApp/iosApp.entitlements
+      - run:
           name: Deploy to Firebase App Distribution
           command: |
             cd iosApp
@@ -464,6 +474,12 @@ jobs:
           command: |
             cd iosApp
             bundle install
+      - run:
+          name: Set sample backend URL
+          command: |
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_URL}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_URL}</string>|" iosApp/iosApp.entitlements
       - run:
           name: Generate simulator build
           command: |
