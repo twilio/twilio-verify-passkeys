@@ -77,7 +77,7 @@ class LoginViewModel
                 createRepository.verification(
                   rawId = createPasskeyResult.createPasskeyResponse.rawId,
                   id = createPasskeyResult.createPasskeyResponse.id,
-                  clientDataJson = createPasskeyResult.createPasskeyResponse.clientDataJSON,
+                  clientDataJSON = createPasskeyResult.createPasskeyResponse.clientDataJSON,
                   attestationObject = createPasskeyResult.createPasskeyResponse.attestationObject,
                   type = createPasskeyResult.createPasskeyResponse.type,
                   transports = createPasskeyResult.createPasskeyResponse.transports,
@@ -114,7 +114,7 @@ class LoginViewModel
                 authenticateRepository.verification(
                   rawId = response.rawId,
                   id = response.id,
-                  clientDataJson = response.clientDataJSON,
+                  clientDataJSON = response.clientDataJSON,
                   userHandle = response.userHandle,
                   signature = response.signature,
                   authenticatorData = response.authenticatorData,

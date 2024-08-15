@@ -36,7 +36,7 @@ interface AuthenticateApi {
 data class AuthenticateVerificationRequest(
   val rawId: String,
   val id: String,
-  val clientDataJson: String,
+  val clientDataJSON: String,
   val userHandle: String?,
   val signature: String?,
   val authenticatorData: String?,
