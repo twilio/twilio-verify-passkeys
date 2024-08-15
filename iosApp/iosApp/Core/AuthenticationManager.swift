@@ -87,7 +87,7 @@ class AuthenticationManager: NSObject, ObservableObject {
                 let result = try await worker.registrationVerification(request: .init(
                     rawId: response.rawId,
                     id: response.id,
-                    clientDataJson: response.clientDataJSON,
+                    clientDataJSON: response.clientDataJSON,
                     attestationObject: response.attestationObject,
                     type: response.type,
                     transports: ["internal"])
@@ -110,7 +110,7 @@ class AuthenticationManager: NSObject, ObservableObject {
                 _ = try await worker.authenticationVerification(request: .init(
                     rawId: response.rawId,
                     id: response.id,
-                    clientDataJson: response.clientDataJSON,
+                    clientDataJSON: response.clientDataJSON,
                     userHandle: response.userHandle,
                     signature: response.signature,
                     authenticatorData: response.authenticatorData
