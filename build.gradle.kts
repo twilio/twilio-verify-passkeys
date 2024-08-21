@@ -155,5 +155,9 @@ fun getPropertyValue(key: String): String {
     } else {
       System.getenv(key)
     }
+  if (property == null) {
+    println("Warning: Property or environment variable '$key' is not defined.")
+    return ""
+  }
   return property
 }

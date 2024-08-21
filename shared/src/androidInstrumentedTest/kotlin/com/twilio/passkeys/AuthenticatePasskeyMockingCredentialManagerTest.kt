@@ -36,8 +36,8 @@ import org.junit.Test
 
 class AuthenticatePasskeyMockingCredentialManagerTest {
   private val credentialManager = CredentialManagerMock()
-  private val twilioPasskey =
-    TwilioPasskey(credentialManager, PasskeyPayloadMapper)
+  private val twilioPasskeys =
+    TwilioPasskeys(credentialManager, PasskeyPayloadMapper)
 
   @Test
   fun authenticatePasskey_succeeds() {
@@ -46,7 +46,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val authenticatePasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -89,7 +89,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -109,7 +109,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -129,7 +129,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -149,7 +149,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -169,7 +169,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -189,7 +189,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )
@@ -209,7 +209,7 @@ class AuthenticatePasskeyMockingCredentialManagerTest {
       scenario.onActivity { activity ->
         runTest {
           val createPasskeyResult =
-            twilioPasskey.authenticate(
+            twilioPasskeys.authenticate(
               authenticatePasskeyChallengePayload,
               AppContext(activity),
             )

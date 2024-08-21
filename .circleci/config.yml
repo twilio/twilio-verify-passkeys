@@ -3,19 +3,41 @@ version: 2.1
 orbs:
   android: circleci/android@2.3.0
   ruby: circleci/ruby@2.1.0
+  gcp-cli: circleci/gcp-cli@3.1.1
+  continuation: circleci/continuation@1.0.0
+
+setup: true
 
 aliases:
   - &workspace
       ~/passkeys-sdk
   - &unit-test-folder-result
       ~/test-results/junit
+  - &tmp-workspace
+      tmp/workspace
+  - &env-vars-file
+      env_vars
 
 executors:
+  ubuntu-small-executor:
+    #https://circleci:com/developer/images/image/cimg/base
+    docker:
+      - image: cimg/base:2024.02
+    resource_class: small
+    working_directory: *workspace
+
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2023.12.1
-    resource_class: large
+      - image: cimg/android:2024.01.1
+    resource_class: medium
+    working_directory: *workspace
+
+  android-node-executor:
+    docker:
+      # https://circleci.com/developer/images/image/cimg/android#image-tags
+      - image: cimg/android:2024.01.1-node
+    resource_class: medium
     working_directory: *workspace
 
   mac-os-executor:
@@ -63,7 +85,7 @@ commands:
           name: Danger check
           command: bundle exec danger <<parameters.danger_params>> --verbose --remove-previous-comments
 
-  move_directory:
+  move-directory:
     parameters:
       from:
         description: directory to move
@@ -73,6 +95,12 @@ commands:
         type: string
     steps:
       - run: cp -R <<parameters.from>> <<parameters.to>>
+
+  install-firebase-cli:
+    steps:
+      - run:
+          name: Install Firebase CLI
+          command: npm install --save-dev firebase-tools
 
 jobs:
   assemble:
@@ -85,11 +113,21 @@ jobs:
       - ruby/install-deps
       - run:
           name: Assemble build
-          command: ./gradlew assembleDebug assembleDebugAndroidTest
+          command: ./gradlew assembleDebug :shared:assembleRelease assembleDebugAndroidTest
+      - move-directory:
+          from: shared/build/outputs/apk/androidTest/debug/
+          to: builds
+      - move-directory:
+          from: shared/build/outputs/aar/
+          to: builds
       - danger-check:
           danger_params: --danger_id=assemble --dangerfile=dangerfiles/dangerfile_pr_validation
       - android/save-gradle-cache
       - android/save-build-cache
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - builds
 
   lint-check:
     executor: ruby-executor
@@ -124,7 +162,7 @@ jobs:
       - android/save-gradle-cache
       - android/save-build-cache
 
-  android-unit-test:
+  android-unit-tests:
     executor: android-executor
 
     steps:
@@ -148,7 +186,22 @@ jobs:
       - store_artifacts:
           path: /home/circleci/test-results/
 
-  ios-unit-test:
+  android-instrumented-tests:
+    executor: android-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - gcp-cli/setup
+      - run:
+          name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
+          command: |
+            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
+
+  ios-unit-tests:
     executor: mac-os-executor
 
     steps:
@@ -180,8 +233,7 @@ jobs:
       - store_artifacts:
           path: "shared/build/outputs/sizeReport"
           destination: sizeReport
-      - run: mkdir -p builds
-      - move_directory:
+      - move-directory:
           from: shared/build/outputs/sizeReport/
           to: builds
       - danger-check:
@@ -190,6 +242,29 @@ jobs:
           root: *workspace
           paths:
             - builds
+
+  ios-sdk-size-report:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Build and measure
+          command: |
+            cd iosApp
+            bundle exec fastlane size_demo_app
+      - danger-check:
+          danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+      - persist_to_workspace:
+            root: .
+            paths:
+              - iosApp/IPAs/iosApp.ipa
 
   ios-generate-framework:
     executor: mac-os-executor
@@ -210,21 +285,283 @@ jobs:
           path: releaseFramework.tar.gz
 
   android-generate-aar:
+    
     executor: android-executor
 
     steps:
       - checkout
+      - attach_workspace:
+          at: *workspace
       - run:
           name: Create aars
           command: |
-            ./gradlew :shared:assembleDebug
-            mv shared/build/outputs/aar/shared-debug.aar TwilioPasskeys-debug.aar
-            ./gradlew :shared:assembleRelease
-            mv shared/build/outputs/aar/shared-release.aar TwilioPasskeys.aar
+            mv builds/aar/shared-debug.aar TwilioPasskeys-debug.aar
+            mv builds/aar/shared-release.aar TwilioPasskeys.aar
       - store_artifacts:
           path: TwilioPasskeys-debug.aar
       - store_artifacts:
           path: TwilioPasskeys.aar
+
+  should-release-kmp-version:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Determine the type of release for KMP SDK
+          command:  |
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo "Release type = $KMP_RELEASE_TYPE"
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $KMP_RELEASE_TYPE release"
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - continuation/continue:
+          configuration_path: .circleci/release_kmp.yml
+
+  should-release-ios-version:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Determine the type of release for iOS SDK
+          command: |
+            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+            echo "Release type = $IOS_RELEASE_TYPE"
+            
+            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a new $IOS_RELEASE_TYPE release"
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  generate-android-sample-app-using-local-sdk:
+    executor: android-node-executor
+
+    steps:
+      - checkout
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Set sample backend URL
+          command: |
+            ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
+      - run:
+          name: Generate APK
+          command: |
+            ./gradlew :androidApp:assembleDebug
+      - install-firebase-cli
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            firebase appdistribution:distribute androidApp/build/outputs/apk/debug/androidApp-debug.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
+      - run:
+          name: Save distributed app link
+          command: |
+            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  generate-ios-sample-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Configure GCloud App Distribution service
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - run:
+          name: Deploy to Firebase App Distribution
+          command: |
+            cd iosApp
+            bundle exec fastlane deploy_demo_app
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: .
+          paths:
+            - iosApp/fastlane/firebase_url.txt
+
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - run:
+          name: Generate simulator build
+          command: |
+            cd iosApp
+            bundle exec fastlane simulator_app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
+            zip -r sample-app.zip sample-app.app
+            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
+            echo $IOS_SIMULATOR_APP_URL
+            cd ..
+            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - store_artifacts:
+          path: iosApp/sample-app.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-android-local-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_APP_DOWNLOAD_URL
+            
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
+            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-simulator-ios-internal-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $IOS_SIMULATOR_APP_URL
+
+            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
+            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
+            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  check-android-local-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
+
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
+            
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+            
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
+              (exit -1) 
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
+  check-simulator-ios-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
+
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
+
+            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
+            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
+
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
+              (exit -1) 
+            fi
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   build-all:
@@ -236,20 +573,68 @@ workflows:
       - android-sdk-size-report:
           requires:
             - assemble
+      - ios-sdk-size-report:
+          requires:
+            - assemble
       - detekt-check:
           requires:
             - assemble
-      - android-unit-test:
+      - android-unit-tests:
           requires:
             - lint-check
             - detekt-check
-      - ios-unit-test:
+      - android-instrumented-tests:
+          requires:
+            - android-unit-tests
+      - ios-unit-tests:
           requires:
             - lint-check
             - detekt-check
       - ios-generate-framework:
           requires:
-            - ios-unit-test
+            - ios-unit-tests
+      - generate-ios-simulator-app-using-internal-sdk:
+          requires:
+            - ios-generate-framework
       - android-generate-aar:
           requires:
-            - android-unit-test
+            - android-instrumented-tests
+      - generate-android-sample-app-using-local-sdk:
+          requires:
+            - android-instrumented-tests
+            - ios-unit-tests
+      - run-android-local-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-local-sdk-e2e-tests
+          requires:
+            - generate-android-sample-app-using-local-sdk
+      - wait-for-android-local-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-local-sdk-e2e-tests
+      - check-android-local-sdk-e2e-tests-result:
+          workflow_name_to_check: "android-tests"
+          requires:
+            - wait-for-android-local-sdk-e2e-tests
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - wait-for-ios-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-simulator-ios-internal-sdk-e2e-tests
+      - check-simulator-ios-sdk-e2e-tests-result:
+          workflow_name_to_check: "ios-tests"
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
+      - should-release-kmp-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main

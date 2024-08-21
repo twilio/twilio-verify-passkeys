@@ -1,3 +1,4 @@
+
 /*
  * Copyright © 2024 Twilio Inc.
  *
@@ -22,9 +23,25 @@ plugins {
   kotlin("kapt")
 }
 
+val mavenRepoUrl: String? by project
+val mavenUsername: String? by project
+val mavenPassword: String? by project
+
 repositories {
   mavenLocal()
+  if (mavenRepoUrl != null && mavenUsername != null && mavenPassword != null) {
+    maven {
+      url = uri(mavenRepoUrl!!)
+      credentials {
+        username = mavenUsername
+        password = mavenPassword
+      }
+    }
+  }
 }
+
+val sampleBackendUrl: String by extra
+val sdkVersionName: String by extra
 
 android {
   namespace = "com.twilio.passkeys.android"
@@ -34,9 +51,12 @@ android {
     minSdk = 24
     targetSdk = 34
     versionCode = 1
-    versionName = "1.0"
+    versionName = sdkVersionName
+
+    buildConfigField("String", "SAMPLE_BACKEND_URL", sampleBackendUrl)
   }
   buildFeatures {
+    buildConfig = true
     compose = true
   }
   composeOptions {
@@ -73,10 +93,9 @@ android {
   }
 }
 
-val versionCode: String by extra
 dependencies {
   debugImplementation(projects.shared)
-  releaseImplementation("com.twilio:twilio-verify-passkeys-android:$versionCode")
+  releaseImplementation("com.twilio:twilio-verify-passkeys-android:$sdkVersionName")
   implementation(libs.compose.ui)
   implementation(libs.compose.ui.tooling.preview)
   implementation(libs.compose.material3)

@@ -1,0 +1,133 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    setup_circle_ci
+  end
+
+  desc "Size Demo Project & SDK"
+  lane :size_demo_app do
+    # Archive App
+    match(
+      type: "development",
+      app_identifier: ["com.passkeys.twilio.sampleCode"]
+    )
+    settings_to_override = {
+      :BUNDLE_IDENTIFIER => "com.passkeys.twilio.sampleCode",
+      :PROVISIONING_PROFILE_SPECIFIER => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
+      :DEVELOPMENT_TEAM => ENV["VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM"],
+    }
+    gym(
+      scheme: "iosApp",
+      project: "iosApp.xcodeproj",
+      export_method: "development",
+      xcargs: settings_to_override,
+      silent: true,
+      output_directory: "IPAs/",
+      output_name: "iosApp.ipa"
+    )
+
+    ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
+
+    # Print the size of the IPA file
+    ipa_size_kb = `du -sk #{ipa_path}`.split[0].to_i
+    ipa_size_mb = ipa_size_kb / 1024.0  # Convert KB to MB
+    puts "IPA size is #{ipa_size_mb} MB"
+    File.open("sizes.txt", "w") { |file| file.write("IPA size: #{'%.1f' % ipa_size_mb} MB\n") }
+
+    # Unzip the IPA file
+    sh "unzip #{ipa_path} -d extracted"
+
+    # Measure the size of each framework
+    sh "du -sh extracted/Payload/iosApp.app/Frameworks/*.framework/"
+
+     # Measure the size of the extracted app
+    app_size_kb = `du -sk extracted/Payload/iosApp.app`.split[0].to_i
+    app_size_mb = app_size_kb / 1024.0  # Convert KB to MB
+    puts "App size is #{'%.1f' % app_size_mb} MB"
+
+    # Write the size of the app to a file
+    File.open("sizes.txt", "a") { |file| file.write("App size: #{'%.1f' % app_size_mb} MB\n") }
+
+    # Measure the size of each framework
+    Dir.glob('extracted/Payload/iosApp.app/Frameworks/*.framework').each do |framework|
+      framework_size_kb = `du -sk #{framework}`.split[0].to_i
+      framework_size_mb = framework_size_kb / 1024.0  # Convert KB to MB
+      framework_name = File.basename(framework)  # Get the framework name without the path
+
+      puts "#{framework_name} size is #{'%.1f' % framework_size_mb} MB"
+
+      # Write the size and impact of each framework to a file
+      impact = (framework_size_mb / app_size_mb) * 100  # Calculate the impact of the framework on the total size
+      File.open("sizes.txt", "a") { |file| file.write("#{framework_name}: #{'%.1f' % framework_size_mb} MB, Impact: #{'%.1f' % impact}%\n") }
+    end
+  end
+
+  desc "Generate simulator build"
+  lane :simulator_app do
+    match(
+      type: "development",
+      app_identifier: ["com.passkeys.twilio.sampleCode"]
+    )
+    settings_to_override = {
+      :BUNDLE_IDENTIFIER => "com.passkeys.twilio.sampleCode",
+      :PROVISIONING_PROFILE_SPECIFIER => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
+      :DEVELOPMENT_TEAM => ENV["VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM"],
+    }
+    gym(
+      scheme: "iosApp",
+      project: "iosApp.xcodeproj",
+      silent: true,
+      skip_package_ipa: true,
+      skip_archive: true,
+      export_method: "development",
+      xcargs: settings_to_override,
+      destination: "generic/platform=iOS Simulator",
+      configuration: "Debug",
+      derived_data_path: "simulator_build/",
+    )
+  end
+
+  desc "Deploy Sample App to Firebase"
+  lane :deploy_demo_app do
+    # Get the last commit message
+    last_commit = last_git_commit
+    commit_message = last_commit[:message]
+
+    # Configure service credentials
+    app_distribution_key = "gcloud-app-distribution-service-key.json"
+    key_file = "#{ENV["HOME"]}/#{app_distribution_key}"
+
+    # Get ipa path
+    current_directory = Dir.pwd
+    ipa_file_path = "#{current_directory}/../IPAs/iosApp.ipa"
+    puts "IPA file path: #{ipa_file_path}"
+
+    # Distribute the app
+    firebase_url = firebase_app_distribution(
+      app: ENV["SAMPLE_APP_FIREBASE_ID"],
+      ipa_path: ipa_file_path,
+      groups: ENV["FIREBASE_APP_DISTRIBUTION_GROUP"],
+      service_credentials_file: key_file,
+      release_notes: commit_message
+    )
+
+    # Write the Firebase URL to a file
+    File.open("firebase_url.txt", "w") { |file| file.write(firebase_url) }
+  end
+end

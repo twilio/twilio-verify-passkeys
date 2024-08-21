@@ -2,9 +2,13 @@
 .gradle
 .idea
 .DS_Store
-build
+/build/
+*/build/*
+!*/build/dokka/
 captures
 .externalNativeBuild
 .cxx
 local.properties
 xcuserdata
+gradle-task-output.log
+tmp

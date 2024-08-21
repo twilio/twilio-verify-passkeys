@@ -19,7 +19,13 @@ package com.twilio.passkeys.extensions
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+/**
+ * Base64 encodes the byte array using URL-safe encoding.
+ *
+ * @receiver The byte array to be Base64 encoded.
+ * @return The Base64 encoded string.
+ */
 @OptIn(ExperimentalEncodingApi::class)
-fun ByteArray.b64Encode(): String {
+internal fun ByteArray.b64Encode(): String {
   return Base64.UrlSafe.encode(this)
 }

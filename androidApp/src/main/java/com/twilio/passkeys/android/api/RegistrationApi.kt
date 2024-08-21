@@ -41,7 +41,7 @@ data class RegistrationStartRequest(val username: String)
 data class RegistrationVerificationRequest(
   val rawId: String,
   val id: String,
-  val clientDataJson: String,
+  val clientDataJSON: String,
   val attestationObject: String,
   val type: String,
   val transports: List<String>,

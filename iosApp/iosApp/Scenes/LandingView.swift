@@ -7,14 +7,14 @@
 //
 
 import SwiftUI
-import TwilioPasskeys
+import TwilioPasskeysAuthentication
 
 struct LandingView: View {
 
     // MARK: - Properties
 
     @State var phoneNumber: String = .init()
-    @ObservedObject var authenticationManger: AuthenticationManager
+    @ObservedObject var authenticationManager: AuthenticationManager
 
     // MARK: - Private Methods
 
@@ -29,10 +29,10 @@ struct LandingView: View {
     // MARK: - View
 
     var body: some View {
-        if case let .authenticated(username) = authenticationManger.currentUser {
+        if case let .authenticated(username) = authenticationManager.currentUser {
             TabView {
                 HomeView(userId: username)
-                    .environmentObject(authenticationManger)
+                    .environmentObject(authenticationManager)
                     .onAppear {
                         phoneNumber = .init()
                     }
@@ -47,13 +47,13 @@ struct LandingView: View {
             }
         } else {
             SignUpView(phoneNumber: $phoneNumber)
-                .environmentObject(authenticationManger)
+                .environmentObject(authenticationManager)
         }
     }
 }
 
 struct Previews_LandingView_Previews: PreviewProvider {
     static var previews: some View {
-        LandingView(authenticationManger: .init())
+        LandingView(authenticationManager: .init())
     }
 }
