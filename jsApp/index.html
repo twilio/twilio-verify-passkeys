@@ -195,7 +195,7 @@
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@19.5.3/build/js/utils.js",
     });
 
-    const twilioPasskey = new myLibrary.com.twilio.passkeys.TwilioPasskey.withMapper
+    const twilioPasskey = new twilio-verify-passkeys-js.com.twilio.passkeys.TwilioPasskey.withMapper
 
     const checkAvalibility = () => {
         const username = usernameElement.value
@@ -271,7 +271,7 @@
 
             const responseJSON = await response.json();
             const { createPasskeyResponse } = await twilioPasskey.create(JSON.stringify(responseJSON))
-            
+
             const verificationResponse = await fetch("https://passkey-demo-kotlin-5589.twil.io/registration/verification", {
                 method: "POST",
                 headers: {
@@ -299,7 +299,7 @@
             console.log(error);
         }
     }
-  
+
     const logOut = () => {
         sessionStorage.removeItem("session");
         document.getElementById("app").classList.add("invisible");

@@ -17,13 +17,18 @@
 package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
-import kotlin.js.ExperimentalJsExport
-import kotlin.js.JsExport
-import kotlin.js.JsName
 
-@OptIn(ExperimentalJsExport::class)
-@JsExport
-@JsName("CreatePasskeyResponse")
+/**
+ * Represents the response for creating a passkey.
+ *
+ * @property id The identifier of the created passkey.
+ * @property rawId The raw identifier of the created passkey.
+ * @property authenticatorAttachment The type of authenticator attachment used.
+ * @property type The type of the passkey.
+ * @property attestationObject The attestation object associated with the passkey creation.
+ * @property clientDataJSON The client data JSON associated with the passkey creation.
+ * @property transports The list of transport methods supported by the passkey.
+ */
 data class CreatePasskeyResponse(
   val id: String,
   val rawId: String,
@@ -31,13 +36,20 @@ data class CreatePasskeyResponse(
   val type: String,
   val attestationObject: String,
   val clientDataJSON: String,
-  val transports: Array<String>,
+  val transports: List<String>,
 )
 
-@OptIn(ExperimentalJsExport::class)
-@JsExport
+/**
+ * Represents the data transfer object (DTO) for creating a passkey.
+ *
+ * @property id The identifier of the passkey.
+ * @property rawId The raw identifier of the passkey.
+ * @property authenticatorAttachment The type of authenticator attachment used.
+ * @property type The type of the passkey.
+ * @property response The response containing attestation object, client data JSON, and transports.
+ */
 @Serializable
-data class CreatePasskeyDto(
+internal data class CreatePasskeyDto(
   val id: String,
   val rawId: String,
   val authenticatorAttachment: String,
@@ -45,11 +57,16 @@ data class CreatePasskeyDto(
   val response: CreatePasskeyResponseDto,
 )
 
-@OptIn(ExperimentalJsExport::class)
-@JsExport
+/**
+ * Represents the data transfer object (DTO) for the response of creating a passkey.
+ *
+ * @property attestationObject The attestation object associated with the passkey creation.
+ * @property clientDataJSON The client data JSON associated with the passkey creation.
+ * @property transports The list of transport methods supported by the passkey.
+ */
 @Serializable
-data class CreatePasskeyResponseDto(
+internal data class CreatePasskeyResponseDto(
   val attestationObject: String,
   val clientDataJSON: String,
-  val transports: Array<String>,
+  val transports: List<String>,
 )

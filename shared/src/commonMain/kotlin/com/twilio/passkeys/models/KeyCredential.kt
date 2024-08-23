@@ -17,12 +17,17 @@
 package com.twilio.passkeys.models
 
 import kotlinx.serialization.Serializable
-import kotlin.js.JsExport
 
-@JsExport
+/**
+ * Represents a key credential used for authentication.
+ *
+ * @property id The identifier of the key credential.
+ * @property type The type of the key credential.
+ * @property transports The list of transport methods supported by the key credential.
+ */
 @Serializable
 data class KeyCredential(
   val id: String,
   val type: String,
-  val transports: Array<String>,
+  val transports: List<String>,
 )

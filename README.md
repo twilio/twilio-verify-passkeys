@@ -63,15 +63,15 @@ let twilioPasskey = TwilioPasskey()
 
 Use the `TwilioPasskey` instance to create a registration by calling the `create(String, AppContext)` function.
 
-The first param is a `String` representation of a challenge payload, check how to [create your challenge payload](#create-challenge-payload) (`challengePayload`).
+The first param is a `String` representation of a create passkey request, check how to [create passkey payload](#create-passkey-payload) (`createPayload`).
 
 The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS.
 
-You can also call the `create(CreatePasskeyRequest, AppContext)` function, where `CreatePasskeyRequest` is a wrapper object of a [creation challenge payload](#create-challenge-payload) schema.
+You can also call the `create(CreatePasskeyRequest, AppContext)` function, where `CreatePasskeyRequest` is a wrapper object of a [create passkey payload](#create-passkey-payload) schema.
 
 **Android**
 ```
-val createPasskeyResult = twilioPasskey.create(challengePayload, AppContext(activity))
+val createPasskeyResult = twilioPasskey.create(createPayload, AppContext(activity))
 when(createPasskeyResult) {
   is CreatePasskeyResult.Success -> {
     // verify the createPasskeyResult.createPasskeyResponse against your backend and finish sign up
@@ -86,7 +86,7 @@ when(createPasskeyResult) {
 **iOS**
 
 ```
-let response = try await twilioPasskey.create(challengePayload: challengePayload, appContext: AppContext(uiWindow: window))
+let response = try await twilioPasskey.create(createPayload: createPayload, appContext: AppContext(uiWindow: window))
 if let success = response as? CreatePasskeyResult.Success {
   // verify the createPasskeyResult.createPasskeyResponse against your backend and finish sign up
 } else if let error = response as? CreatePasskeyResult.Error {
@@ -99,16 +99,16 @@ if let success = response as? CreatePasskeyResult.Success {
 
 Use the `TwilioPasskey` instance to authenticate a user by calling the `authenticate(String, AppContext)` function.
 
-The first param is a `String` representation of an authentication request, it follows the schema of an [authentication challenge payload](#authenticate-challenge-payload).
+The first param is a `String` representation of an authentication request, it follows the schema of an [authenticate passkey payload](#authenticate-passkey-payload) (`authenticatePayload`).
 
 The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS.
 
-You can also call the `authenticate(AuthenticatePasskeyRequest, AppContext)` function, which the `AuthenticatePasskeyRequest` is a wrapper object of an [authentication challenge payload](#authenticate-challenge-payload).
+You can also call the `authenticate(AuthenticatePasskeyRequest, AppContext)` function, which the `AuthenticatePasskeyRequest` is a wrapper object of an [authenticate passkey payload](#authenticate-passkey-payload).
 
 **Android**
 
 ```
-val authenticatePasskeyResult = twilioPasskey.authenticate(challengePayload, AppContext(activity))
+val authenticatePasskeyResult = twilioPasskey.authenticate(authenticatePayload, AppContext(activity))
 when(authenticatePasskeyResult) {
   is AuthenticatePasskeyResult.Success -> {
     // verify the authenticatePasskeyResult.authenticatePasskeyResponse against your backend
@@ -131,16 +131,16 @@ if let success = response as? AuthenticatePasskeyResult.Success {
 }
 ```
 
-### Create Challenge Payload <a name="create-challenge-payload"></a>
+### Create Passkey Payload <a name="create-passkey-payload"></a>
 
-The challenge payload for creating a registration is a String obtained by requesting your backend a challenge for registering a user, it uses the JSON schema:
+The creation payload for creating a passkey is a String obtained by requesting your backend a challenge for registering a user, it uses the JSON schema:
 ```
 {"rp":{"id":"your_backend","name":"PasskeySample"},"user":{"id":"WUV...5Ng","name":"1234567890","displayName":"1234567890"},"challenge":"WUY...jZQ","pubKeyCredParams":[{"type":"public-key","alg":-7}],"timeout":600000,"excludeCredentials":[],"authenticatorSelection":{"authenticatorAttachment":"platform","requireResidentKey":false,"residentKey":"preferred","userVerification":"preferred"},"attestation":"none"}
 ```
 
-### Authenticate Challenge Payload <a name="authenticate-challenge-payload"></a>
+### Authenticate Passkey Payload <a name="authenticate-passkey-payload"></a>
 
-The challenge payload for authenticating a user is a JSON with the schema:
+The authenticate payload for authenticating a user is a JSON with the schema:
 ```
 {"publicKey":{"challenge":"WUM...2Mw","timeout":300000,"rpId":"your_backend","allowCredentials":[],"userVerification":"preferred"}}
 ```
@@ -151,7 +151,7 @@ The challenge payload for authenticating a user is a JSON with the schema:
 
 1. Clone this repository.
 2. Open the project in IntelliJ IDEA or Android Studio.
-3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/src/main/java/com/twilio/passkeys/android/di/TwilioPasskeyModule.kt#L42).
+3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/gradle.properties#L17).
 4. Build and run the Android app from the `androidApp` module.
 
 **Note**: To start sign up/in flows, the Android device must have a valid Google account to store and fetch passkeys.

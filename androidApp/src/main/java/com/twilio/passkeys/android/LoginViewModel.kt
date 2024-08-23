@@ -22,7 +22,7 @@ import androidx.lifecycle.viewModelScope
 import com.twilio.passkeys.AppContext
 import com.twilio.passkeys.AuthenticatePasskeyResult
 import com.twilio.passkeys.CreatePasskeyResult
-import com.twilio.passkeys.TwilioPasskey
+import com.twilio.passkeys.TwilioPasskeys
 import com.twilio.passkeys.android.model.RegistrationStartResponse
 import com.twilio.passkeys.android.repository.AuthenticateRepository
 import com.twilio.passkeys.android.repository.CreateRepository
@@ -39,7 +39,7 @@ import javax.inject.Inject
 class LoginViewModel
   @Inject
   constructor(
-    private val twilioPasskey: TwilioPasskey,
+    private val twilioPasskeys: TwilioPasskeys,
     private val authenticateRepository: AuthenticateRepository,
     private val createRepository: CreateRepository,
   ) : ViewModel() {
@@ -67,7 +67,7 @@ class LoginViewModel
               explicitNulls = false
             }
           val challengePayload = json.encodeToString(registrationStartResponse)
-          when (val createPasskeyResult = twilioPasskey.create(challengePayload, AppContext(activity))) {
+          when (val createPasskeyResult = twilioPasskeys.create(challengePayload, AppContext(activity))) {
             is CreatePasskeyResult.Error -> {
               setErrorState(createPasskeyResult.error.message.toString())
             }
@@ -77,7 +77,7 @@ class LoginViewModel
                 createRepository.verification(
                   rawId = createPasskeyResult.createPasskeyResponse.rawId,
                   id = createPasskeyResult.createPasskeyResponse.id,
-                  clientDataJson = createPasskeyResult.createPasskeyResponse.clientDataJSON,
+                  clientDataJSON = createPasskeyResult.createPasskeyResponse.clientDataJSON,
                   attestationObject = createPasskeyResult.createPasskeyResponse.attestationObject,
                   type = createPasskeyResult.createPasskeyResponse.type,
                   transports = createPasskeyResult.createPasskeyResponse.transports,
@@ -100,7 +100,7 @@ class LoginViewModel
           val authenticationStartResponse = authenticateRepository.start()
           val json = Json { encodeDefaults = true }
           val challengePayload = json.encodeToString(authenticationStartResponse)
-          when (val authenticatePasskeyResult = twilioPasskey.authenticate(challengePayload, AppContext(activity))) {
+          when (val authenticatePasskeyResult = twilioPasskeys.authenticate(challengePayload, AppContext(activity))) {
             is AuthenticatePasskeyResult.Error -> {
               setErrorState(
                 authenticatePasskeyResult.error.message,
@@ -114,7 +114,7 @@ class LoginViewModel
                 authenticateRepository.verification(
                   rawId = response.rawId,
                   id = response.id,
-                  clientDataJson = response.clientDataJSON,
+                  clientDataJSON = response.clientDataJSON,
                   userHandle = response.userHandle,
                   signature = response.signature,
                   authenticatorData = response.authenticatorData,

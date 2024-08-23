@@ -30,12 +30,16 @@ import com.twilio.passkeys.models.CreatePasskeyResponse
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlin.js.ExperimentalJsExport
-import kotlin.js.JsExport
 
-@OptIn(ExperimentalJsExport::class)
-@JsExport
+/**
+ * Object responsible for mapping passkey-related payloads and responses.
+ * This object provides methods for mapping passkey creation and authentication payloads,
+ * as well as mapping creation and authentication responses.
+ */
 internal object PasskeyPayloadMapper {
+  /**
+   * JSON parser configured for passkey-related operations.
+   */
   @OptIn(ExperimentalSerializationApi::class)
   private val json =
     Json {
@@ -43,26 +47,43 @@ internal object PasskeyPayloadMapper {
       explicitNulls = false
     }
 
-  fun mapToPasskeyCreationPayload(challengePayload: String): CreatePasskeyRequest {
-    val registerPasskeyRequest = json.decodeFromString<CreatePasskeyRequest>(challengePayload)
-    registerPasskeyRequest.apply {
+  /**
+   * Maps a create payload JSON to a [CreatePasskeyRequest].
+   *
+   * @param createPayload The payload containing the create passkey information.
+   * @return The passkey creation request mapped from the provided payload.
+   */
+  fun mapToCreatePasskeyRequest(createPayload: String): CreatePasskeyRequest {
+    val createPasskeyRequest = json.decodeFromString<CreatePasskeyRequest>(createPayload)
+    createPasskeyRequest.apply {
       challenge = challenge.b64Decode().b64Encode()
       user.id = user.id.b64Decode().b64Encode()
     }
-    return registerPasskeyRequest
+    return createPasskeyRequest
   }
 
-  fun mapToPasskeyAuthenticationPayload(challengePayload: String): AuthenticatePasskeyRequest {
+  /**
+   * Maps a authenticate payload JSON to a [AuthenticatePasskeyRequest].
+   *
+   * @param authenticatePayload The payload containing the authenticate passkey information.
+   * @return The passkey authentication request mapped from the provided payload.
+   */
+  fun mapToAuthenticatePasskeyRequest(authenticatePayload: String): AuthenticatePasskeyRequest {
     val authenticatePasskeyRequest =
-      json.decodeFromString<AuthenticatePasskeyRequest>(challengePayload)
+      json.decodeFromString<AuthenticatePasskeyRequest>(authenticatePayload)
     authenticatePasskeyRequest.publicKey.apply {
       challenge = challenge.b64Decode().b64Encode()
     }
     return authenticatePasskeyRequest
   }
 
-
-  fun mapToPasskeyCreationResponse(registrationResultJson: String): CreatePasskeyResponse {
+  /**
+   * Maps a registration result JSON to a [CreatePasskeyResponse].
+   *
+   * @param registrationResultJson The JSON string containing registration result information.
+   * @return The passkey creation response mapped from the provided JSON.
+   */
+  fun mapToCreatePasskeyResponse(registrationResultJson: String): CreatePasskeyResponse {
     val createPasskeyDto = json.decodeFromString<CreatePasskeyDto>(registrationResultJson)
     return CreatePasskeyResponse(
       id = createPasskeyDto.id,
@@ -75,7 +96,12 @@ internal object PasskeyPayloadMapper {
     )
   }
 
-
+  /**
+   * Maps an authentication result JSON to a [AuthenticatePasskeyResponse].
+   *
+   * @param authenticatePasskeyResultJson The JSON string containing authentication result information.
+   * @return The passkey authentication response mapped from the provided JSON.
+   */
   fun mapToAuthenticatePasskeyResponse(authenticatePasskeyResultJson: String): AuthenticatePasskeyResponse {
     val authenticatePasskeyDto =
       json.decodeFromString<AuthenticatePasskeyDto>(authenticatePasskeyResultJson)
@@ -91,7 +117,12 @@ internal object PasskeyPayloadMapper {
     )
   }
 
-  /*
+  /**
+   * Maps an exception to a [TwilioException] with appropriate error messages.
+   *
+   * @param e The exception to be mapped.
+   * @return The TwilioException mapped from the provided exception.
+   */
   fun mapException(e: Exception): TwilioException {
     return when (e) {
       is SerializationException, is IllegalArgumentException, is IndexOutOfBoundsException ->
@@ -99,8 +130,8 @@ internal object PasskeyPayloadMapper {
           INVALID_JSON_PAYLOAD_ERROR,
           e.message.toString(),
         )
+
       else -> TwilioException(UNKNOWN_ERROR, e.message.toString())
     }
   }
-   */
 }

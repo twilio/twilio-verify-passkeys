@@ -1,0 +1,3 @@
+# iOS SDK size report
+file = File.read("iosApp/fastlane/sizes.txt")
+warn file

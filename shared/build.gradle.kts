@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.jetbrains.dokka.versioning.VersioningConfiguration
+import org.jetbrains.dokka.versioning.VersioningPlugin
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
   alias(libs.plugins.androidLibrary)
@@ -23,29 +26,52 @@ plugins {
   signing
   `maven-publish`
   id("com.twilio.apkscale")
-  id("com.chromaticnoise.multiplatform-swiftpackage") version "2.0.3"
   id("co.touchlab.skie") version "0.6.1"
 }
+buildscript {
+  dependencies {
+    classpath(libs.dokka.versioning.plugin)
+  }
+}
+dependencies {
+  dokkaPlugin(libs.dokka.versioning.plugin)
+}
+
+val libId = "twilio-verify-passkeys"
+val sdkVersionName: String by extra
+version = sdkVersionName
 
 val dokkaOutputDir = "$buildDir/dokka"
-
+val dokkaOutputVersionDir = "$dokkaOutputDir/$version"
 tasks.dokkaHtml {
-  outputDirectory.set(file(dokkaOutputDir))
-}
+  moduleName.set(libId)
+  outputDirectory.set(file(dokkaOutputVersionDir))
 
-val deleteDokkaOutputDir by tasks.register<Delete>("deleteDokkaOutputDirectory") {
-  delete(dokkaOutputDir)
-}
-val javadocJar =
-  tasks.register<Jar>("javadocJar") {
-    dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
-    archiveClassifier.set("javaDoc")
-    from(dokkaOutputDir)
+  val currentVersion = version.toString()
+  pluginConfiguration<VersioningPlugin, VersioningConfiguration> {
+    version = currentVersion
+    olderVersionsDir = file(dokkaOutputDir)
+    renderVersionsNavigationOnAllPages = true
   }
 
-val versionCode: String by extra
-version = versionCode
-val libId = "twilio-verify-passkeys"
+  doLast {
+    // This folder contains the latest documentation with all
+    // previous versions included, so it's ready to be published.
+    file(dokkaOutputVersionDir).copyRecursively(file("../docs"), overwrite = true)
+
+    // Only once current documentation has been safely moved,
+    // remove previous versions bundled in it. They will not
+    // be needed in future builds, it's just overhead.
+    file(dokkaOutputVersionDir).resolve("older").deleteRecursively()
+  }
+}
+
+val javadocJar =
+  tasks.register<Jar>("javadocJar") {
+    dependsOn(tasks.dokkaHtml)
+    archiveClassifier.set("javaDoc")
+    from(dokkaOutputVersionDir)
+  }
 
 afterEvaluate {
   publishing {
@@ -64,7 +90,7 @@ afterEvaluate {
         artifact(javadocJar)
 
         pom {
-          name.set("Twilio Verify Passkeys Android")
+          name.set("twilio-verify-passkeys")
           description.set(
             """
             Twilio Passkeys SDK enables developers to easily add Passkeys into their existing authentication flows 
@@ -111,7 +137,7 @@ kotlin {
   js(IR) {
     browser {
       webpackTask {
-        output.library = "myLibrary"
+        output.library = "twilio_verify_passkeys_js" // Cannot use hyphens in library name for JS
         output.libraryTarget = "var"
       }
     }
@@ -128,16 +154,6 @@ kotlin {
       kotlinOptions {
         jvmTarget = "17"
       }
-    }
-  }
-
-  listOf(
-    iosX64(),
-    iosArm64(),
-    iosSimulatorArm64(),
-  ).forEach {
-    it.binaries.framework {
-      baseName = "TwilioPasskeys"
     }
   }
 
@@ -159,13 +175,20 @@ kotlin {
     val jsMain by getting
   }
 
-  multiplatformSwiftPackage {
-    packageName("PasskeyTestIOS")
-    swiftToolsVersion("5.3")
-    targetPlatforms {
-      iOS { v("13") }
+  val xcFrameworkName = "TwilioPasskeysAuthentication"
+  val xcf = XCFramework(xcFrameworkName)
+  val iosTargets = listOf(iosX64(), iosArm64(), iosSimulatorArm64())
+
+  iosTargets.forEach {
+    it.binaries.framework {
+      baseName = xcFrameworkName
+      xcf.add(this)
     }
-    outputDirectory(File(rootDir, "/"))
+  }
+
+  // https://kotlinlang.org/docs/native-objc-interop.html#export-of-kdoc-comments-to-generated-objective-c-headers
+  targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget> {
+    compilations["main"].compilerOptions.options.freeCompilerArgs.add("-Xexport-kdoc")
   }
 }
 

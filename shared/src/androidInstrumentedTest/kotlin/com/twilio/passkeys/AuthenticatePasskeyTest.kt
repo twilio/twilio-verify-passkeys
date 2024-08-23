@@ -23,8 +23,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 class AuthenticatePasskeyTest {
-  private val twilioPasskey =
-    TwilioPasskey(InstrumentationRegistry.getInstrumentation().context)
+  private val twilioPasskeys =
+    TwilioPasskeys(InstrumentationRegistry.getInstrumentation().context)
 
   @Test
   fun authenticateCredential_withInvalidInput_fails() {
@@ -32,8 +32,8 @@ class AuthenticatePasskeyTest {
       scenario.onActivity { activity ->
         runBlocking {
           val result =
-            twilioPasskey.authenticate(
-              challengePayload = "{invalid}",
+            twilioPasskeys.authenticate(
+              authenticatePayload = "{invalid}",
               appContext = AppContext(activity),
             )
           assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
