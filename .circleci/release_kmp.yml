@@ -341,7 +341,8 @@ workflows:
             - wait-for-android-internal-release-sdk-e2e-tests
       - wait-for-manual-approval-to-release:
           type: approval
-          requires: check-android-internal-release-sdk-e2e-tests-result
+          requires:
+            - check-android-internal-release-sdk-e2e-tests-result
       - perform-release:
           requires:
             - wait-for-manual-approval-to-release
