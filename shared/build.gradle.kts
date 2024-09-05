@@ -134,6 +134,16 @@ signing {
 kotlin {
   applyDefaultHierarchyTemplate()
 
+  js(IR) {
+    browser {
+      webpackTask {
+        output.library = "twilio_verify_passkeys_js" // Cannot use hyphens in library name for JS
+        output.libraryTarget = "var"
+      }
+    }
+    binaries.executable()
+  }
+
   androidTarget {
     mavenPublication {
       artifactId = "$libId-android"
@@ -161,6 +171,8 @@ kotlin {
         implementation(libs.kotlin.coroutines.test)
       }
     }
+
+    val jsMain by getting
   }
 
   val xcFrameworkName = "TwilioPasskeysAuthentication"
