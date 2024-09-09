@@ -274,7 +274,14 @@ jobs:
       - run:
           name: Publish to Maven Central
           command: |
-            java -version
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            echo $REPO_NAME
+            echo "Publishing to Maven Central"
+
+            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   post-release:
     executor: ruby-executor
@@ -312,4 +319,35 @@ jobs:
 workflows:
   release-kmp:
     jobs:
-      - perform-release
+      - release-type
+      - prepare-new-version:
+          requires:
+            - release-type
+      - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          requires:
+            - prepare-new-version
+      - generate-android-sample-app-using-internal-release-sdk:
+          requires:
+            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
+      - run-android-internal-release-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
+          requires:
+            - generate-android-sample-app-using-internal-release-sdk
+      - wait-for-android-internal-release-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-internal-release-sdk-e2e-tests
+      - check-android-internal-release-sdk-e2e-tests-result:
+          workflow_name_to_check: "android-tests"
+          requires:
+            - wait-for-android-internal-release-sdk-e2e-tests
+      - wait-for-manual-approval-to-release:
+          type: approval
+          requires:
+            - check-android-internal-release-sdk-e2e-tests-result
+      - perform-release:
+          requires:
+            - wait-for-manual-approval-to-release
+      - post-release:
+          requires:
+            - perform-release

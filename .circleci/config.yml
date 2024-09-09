@@ -566,4 +566,71 @@ jobs:
 workflows:
   build-all:
     jobs:
-      - should-release-kmp-version
+      - assemble
+      - lint-check:
+          requires:
+            - assemble
+      - android-sdk-size-report:
+          requires:
+            - assemble
+      - ios-sdk-size-report:
+          requires:
+            - assemble
+      - detekt-check:
+          requires:
+            - assemble
+      - android-unit-tests:
+          requires:
+            - lint-check
+            - detekt-check
+      - android-instrumented-tests:
+          requires:
+            - android-unit-tests
+      - ios-unit-tests:
+          requires:
+            - lint-check
+            - detekt-check
+      - ios-generate-framework:
+          requires:
+            - ios-unit-tests
+      - generate-ios-simulator-app-using-internal-sdk:
+          requires:
+            - ios-generate-framework
+      - android-generate-aar:
+          requires:
+            - android-instrumented-tests
+      - generate-android-sample-app-using-local-sdk:
+          requires:
+            - android-instrumented-tests
+            - ios-unit-tests
+      - run-android-local-sdk-e2e-tests:
+          waiting_job_name: wait-for-android-local-sdk-e2e-tests
+          requires:
+            - generate-android-sample-app-using-local-sdk
+      - wait-for-android-local-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-android-local-sdk-e2e-tests
+      - check-android-local-sdk-e2e-tests-result:
+          workflow_name_to_check: "android-tests"
+          requires:
+            - wait-for-android-local-sdk-e2e-tests
+      - generate-ios-sample-app-using-internal-sdk:
+          requires:
+            - ios-sdk-size-report
+            - ios-generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - wait-for-ios-internal-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-simulator-ios-internal-sdk-e2e-tests
+      - check-simulator-ios-sdk-e2e-tests-result:
+          workflow_name_to_check: "ios-tests"
+          requires:
+            - wait-for-ios-internal-sdk-e2e-tests
+      - should-release-kmp-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
