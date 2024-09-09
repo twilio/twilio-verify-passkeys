@@ -271,7 +271,6 @@ jobs:
           at: *workspace
       - android/restore-build-cache
       - android/restore-gradle-cache
-      - ruby/install-deps
       - run:
           name: Publish to Maven Central
           command: |
