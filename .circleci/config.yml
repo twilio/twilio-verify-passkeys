@@ -566,7 +566,4 @@ jobs:
 workflows:
   build-all:
     jobs:
-      - assemble
-      - should-release-kmp-version:
-          requires:
-            - assemble
+      - should-release-kmp-version

@@ -272,11 +272,7 @@ jobs:
       - run:
           name: Publish to Maven Central
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
-            echo $REPO_NAME
-            echo "Publishing to Maven Central"
-
-            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
+            java -version
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -318,6 +314,3 @@ workflows:
   release-kmp:
     jobs:
       - perform-release
-      - post-release:
-          requires:
-            - perform-release
