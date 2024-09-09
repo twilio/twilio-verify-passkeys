@@ -263,19 +263,19 @@ jobs:
             ENV_VARS_FILE: *env-vars-file
 
   perform-release:
-    executor: ubuntu-small-executor
+    executor: android-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
+      - android/restore-build-cache
+      - android/restore-gradle-cache
+      - ruby/install-deps
       - run:
           name: Publish to Maven Central
           command: |
             java -version
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
 
   post-release:
     executor: ruby-executor
