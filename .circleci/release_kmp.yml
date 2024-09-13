@@ -283,6 +283,21 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
+  generate-docs:
+    executor: ubuntu-small-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Generate documentation
+          command: |
+            ./gradlew dokkaHtml
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
   post-release:
     executor: ruby-executor
 
@@ -348,6 +363,9 @@ workflows:
       - perform-release:
           requires:
             - wait-for-manual-approval-to-release
-      - post-release:
+      - generate-docs:
           requires:
             - perform-release
+      - post-release:
+          requires:
+            - generate-docs
