@@ -327,9 +327,9 @@ jobs:
 #            SDK_VERSION="${NEXT_VERSION}-kmp"
 #
 #            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+#          environment:
+#            TMP_WORKSPACE: *tmp-workspace
+#            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   release-kmp:
