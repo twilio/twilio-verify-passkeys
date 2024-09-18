@@ -162,7 +162,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *tmp-workspace
+            - .
 
   generate-android-sample-app-using-internal-release-sdk:
     executor: android-node-executor
