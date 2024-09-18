@@ -271,32 +271,17 @@ jobs:
           at: *workspace
       - android/restore-build-cache
       - android/restore-gradle-cache
-#      - run:
-#          name: Publish to Maven Central
-#          command: |
-#            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-#            echo $REPO_NAME
-#            echo "Publishing to Maven Central"
-#
-#            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
-#          environment:
-#            TMP_WORKSPACE: *tmp-workspace
-#            ENV_VARS_FILE: *env-vars-file
+      - run:
+          name: Publish to Maven Central
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            echo $REPO_NAME
+            echo "Publishing to Maven Central"
 
-#  generate-docs:
-#    executor: ubuntu-small-executor
-#
-#    steps:
-#      - checkout
-#      - attach_workspace:
-#          at: *workspace
-#      - run:
-#          name: Generate documentation
-#          command: |
-#            ./gradlew dokkaHtml
-#          environment:
-#            TMP_WORKSPACE: *tmp-workspace
-#            ENV_VARS_FILE: *env-vars-file
+            ./gradlew releaseSonatypeStagingRepository --staging-repository-id $REPO_NAME
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   post-release:
     executor: ruby-executor
@@ -319,17 +304,17 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-#      - run:
-#          name: Create GitHub release
-#          command: |
-#            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-#            RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
-#            SDK_VERSION="${NEXT_VERSION}-kmp"
-#
-#            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
-#          environment:
-#            TMP_WORKSPACE: *tmp-workspace
-#            ENV_VARS_FILE: *env-vars-file
+      - run:
+          name: Create GitHub release
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
+            SDK_VERSION="${NEXT_VERSION}-kmp"
+
+            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
 workflows:
   release-kmp:
@@ -363,9 +348,6 @@ workflows:
       - perform-release:
           requires:
             - wait-for-manual-approval-to-release
-#      - generate-docs:
-#          requires:
-#            - perform-release
       - post-release:
           requires:
             - perform-release

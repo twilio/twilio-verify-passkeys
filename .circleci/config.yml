@@ -634,7 +634,7 @@ workflows:
       - should-release-kmp-version:
           requires:
             - check-android-local-sdk-e2e-tests-result
-#          filters:
-#            branches:
-#              only:
-#                - main
+          filters:
+            branches:
+              only:
+                - main
