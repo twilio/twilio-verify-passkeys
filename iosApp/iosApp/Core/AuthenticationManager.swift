@@ -7,7 +7,9 @@
 //
 
 import Foundation
+#if MAIN
 import TwilioPasskeysAuthentication
+#endif
 import Combine
 import UIKit
 
@@ -19,14 +21,14 @@ public enum User {
     }
 }
 
-let domain: String = "passkey-demo-5706.twil.io"
-
 class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Properties
 
     private let worker: PasskeysWorker = .init(domain: domain)
+    #if MAIN
     private let twilioPasskeys = TwilioPasskeys()
+    #endif
     @Published public var currentUser: User? = nil
 
     var isSignedIn: Bool {
@@ -43,12 +45,14 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
         
+        #if MAIN
         let response = try await twilioPasskeys.authenticate(authenticatePayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? AuthenticatePasskeyResult.Success {
                 finishSignIn(with: success.authenticatePasskeyResponse)
         } else if let error = response as? AuthenticatePasskeyResult.Error {
             print(error)
         }
+        #endif
     }
 
 
@@ -61,6 +65,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let json = String(data: data, encoding: .utf8)!
         print(json)
 
+        #if MAIN
         let response = try await twilioPasskeys.create(createPayload: json, appContext: AppContext(uiWindow: window))
         if let success = response as? CreatePasskeyResult.Success {
             finishSignUp(
@@ -70,6 +75,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         } else if let error = response as? CreatePasskeyResult.Error {
             print(error)
         }
+        #endif
     }
 
     func signOut() {
@@ -78,13 +84,14 @@ class AuthenticationManager: NSObject, ObservableObject {
 
     // MARK: - Private Methods
 
+    #if MAIN
     private func finishSignUp(
         for userName: String,
         with response: CreatePasskeyResponse
     ) {
         Task {
             do {
-                let result = try await worker.registrationVerification(request: .init(
+                let _ = try await worker.registrationVerification(request: .init(
                     rawId: response.rawId,
                     id: response.id,
                     clientDataJSON: response.clientDataJSON,
@@ -124,4 +131,5 @@ class AuthenticationManager: NSObject, ObservableObject {
             }
         }
     }
+    #endif
 }
