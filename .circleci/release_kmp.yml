@@ -162,7 +162,7 @@ jobs:
       - persist_to_workspace:
           root: *workspace
           paths:
-            - *tmp-workspace
+            - .
 
   generate-android-sample-app-using-internal-release-sdk:
     executor: android-node-executor
@@ -263,16 +263,18 @@ jobs:
             ENV_VARS_FILE: *env-vars-file
 
   perform-release:
-    executor: ubuntu-small-executor
+    executor: android-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
+      - android/restore-build-cache
+      - android/restore-gradle-cache
       - run:
           name: Publish to Maven Central
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE" 
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             echo $REPO_NAME
             echo "Publishing to Maven Central"
 
@@ -308,7 +310,7 @@ jobs:
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
             RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
             SDK_VERSION="${NEXT_VERSION}-kmp"
-            
+
             ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
           environment:
             TMP_WORKSPACE: *tmp-workspace
