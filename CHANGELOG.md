@@ -1,5 +1,15 @@
 # Changelog
 
+# 0.1.1
+
+## 🦛 Bug Fix
+### 🤖 Android
+- Open appcontext class
+### 🍎 iOS
+- Open appcontext class
+### 🌐 Web
+- Open appcontext class
+
 # 0.1.0
 
 ## 🚀 Feature
