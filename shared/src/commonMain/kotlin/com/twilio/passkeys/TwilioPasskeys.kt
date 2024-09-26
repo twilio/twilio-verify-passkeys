@@ -78,4 +78,4 @@ expect class TwilioPasskeys {
 /**
  * An interface representing the context.
  */
-expect class AppContext
+expect open class AppContext

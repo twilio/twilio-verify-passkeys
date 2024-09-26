@@ -163,4 +163,4 @@ actual class TwilioPasskeys internal constructor(
  *
  * @property activity The Android activity.
  */
-actual class AppContext(val activity: Activity)
+actual open class AppContext(val activity: Activity)
