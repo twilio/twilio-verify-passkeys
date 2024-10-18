@@ -6,7 +6,8 @@ def create_github_release(repo_owner, repo_name, access_token, tag_name, release
 
   headers = {
     'Authorization' => "token #{access_token}",
-    'Accept' => 'application/vnd.github.v3+json'
+    'Accept' => 'application/vnd.github.v3+json',
+    'Content-Type' => 'application/json'
   }
 
   release_data = {
@@ -18,10 +19,10 @@ def create_github_release(repo_owner, repo_name, access_token, tag_name, release
     "prerelease" => false
   }
 
-  response = Faraday.post(github_api_url, release_data.to_json, headers.merge({'Content-Type' => 'application/json'}))
+  response = Faraday.post(github_api_url, release_data.to_json, headers)
 
   if response.status == 201
-    puts "Release created successfully"
+    puts "Release URL: #{JSON.parse(response.body)
     release_url = JSON.parse(response.body)['upload_url'].gsub("{?name,label}", "?name=#{File.basename(file_path)}")
     if file_path
       upload_asset(release_url, file_path, access_token)
