@@ -101,6 +101,17 @@ commands:
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
+  set-sample-backend-for-ios:
+    steps:
+      - run:
+          name: Set sample backend URL
+          command: |
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_URL/https:\/\/}"
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_DOMAIN/\/}"
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
+
 
 jobs:
   assemble:
@@ -273,16 +284,25 @@ jobs:
       - checkout
       - run:
           name: Create Framework
-          command: ./gradlew iosArm64Binaries
+          command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
           command: |
-            tar -cvzf debugFramework.tar.gz shared/build/bin/iosArm64/debugFramework
-            tar -cvzf releaseFramework.tar.gz shared/build/bin/iosArm64/releaseFramework
+            ln -s shared/build/XCFrameworks/debug/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
+            zip -r debugFramework.zip TwilioPasskeysAuthentication.xcframework
+            rm TwilioPasskeysAuthentication.xcframework
+            ln -s shared/build/XCFrameworks/release/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
+            zip -r releaseFramework.zip TwilioPasskeysAuthentication.xcframework
+            rm TwilioPasskeysAuthentication.xcframework
       - store_artifacts:
-          path: debugFramework.tar.gz
+          path: debugFramework.zip
       - store_artifacts:
-          path: releaseFramework.tar.gz
+          path: releaseFramework.zip
+      - persist_to_workspace:
+            root: *workspace
+            paths:
+              - debugFramework.zip
+              - releaseFramework.zip
 
   android-generate-aar:
     
@@ -334,24 +354,54 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determine the type of release for iOS SDK
+          name: Perform Versioning, Bump Up & Generate ChangeLog
           command: |
             IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
             echo "Release type = $IOS_RELEASE_TYPE"
-            
+
             if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
               echo "No need to release a new version"
               circleci-agent step halt
             else
               echo "Starting a new $IOS_RELEASE_TYPE release"
             fi
+
+            VERSION_BUMP=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE")
+            echo "Version Bump = $VERSION_BUMP"
+            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
+            echo "Changelog: $CHANGELOG"
+            echo "VERSION_BUMP=$VERSION_BUMP" >> $BASH_ENV
+            echo "CHANGELOG=$CHANGELOG" >> $BASH_ENV
+          shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - *tmp-workspace
+      - run:
+          name: Publish XCFramework to GitHub
+          command: |
+            if [ ! -f releaseFramework.zip ]; then
+              echo "releaseFramework.zip not found in workspace"
+              exit 1
+            fi
+            mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
+            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
+            echo "Checksum: $CHECKSUM"
+            git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
+            cd twilio-verify-passkeys-ios
+            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
+            sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
+            git config --global user.email $GITHUB_USER_EMAIL
+            git config --global user.name $GITHUB_USER_NAME
+            git add .
+            git commit -m "Update to version v$VERSION_BUMP"
+            git tag "v$VERSION_BUMP"
+            git push origin main
+            gem install faraday
+            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$VERSION_BUMP" "TwilioPasskeysAuthentication v$VERSION_BUMP" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
+          shell: /bin/bash -l
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   generate-android-sample-app-using-local-sdk:
     executor: android-node-executor
@@ -403,6 +453,7 @@ jobs:
       - run:
           name: Configure GCloud App Distribution service
           command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+      - set-sample-backend-for-ios
       - run:
           name: Deploy to Firebase App Distribution
           command: |
@@ -429,6 +480,7 @@ jobs:
           command: |
             cd iosApp
             bundle install
+      - set-sample-backend-for-ios
       - run:
           name: Generate simulator build
           command: |
@@ -634,6 +686,14 @@ workflows:
       - should-release-kmp-version:
           requires:
             - check-android-local-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main
+      - should-release-ios-version:
+          requires:
+            - ios-generate-framework
+            - check-simulator-ios-sdk-e2e-tests-result
           filters:
             branches:
               only:
