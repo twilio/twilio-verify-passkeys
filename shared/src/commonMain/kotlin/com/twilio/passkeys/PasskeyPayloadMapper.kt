@@ -56,8 +56,8 @@ internal object PasskeyPayloadMapper {
   fun mapToCreatePasskeyRequest(createPayload: String): CreatePasskeyRequest {
     val createPasskeyRequest = json.decodeFromString<CreatePasskeyRequest>(createPayload)
     createPasskeyRequest.apply {
-      challenge = challenge.b64Decode().b64Encode()
-      user.id = user.id.b64Decode().b64Encode()
+//      challenge = challenge.b64Decode().b64Encode()
+//      user.id = user.id.b64Decode().b64Encode()
     }
     return createPasskeyRequest
   }
@@ -72,7 +72,7 @@ internal object PasskeyPayloadMapper {
     val authenticatePasskeyRequest =
       json.decodeFromString<AuthenticatePasskeyRequest>(authenticatePayload)
     authenticatePasskeyRequest.publicKey.apply {
-      challenge = challenge.b64Decode().b64Encode()
+//      challenge = challenge.b64Decode().b64Encode()
     }
     return authenticatePasskeyRequest
   }
