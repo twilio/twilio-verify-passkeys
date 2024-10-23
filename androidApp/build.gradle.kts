@@ -20,6 +20,7 @@ plugins {
   alias(libs.plugins.kotlinAndroid)
   alias(libs.plugins.hilt)
   alias(libs.plugins.kotlinSerialization)
+  alias(libs.plugins.compose.compiler)
   kotlin("kapt")
 }
 
@@ -58,9 +59,6 @@ android {
   buildFeatures {
     buildConfig = true
     compose = true
-  }
-  composeOptions {
-    kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
   }
   packaging {
     resources {
