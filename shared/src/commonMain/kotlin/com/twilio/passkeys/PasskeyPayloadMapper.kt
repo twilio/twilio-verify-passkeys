@@ -19,8 +19,6 @@ package com.twilio.passkeys
 import com.twilio.passkeys.exception.INVALID_JSON_PAYLOAD_ERROR
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.exception.UNKNOWN_ERROR
-import com.twilio.passkeys.extensions.b64Decode
-import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.AuthenticatePasskeyDto
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
@@ -55,10 +53,7 @@ internal object PasskeyPayloadMapper {
    */
   fun mapToCreatePasskeyRequest(createPayload: String): CreatePasskeyRequest {
     val createPasskeyRequest = json.decodeFromString<CreatePasskeyRequest>(createPayload)
-    createPasskeyRequest.apply {
-//      challenge = challenge.b64Decode().b64Encode()
-//      user.id = user.id.b64Decode().b64Encode()
-    }
+
     return createPasskeyRequest
   }
 
@@ -71,9 +66,7 @@ internal object PasskeyPayloadMapper {
   fun mapToAuthenticatePasskeyRequest(authenticatePayload: String): AuthenticatePasskeyRequest {
     val authenticatePasskeyRequest =
       json.decodeFromString<AuthenticatePasskeyRequest>(authenticatePayload)
-    authenticatePasskeyRequest.publicKey.apply {
-//      challenge = challenge.b64Decode().b64Encode()
-    }
+
     return authenticatePasskeyRequest
   }
 
