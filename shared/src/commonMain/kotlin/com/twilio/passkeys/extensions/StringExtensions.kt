@@ -27,5 +27,11 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  */
 @OptIn(ExperimentalEncodingApi::class)
 internal fun String.b64Decode(): ByteArray {
-  return Base64.UrlSafe.decode(this)
+  return Base64.UrlSafe.decode(this.padBase64())
+}
+
+// Helper function to pad the Base64 string if needed
+private fun String.padBase64(): String {
+  val missingPadding = this.length % 4
+  return if (missingPadding == 0) this else this + "=".repeat(4 - missingPadding)
 }

@@ -18,6 +18,8 @@ package com.twilio.passkeys
 
 import com.twilio.passkeys.exception.INVALID_JSON_PAYLOAD_ERROR
 import com.twilio.passkeys.exception.UNKNOWN_ERROR
+import com.twilio.passkeys.extensions.b64Decode
+import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.KeyCredential
 import kotlinx.serialization.SerializationException
 import kotlin.test.Test
@@ -93,10 +95,10 @@ class PasskeyPayloadMapperTest {
 
     assertEquals(rpId, registerPasskeyRequestPublicKey.rp.id)
     assertEquals(rpName, registerPasskeyRequestPublicKey.rp.name)
-    assertEquals(userId, registerPasskeyRequestPublicKey.user.id)
+    assertEquals(userId.b64Decode().b64Encode(), registerPasskeyRequestPublicKey.user.id)
     assertEquals(userName, registerPasskeyRequestPublicKey.user.name)
     assertEquals(userDisplayName, registerPasskeyRequestPublicKey.user.displayName)
-    assertEquals(challenge, registerPasskeyRequestPublicKey.challenge)
+    assertEquals(challenge.b64Decode().b64Encode(), registerPasskeyRequestPublicKey.challenge)
     assertEquals(pubKeyCredType, registerPasskeyRequestPublicKey.pubKeyCredParams.first().type)
     assertEquals(pubKeyCredAlg, registerPasskeyRequestPublicKey.pubKeyCredParams.first().alg)
     assertEquals(timeout, registerPasskeyRequestPublicKey.timeout)
@@ -168,7 +170,10 @@ class PasskeyPayloadMapperTest {
     val authenticatePasskeyRequestPublicKey =
       passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(payload).publicKey
 
-    assertEquals(challenge, authenticatePasskeyRequestPublicKey.challenge,)
+    assertEquals(
+      challenge.b64Decode().b64Encode(),
+      authenticatePasskeyRequestPublicKey.challenge
+    )
     assertEquals(timeout, authenticatePasskeyRequestPublicKey.timeout)
     assertEquals(rpId, authenticatePasskeyRequestPublicKey.rpId)
     assertEquals(
