@@ -50,6 +50,24 @@ platform :ios do
     puts "IPA size is #{ipa_size_mb} MB"
     File.open("sizes.txt", "w") { |file| file.write("IPA size: #{'%.1f' % ipa_size_mb} MB\n") }
 
+    gym(
+      scheme: "iosAppWithoutSDK",
+      project: "iosApp.xcodeproj",
+      export_method: "development",
+      xcargs: settings_to_override,
+      silent: true,
+      output_directory: "IPAs/",
+      output_name: "iosAppWithoutSDK.ipa"
+    )
+
+    ipa_without_sdk_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
+
+    # Print the size of the IPA without SDK
+    ipa_without_sdk_size_kb = `du -sk #{ipa_without_sdk_path}`.split[0].to_i
+    ipa_without_sdk_size_mb = ipa_without_sdk_size_kb / 1024.0  # Convert KB to MB
+    puts "IPA without SDK size is #{ipa_without_sdk_size_mb} MB"
+    File.open("sizes.txt", "a") { |file| file.write("IPA without SDK size: #{'%.1f' % ipa_without_sdk_size_mb} MB\n") }
+
     # Unzip the IPA file
     sh "unzip #{ipa_path} -d extracted"
 
