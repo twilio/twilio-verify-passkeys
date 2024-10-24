@@ -21,8 +21,14 @@ import kotlin.test.assertEquals
 
 class StringExtensionsTest {
   @Test
-  fun `Base64 url safe decode`() {
+  fun `Base64 url safe decode without padding`() {
     val decode = "SGVsbG8gV29ybGQh".b64Decode()
     assertEquals("Hello World!", decode.decodeToString().toCharArray().concatToString())
+  }
+
+  @Test
+  fun `Base64 url safe decode with padding`() {
+    val decode = "SGVsbG8gV29ybGQ".b64Decode()
+    assertEquals("Hello World", decode.decodeToString().toCharArray().concatToString())
   }
 }

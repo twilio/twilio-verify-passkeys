@@ -16,9 +16,9 @@
 
 package com.twilio.passkeys
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
 
 /**
  * @suppress
  */
-class TestActivity : Activity()
+class TestActivity : ComponentActivity()

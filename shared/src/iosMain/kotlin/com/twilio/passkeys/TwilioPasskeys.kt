@@ -340,4 +340,4 @@ internal fun NSData.toUrlSafeString(): String =
  *
  * @property uiWindow The active UIWindow where the Passkey Dialogs will be presented.
  */
-actual open class AppContext(val uiWindow: UIWindow)
+actual open class AppContext(open val uiWindow: UIWindow)
