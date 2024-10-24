@@ -172,7 +172,7 @@ class PasskeyPayloadMapperTest {
 
     assertEquals(
       challenge.b64Decode().b64Encode(),
-      authenticatePasskeyRequestPublicKey.challenge
+      authenticatePasskeyRequestPublicKey.challenge,
     )
     assertEquals(timeout, authenticatePasskeyRequestPublicKey.timeout)
     assertEquals(rpId, authenticatePasskeyRequestPublicKey.rpId)
