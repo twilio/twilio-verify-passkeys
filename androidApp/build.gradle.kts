@@ -92,14 +92,14 @@ android {
 }
 
 dependencies {
+  implementation(libs.androidx.material3.android)
+  implementation(libs.androidx.ui.tooling.preview.android)
   debugImplementation(projects.shared)
   releaseImplementation("com.twilio:twilio-verify-passkeys-android:$sdkVersionName")
-  implementation(libs.compose.ui)
-  implementation(libs.compose.ui.tooling.preview)
-  implementation(libs.compose.material3)
   implementation(libs.androidx.activity.compose)
   implementation(libs.hilt.android)
   implementation(libs.androidx.hilt.navigation.compose)
+  implementation(platform(libs.compose.bom))
   implementation(libs.androidx.constraintlayout.compose)
   implementation(libs.androidx.constraintlayout)
   kapt(libs.hilt.android.compiler)
@@ -109,5 +109,5 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.kotlinx.serialization.json)
 
-  debugImplementation(libs.compose.ui.tooling)
+  debugImplementation(platform(libs.compose.bom))
 }
