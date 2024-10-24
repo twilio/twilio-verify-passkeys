@@ -32,4 +32,3 @@ class StringExtensionsTest {
     assertEquals("Hello World", decode.decodeToString().toCharArray().concatToString())
   }
 }
-
