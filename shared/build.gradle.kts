@@ -26,7 +26,7 @@ plugins {
   signing
   `maven-publish`
   id("com.twilio.apkscale")
-  id("co.touchlab.skie") version "0.6.1"
+  alias(libs.plugins.skie)
 }
 buildscript {
   dependencies {
