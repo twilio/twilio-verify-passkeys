@@ -1,5 +1,18 @@
 # Changelog
 
+# 0.2.0
+
+## 🚀 Feature
+### 🤖 Android
+- **#39** Update to kotlin 2.0.11 (#39)
+- **#26** Publish xcframework. (#26)
+### 🍎 iOS
+- **#39** Update to kotlin 2.0.11 (#39)
+- **#26** Publish xcframework. (#26)
+### 🌐 Web
+- **#39** Update to kotlin 2.0.11 (#39)
+- **#26** Publish xcframework. (#26)
+
 # 0.1.1
 
 ## 🦛 Bug Fix
