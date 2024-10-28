@@ -22,7 +22,7 @@ def create_github_release(repo_owner, repo_name, access_token, tag_name, release
   response = Faraday.post(github_api_url, release_data.to_json, headers)
 
   if response.status == 201
-    puts "Release URL: #{JSON.parse(response.body)
+    puts "Release URL: #{JSON.parse(response.body)}"
     release_url = JSON.parse(response.body)['upload_url'].gsub("{?name,label}", "?name=#{File.basename(file_path)}")
     if file_path
       upload_asset(release_url, file_path, access_token)
