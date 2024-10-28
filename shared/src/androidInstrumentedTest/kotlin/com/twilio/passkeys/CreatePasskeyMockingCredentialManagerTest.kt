@@ -24,7 +24,7 @@ import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException
 import androidx.test.core.app.launchActivity
 import com.google.common.truth.Truth.assertThat
-import com.twilio.passkeys.exception.TwilioException
+import com.twilio.passkeys.exception.TwilioException2
 import com.twilio.passkeys.mocks.CredentialManagerMock
 import com.twilio.passkeys.mocks.createCredentialException
 import com.twilio.passkeys.mocks.createPasskeyChallengePayload
@@ -91,7 +91,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
@@ -111,7 +111,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
@@ -131,7 +131,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
@@ -152,7 +152,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
@@ -172,7 +172,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
@@ -192,7 +192,7 @@ class CreatePasskeyMockingCredentialManagerTest {
             )
           assertThat(createPasskeyResult).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((createPasskeyResult as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException::class.java,
+            TwilioException2::class.java,
           )
         }
       }
