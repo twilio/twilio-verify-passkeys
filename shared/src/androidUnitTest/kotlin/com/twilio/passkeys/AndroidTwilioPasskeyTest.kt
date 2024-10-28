@@ -37,7 +37,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import com.google.common.truth.Truth.assertThat
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -100,7 +100,7 @@ class AndroidTwilioPasskeyTest {
   @Test
   fun `Create passkey with json payload fails`() {
     val exception = SerializationException("error")
-    val expectedException = TwilioException2.InvalidPayloadException(Throwable("error"))
+    val expectedException = TwilioException.InvalidPayloadException(Throwable("error"))
     every { passkeyPayloadMapper.mapToCreatePasskeyRequest(createPayload) } throws exception
     every { passkeyPayloadMapper.mapException(exception) } returns expectedException
     runTest {
@@ -167,7 +167,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -191,7 +191,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -215,7 +215,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -239,7 +239,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -260,7 +260,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -284,7 +284,7 @@ class AndroidTwilioPasskeyTest {
         )
 
       assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
-      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException2::class.java)
+      assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(TwilioException::class.java)
     }
   }
 
@@ -331,7 +331,7 @@ class AndroidTwilioPasskeyTest {
   @Test
   fun `Authenticate passkey with json payload fails`() {
     val exception = SerializationException("error")
-    val expectedException = TwilioException2.InvalidPayloadException(Throwable("error"))
+    val expectedException = TwilioException.InvalidPayloadException(Throwable("error"))
     every { passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(authenticatePayload) } throws exception
     every { passkeyPayloadMapper.mapException(exception) } returns expectedException
 
@@ -405,7 +405,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -428,7 +428,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -451,7 +451,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -474,7 +474,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -497,7 +497,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -520,7 +520,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -543,7 +543,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }
@@ -566,7 +566,7 @@ class AndroidTwilioPasskeyTest {
 
       assertThat(result).isInstanceOf(AuthenticatePasskeyResult.Error::class.java)
       assertThat((result as AuthenticatePasskeyResult.Error).error).isInstanceOf(
-        TwilioException2::class.java,
+        TwilioException::class.java,
       )
     }
   }

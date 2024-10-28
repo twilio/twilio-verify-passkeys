@@ -33,14 +33,14 @@ internal const val GENERAL_EXCEPTION = 1009
  * @property message The error message.
  * @property cause The error cause.
  */
-sealed class TwilioException2(val code: Int, override val message: String, override val cause: Throwable) : Exception(message, cause) {
+sealed class TwilioException(val code: Int, override val message: String, override val cause: Throwable) : Exception(message, cause) {
   /**
    * Handles DOM-related passkey errors as specified by the WebAuthn standard.
    * Errors may occur if the following configurations are not correctly set:
    * - On Android: Ensure `/.well-known/assetlinks.json` is properly configured as outlined here: https://developer.android.com/identity/sign-in/credential-manager#add-support-dal
    * - On iOS: Ensure `/.well-known/apple-app-site-association` is correctly set up as described here: https://developer.apple.com/documentation/xcode/supporting-associated-domains
    */
-  data class DomException(override val message: String, override val cause: Throwable) : TwilioException2(DOM_EXCEPTION, message, cause)
+  data class DomException(override val message: String, override val cause: Throwable) : TwilioException(DOM_EXCEPTION, message, cause)
 
   /**
    * Represents an exception for user-initiated cancellations.
@@ -48,14 +48,14 @@ sealed class TwilioException2(val code: Int, override val message: String, overr
    * for graceful handling of voluntary action termination.
    */
   data class UserCanceledException(override val cause: Throwable) :
-    TwilioException2(USER_CANCELED_EXCEPTION, "User intentionally canceled the operation", cause)
+    TwilioException(USER_CANCELED_EXCEPTION, "User intentionally canceled the operation", cause)
 
   /**
    * Exception indicating an operation was interrupted and is potentially recoverable.
    * Suggests that the operation may be retried to complete successfully.
    */
   data class InterruptedException(override val cause: Throwable) :
-    TwilioException2(INTERRUPTED_EXCEPTION, "Retry-able error. Consider retrying", cause)
+    TwilioException(INTERRUPTED_EXCEPTION, "Retry-able error. Consider retrying", cause)
 
   /**
    * Exception indicating that the device either does not support passkeys
@@ -63,14 +63,14 @@ sealed class TwilioException2(val code: Int, override val message: String, overr
    * Thrown when passkey-related operations cannot be performed due to device limitations.
    */
   data class UnsupportedException(override val cause: Throwable) :
-    TwilioException2(UNSUPPORTED_EXCEPTION, "Device either has disabled passkeys feature or doesn't support it", cause)
+    TwilioException(UNSUPPORTED_EXCEPTION, "Device either has disabled passkeys feature or doesn't support it", cause)
 
   /**
    * Exception thrown when there are no passkey credentials available for the user.
    * This indicates that the user has not set up any credentials for authentication.
    */
   data class NoCredentialException(override val cause: Throwable) :
-    TwilioException2(NO_CREDENTIAL_EXCEPTION, "No passkey credential is available for the user", cause)
+    TwilioException(NO_CREDENTIAL_EXCEPTION, "No passkey credential is available for the user", cause)
 
   /**
    * [iOS only]
@@ -79,18 +79,18 @@ sealed class TwilioException2(val code: Int, override val message: String, overr
    * for successful passkey operations.
    */
   data class MissingAttestationObjectException(override val cause: Throwable) :
-    TwilioException2(MISSING_ATTESTATION_OBJECT_EXCEPTION, "Attestation object should not be null", cause)
+    TwilioException(MISSING_ATTESTATION_OBJECT_EXCEPTION, "Attestation object should not be null", cause)
 
   /**
    * Exception indicating an invalid JSON payload.
    * Thrown when the JSON data does not conform to the expected format or schema.
    */
   data class InvalidPayloadException(override val cause: Throwable) :
-    TwilioException2(INVALID_JSON_PAYLOAD_EXCEPTION, "JSON payload is not valid", cause)
+    TwilioException(INVALID_JSON_PAYLOAD_EXCEPTION, "JSON payload is not valid", cause)
 
   /**
    * Represents a general or unspecified exception.
    * Used as a fallback for errors that do not fit specific categories.
    */
-  data class GeneralException(override val cause: Throwable) : TwilioException2(GENERAL_EXCEPTION, "An unexpected error occurred", cause)
+  data class GeneralException(override val cause: Throwable) : TwilioException(GENERAL_EXCEPTION, "An unexpected error occurred", cause)
 }

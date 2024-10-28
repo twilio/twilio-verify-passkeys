@@ -16,7 +16,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
 
 /**
@@ -36,5 +36,5 @@ sealed class AuthenticatePasskeyResult {
    *
    * @param error The exception representing the error.
    */
-  data class Error(val error: TwilioException2) : AuthenticatePasskeyResult()
+  data class Error(val error: TwilioException) : AuthenticatePasskeyResult()
 }

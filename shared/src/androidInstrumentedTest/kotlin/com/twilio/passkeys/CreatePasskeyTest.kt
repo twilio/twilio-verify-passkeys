@@ -19,7 +19,7 @@ package com.twilio.passkeys
 import androidx.test.core.app.launchActivity
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.mocks.createPasskeyChallengePayload
 import kotlinx.coroutines.runBlocking
 import org.junit.Ignore
@@ -58,7 +58,7 @@ class CreatePasskeyTest {
             )
           assertThat(result).isInstanceOf(CreatePasskeyResult.Error::class.java)
           assertThat((result as CreatePasskeyResult.Error).error).isInstanceOf(
-            TwilioException2::class.java,
+            TwilioException::class.java,
           )
           assertThat(
             result.error.message,

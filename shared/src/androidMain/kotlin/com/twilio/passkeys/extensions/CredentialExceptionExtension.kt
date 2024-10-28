@@ -20,7 +20,7 @@ import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCreden
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialException
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialException
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 
 internal const val DOM_MESSAGE =
   """
@@ -29,36 +29,36 @@ internal const val DOM_MESSAGE =
     as outlined here: https://developer.android.com/identity/sign-in/credential-manager#add-support-dal
   """
 
-internal fun GetCredentialException.toTwilioException(): TwilioException2 {
+internal fun GetCredentialException.toTwilioException(): TwilioException {
   return when (this) {
-    is GetCredentialCancellationException -> TwilioException2.UserCanceledException(this)
-    is GetCredentialInterruptedException -> TwilioException2.InterruptedException(this)
-    is GetCredentialUnsupportedException -> TwilioException2.UnsupportedException(this)
-    is GetPublicKeyCredentialDomException -> TwilioException2.DomException(DOM_MESSAGE.trimIndent(), this)
-    is NoCredentialException -> TwilioException2.NoCredentialException(this)
+    is GetCredentialCancellationException -> TwilioException.UserCanceledException(this)
+    is GetCredentialInterruptedException -> TwilioException.InterruptedException(this)
+    is GetCredentialUnsupportedException -> TwilioException.UnsupportedException(this)
+    is GetPublicKeyCredentialDomException -> TwilioException.DomException(DOM_MESSAGE.trimIndent(), this)
+    is NoCredentialException -> TwilioException.NoCredentialException(this)
     is GetPublicKeyCredentialException,
     is GetCredentialUnknownException,
     is GetCredentialCustomException,
     is GetCredentialProviderConfigurationException,
-    -> TwilioException2.GeneralException(this)
+    -> TwilioException.GeneralException(this)
 
-    else -> TwilioException2.GeneralException(this)
+    else -> TwilioException.GeneralException(this)
   }
 }
 
-internal fun CreateCredentialException.toTwilioException(): TwilioException2 {
+internal fun CreateCredentialException.toTwilioException(): TwilioException {
   return when (this) {
-    is CreateCredentialCancellationException -> TwilioException2.UserCanceledException(this)
-    is CreateCredentialInterruptedException -> TwilioException2.InterruptedException(this)
-    is CreateCredentialUnsupportedException -> TwilioException2.UnsupportedException(this)
-    is CreatePublicKeyCredentialDomException -> TwilioException2.DomException(DOM_MESSAGE.trimIndent(), this)
+    is CreateCredentialCancellationException -> TwilioException.UserCanceledException(this)
+    is CreateCredentialInterruptedException -> TwilioException.InterruptedException(this)
+    is CreateCredentialUnsupportedException -> TwilioException.UnsupportedException(this)
+    is CreatePublicKeyCredentialDomException -> TwilioException.DomException(DOM_MESSAGE.trimIndent(), this)
     is CreateCredentialNoCreateOptionException,
     is CreatePublicKeyCredentialException,
     is CreateCredentialUnknownException,
     is CreateCredentialCustomException,
     is CreateCredentialProviderConfigurationException,
-    -> TwilioException2.GeneralException(this)
+    -> TwilioException.GeneralException(this)
 
-    else -> TwilioException2.GeneralException(this)
+    else -> TwilioException.GeneralException(this)
   }
 }

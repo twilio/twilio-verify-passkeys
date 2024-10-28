@@ -16,7 +16,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.extensions.b64Decode
 import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.KeyCredential
@@ -280,27 +280,27 @@ class PasskeyPayloadMapperTest {
   fun `Map SerializationException to TwilioException`() {
     val serializationException = SerializationException("Error serializing")
     val twilioException = passkeyPayloadMapper.mapException(serializationException)
-    assertEquals(twilioException::class, TwilioException2.InvalidPayloadException::class)
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map IllegalArgumentException to TwilioException`() {
     val illegalArgumentException = IllegalArgumentException("Illegal argument")
     val twilioException = passkeyPayloadMapper.mapException(illegalArgumentException)
-    assertEquals(twilioException::class, TwilioException2.InvalidPayloadException::class)
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map IndexOutOfBoundsException to TwilioException`() {
     val indexOutOfBoundsException = IndexOutOfBoundsException("Index out of bounds")
     val twilioException = passkeyPayloadMapper.mapException(indexOutOfBoundsException)
-    assertEquals(twilioException::class, TwilioException2.InvalidPayloadException::class)
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map Exception to TwilioException`() {
     val unknownsException = Exception("unknown")
     val twilioException = passkeyPayloadMapper.mapException(unknownsException)
-    assertEquals(twilioException::class, TwilioException2.GeneralException::class)
+    assertEquals(twilioException::class, TwilioException.GeneralException::class)
   }
 }

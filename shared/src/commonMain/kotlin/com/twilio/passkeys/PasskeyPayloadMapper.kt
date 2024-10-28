@@ -16,7 +16,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.extensions.b64Decode
 import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.AuthenticatePasskeyDto
@@ -121,12 +121,12 @@ internal object PasskeyPayloadMapper {
    * @param e The exception to be mapped.
    * @return The TwilioException mapped from the provided exception.
    */
-  fun mapException(e: Exception): TwilioException2 {
+  fun mapException(e: Exception): TwilioException {
     return when (e) {
       is SerializationException, is IllegalArgumentException, is IndexOutOfBoundsException ->
-        TwilioException2.InvalidPayloadException(e)
+        TwilioException.InvalidPayloadException(e)
 
-      else -> TwilioException2.GeneralException(e)
+      else -> TwilioException.GeneralException(e)
     }
   }
 }

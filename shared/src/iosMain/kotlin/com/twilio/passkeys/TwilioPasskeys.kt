@@ -18,7 +18,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.TwilioException2
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.extensions.toTwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
@@ -107,7 +107,7 @@ actual open class TwilioPasskeys private constructor(
             } ?: kotlin.run {
             createContinuation(
               CreatePasskeyResult.Error(
-                TwilioException2.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null")),
+                TwilioException.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null")),
               ),
             )
             return
