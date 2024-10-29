@@ -167,15 +167,15 @@ The authenticate payload for authenticating a user is a JSON with the schema:
 1. Clone this repository.
 2. Open the project in IntelliJ IDEA or Android Studio or open `iosApp` module in Xcode.
 3. Configure your backend
-- Set your backend domain and entitlements. Update these values in [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) and [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
-  - [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) - Define your backend domain:
-  ```swift
-  let domain: String = "passkeys-service.com" // Example domain; replace with your backend domain
-  ```
-  - [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7) - Specify entitlements:
-  ```swift
-  <string>webcredentials:passkeys-service.com</string> <!-- Example entitlement; update with your domain -->
-  ```
+   - Set your backend domain and entitlements. Update these values in [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) and [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
+     - [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) - Define your backend domain:
+     ```swift
+     let domain: String = "passkeys-service.com" // Example domain; replace with your backend domain
+     ```
+     - [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7) - Specify entitlements:
+     ```swift
+     <string>webcredentials:passkeys-service.com</string> <!-- Example entitlement; update with your domain -->
+     ```
 4. Build and run the iOS app from the `iosApp` module.
 
 **Note**: To start sign up/in flows, the iPhone must have a valid iCloud account to store and fetch passkeys.
