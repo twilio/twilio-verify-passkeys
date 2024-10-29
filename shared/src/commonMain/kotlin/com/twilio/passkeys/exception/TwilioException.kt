@@ -51,6 +51,7 @@ sealed class TwilioException(val code: Int, override val message: String, overri
     TwilioException(USER_CANCELED_EXCEPTION, "User intentionally canceled the operation", cause)
 
   /**
+   * [Android only]
    * Exception indicating an operation was interrupted and is potentially recoverable.
    * Suggests that the operation may be retried to complete successfully.
    */
@@ -66,6 +67,7 @@ sealed class TwilioException(val code: Int, override val message: String, overri
     TwilioException(UNSUPPORTED_EXCEPTION, "Device either has disabled passkeys feature or doesn't support it", cause)
 
   /**
+   * [Android only]
    * Exception thrown when there are no passkey credentials available for the user.
    * This indicates that the user has not set up any credentials for authentication.
    */

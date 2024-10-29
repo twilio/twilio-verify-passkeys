@@ -1,15 +1,22 @@
 package com.twilio.passkeys.extensions
 
 import androidx.credentials.exceptions.CreateCredentialCancellationException
+import androidx.credentials.exceptions.CreateCredentialCustomException
 import androidx.credentials.exceptions.CreateCredentialInterruptedException
 import androidx.credentials.exceptions.CreateCredentialNoCreateOptionException
+import androidx.credentials.exceptions.CreateCredentialProviderConfigurationException
+import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.exceptions.CreateCredentialUnsupportedException
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCustomException
 import androidx.credentials.exceptions.GetCredentialInterruptedException
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
+import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.exceptions.GetCredentialUnsupportedException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.credentials.exceptions.domerrors.AbortError
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException
+import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialException
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialException
 import com.google.common.truth.Truth.assertThat
@@ -62,6 +69,27 @@ class CredentialExceptionExtensionTest {
   }
 
   @Test
+  fun `GetCredentialUnknownException maps to GeneralException`() {
+    val exception = GetCredentialUnknownException()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `GetCredentialCustomException maps to GeneralException`() {
+    val exception = mockk<GetCredentialCustomException>()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `GetCredentialProviderConfigurationException maps to GeneralException`() {
+    val exception = mockk<GetCredentialProviderConfigurationException>()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
   fun `CreateCredentialException maps to UserCanceledException`() {
     val exception = CreateCredentialCancellationException()
     val result = exception.toTwilioException()
@@ -93,6 +121,34 @@ class CredentialExceptionExtensionTest {
   @Test
   fun `CreateCredentialNoCreateOptionException maps to GeneralException`() {
     val exception = CreateCredentialNoCreateOptionException()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `CreatePublicKeyCredentialException maps to GeneralException`() {
+    val exception = mockk<CreatePublicKeyCredentialException>()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `CreateCredentialUnknownException maps to GeneralException`() {
+    val exception = mockk<CreateCredentialUnknownException>()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `CreateCredentialCustomException maps to GeneralException`() {
+    val exception = mockk<CreateCredentialCustomException>()
+    val result = exception.toTwilioException()
+    assertThat(result is TwilioException.GeneralException).isTrue()
+  }
+
+  @Test
+  fun `CreateCredentialProviderConfigurationException maps to GeneralException`() {
+    val exception = mockk<CreateCredentialProviderConfigurationException>()
     val result = exception.toTwilioException()
     assertThat(result is TwilioException.GeneralException).isTrue()
   }
