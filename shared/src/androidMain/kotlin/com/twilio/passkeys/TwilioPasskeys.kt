@@ -28,7 +28,7 @@ import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
-import com.twilio.passkeys.exception.TwilioException
+import com.twilio.passkeys.extensions.toTwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyRequest
 import kotlinx.serialization.encodeToString
@@ -40,7 +40,7 @@ import kotlinx.serialization.json.Json
  * @property credentialManager The credential manager responsible for managing passkey credentials.
  * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
  */
-actual class TwilioPasskeys internal constructor(
+actual open class TwilioPasskeys internal constructor(
   private val credentialManager: CredentialManager,
   private val passkeyPayloadMapper: PasskeyPayloadMapper,
 ) {
@@ -81,8 +81,7 @@ actual class TwilioPasskeys internal constructor(
         ),
       )
     } catch (e: CreateCredentialException) {
-      val error = TwilioException(e.type, e.errorMessage.toString())
-      return CreatePasskeyResult.Error(error)
+      return CreatePasskeyResult.Error(e.toTwilioException())
     }
   }
 
@@ -132,8 +131,7 @@ actual class TwilioPasskeys internal constructor(
         ),
       )
     } catch (e: GetCredentialException) {
-      val error = TwilioException(e.type, e.errorMessage.toString())
-      return AuthenticatePasskeyResult.Error(error)
+      return AuthenticatePasskeyResult.Error(e.toTwilioException())
     }
   }
 

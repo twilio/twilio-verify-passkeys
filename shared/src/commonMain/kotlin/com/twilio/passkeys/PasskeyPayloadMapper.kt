@@ -16,9 +16,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.INVALID_JSON_PAYLOAD_ERROR
 import com.twilio.passkeys.exception.TwilioException
-import com.twilio.passkeys.exception.UNKNOWN_ERROR
 import com.twilio.passkeys.extensions.b64Decode
 import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.AuthenticatePasskeyDto
@@ -126,12 +124,9 @@ internal object PasskeyPayloadMapper {
   fun mapException(e: Exception): TwilioException {
     return when (e) {
       is SerializationException, is IllegalArgumentException, is IndexOutOfBoundsException ->
-        TwilioException(
-          INVALID_JSON_PAYLOAD_ERROR,
-          e.message.toString(),
-        )
+        TwilioException.InvalidPayloadException(e)
 
-      else -> TwilioException(UNKNOWN_ERROR, e.message.toString())
+      else -> TwilioException.GeneralException(e)
     }
   }
 }
