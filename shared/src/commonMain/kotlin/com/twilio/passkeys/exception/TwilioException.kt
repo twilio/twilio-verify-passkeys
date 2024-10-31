@@ -22,8 +22,8 @@ internal const val INTERRUPTED_EXCEPTION = 1003
 internal const val UNSUPPORTED_EXCEPTION = 1004
 internal const val NO_CREDENTIAL_EXCEPTION = 1005
 internal const val MISSING_ATTESTATION_OBJECT_EXCEPTION = 1006
-internal const val INVALID_JSON_PAYLOAD_EXCEPTION = 1008
-internal const val GENERAL_EXCEPTION = 1009
+internal const val INVALID_JSON_PAYLOAD_EXCEPTION = 1007
+internal const val GENERAL_EXCEPTION = 1008
 
 /**
  * Represents an exception specific to Twilio.
