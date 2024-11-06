@@ -25,7 +25,7 @@ import com.twilio.passkeys.models.CreatePasskeyRequest
  * Class representing Passkey functionality.
  * This class provides methods to create and authenticate passkeys.
  */
-expect class TwilioPasskeys {
+expect open class TwilioPasskeys {
   /**
    * Creates a passkey using the provided [createPasskeyRequest] and [appContext].
    *

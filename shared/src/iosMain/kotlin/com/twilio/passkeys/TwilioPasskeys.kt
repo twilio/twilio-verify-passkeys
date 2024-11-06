@@ -19,7 +19,7 @@
 package com.twilio.passkeys
 
 import com.twilio.passkeys.exception.TwilioException
-import com.twilio.passkeys.exception.UNKNOWN_ERROR
+import com.twilio.passkeys.extensions.toTwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.AuthenticatePasskeyResponse
 import com.twilio.passkeys.models.CreatePasskeyRequest
@@ -43,19 +43,6 @@ import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
 
-internal const val PASSKEY_CANCELED_ERROR_CODE = 1001L
-internal const val PASSKEY_INVALID_RESPONSE_ERROR_CODE = 1002L
-internal const val PASSKEY_NOT_HANDLED_ERROR_CODE = 1003L
-internal const val PASSKEY_FAILED_ERROR_CODE = 1004L
-internal const val PASSKEY_NOT_INTERACTIVE_ERROR_CODE = 1005L
-
-internal const val MISSING_ATTESTATION_OBJECT_ERROR = "MISSING_ATTESTATION_OBJECT"
-internal const val USER_CANCELED_ERROR = "USER_CANCELED"
-internal const val INVALID_RESPONSE_ERROR = "INVALID_RESPONSE"
-internal const val NOT_HANDLED_ERROR = "NOT_HANDLED"
-internal const val FAILED_ERROR = "FAILED"
-internal const val NOT_INTERACTIVE_ERROR = "NOT_INTERACTIVE"
-
 internal const val ATTACHMENT_SUPPORT_MIN_OS_VERSION = "16.6"
 internal const val PASSKEY_TYPE = "public-key"
 
@@ -70,7 +57,7 @@ internal enum class Attachment(val value: String) {
  * @property passkeyPayloadMapper The passkey payload mapper used for mapping passkey payloads and responses.
  * @property deviceUtils The utility class for device-related operations.
  */
-actual class TwilioPasskeys private constructor(
+actual open class TwilioPasskeys private constructor(
   private val passkeyPayloadMapper: PasskeyPayloadMapper = PasskeyPayloadMapper,
   private val deviceUtils: DeviceUtils = DeviceUtils(),
 ) {
@@ -113,7 +100,7 @@ actual class TwilioPasskeys private constructor(
             } ?: kotlin.run {
             createContinuation(
               CreatePasskeyResult.Error(
-                TwilioException("Null attestation object", MISSING_ATTESTATION_OBJECT_ERROR),
+                TwilioException.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null")),
               ),
             )
             return
@@ -131,9 +118,7 @@ actual class TwilioPasskeys private constructor(
         didCompleteWithError: NSError,
       ) {
         createContinuation(
-          CreatePasskeyResult.Error(
-            mapToTwilioException(didCompleteWithError),
-          ),
+          CreatePasskeyResult.Error(didCompleteWithError.toTwilioException()),
         )
       }
     }
@@ -174,9 +159,7 @@ actual class TwilioPasskeys private constructor(
         didCompleteWithError: NSError,
       ) {
         authenticateContinuation(
-          AuthenticatePasskeyResult.Error(
-            mapToTwilioException(didCompleteWithError),
-          ),
+          AuthenticatePasskeyResult.Error(didCompleteWithError.toTwilioException()),
         )
       }
     }
@@ -302,19 +285,6 @@ actual class TwilioPasskeys private constructor(
     } catch (e: Exception) {
       AuthenticatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
     }
-  }
-
-  private fun mapToTwilioException(error: NSError): TwilioException {
-    val type =
-      when (error.code) {
-        PASSKEY_CANCELED_ERROR_CODE -> USER_CANCELED_ERROR
-        PASSKEY_INVALID_RESPONSE_ERROR_CODE -> INVALID_RESPONSE_ERROR
-        PASSKEY_NOT_HANDLED_ERROR_CODE -> NOT_HANDLED_ERROR
-        PASSKEY_FAILED_ERROR_CODE -> FAILED_ERROR
-        PASSKEY_NOT_INTERACTIVE_ERROR_CODE -> NOT_INTERACTIVE_ERROR
-        else -> UNKNOWN_ERROR
-      }
-    return TwilioException(type, error.localizedDescription)
   }
 
   private fun getAuthenticatorAttachment(attachment: ASAuthorizationPublicKeyCredentialAttachment): String {

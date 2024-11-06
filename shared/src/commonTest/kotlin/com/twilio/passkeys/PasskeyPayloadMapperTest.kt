@@ -16,8 +16,7 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.INVALID_JSON_PAYLOAD_ERROR
-import com.twilio.passkeys.exception.UNKNOWN_ERROR
+import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.extensions.b64Decode
 import com.twilio.passkeys.extensions.b64Encode
 import com.twilio.passkeys.models.KeyCredential
@@ -281,27 +280,27 @@ class PasskeyPayloadMapperTest {
   fun `Map SerializationException to TwilioException`() {
     val serializationException = SerializationException("Error serializing")
     val twilioException = passkeyPayloadMapper.mapException(serializationException)
-    assertEquals(twilioException.message, "$INVALID_JSON_PAYLOAD_ERROR: ${serializationException.message}")
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map IllegalArgumentException to TwilioException`() {
     val illegalArgumentException = IllegalArgumentException("Illegal argument")
     val twilioException = passkeyPayloadMapper.mapException(illegalArgumentException)
-    assertEquals(twilioException.message, "$INVALID_JSON_PAYLOAD_ERROR: ${illegalArgumentException.message}")
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map IndexOutOfBoundsException to TwilioException`() {
     val indexOutOfBoundsException = IndexOutOfBoundsException("Index out of bounds")
     val twilioException = passkeyPayloadMapper.mapException(indexOutOfBoundsException)
-    assertEquals(twilioException.message, "$INVALID_JSON_PAYLOAD_ERROR: ${indexOutOfBoundsException.message}")
+    assertEquals(twilioException::class, TwilioException.InvalidPayloadException::class)
   }
 
   @Test
   fun `Map Exception to TwilioException`() {
     val unknownsException = Exception("unknown")
     val twilioException = passkeyPayloadMapper.mapException(unknownsException)
-    assertEquals(twilioException.message, "$UNKNOWN_ERROR: ${unknownsException.message}")
+    assertEquals(twilioException::class, TwilioException.GeneralException::class)
   }
 }

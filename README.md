@@ -10,6 +10,7 @@
 * [Building and Running Sample App](#building-and-running-sample-app)
 * [Project Structure](#project-structure)
 * [Code Structure](#code-structure)
+* [Exception Types](#exception-types)
 * [Useful Gradle Tasks](#useful-gradle-tasks)
 
 ## About <a name="about"></a>
@@ -166,7 +167,16 @@ The authenticate payload for authenticating a user is a JSON with the schema:
 
 1. Clone this repository.
 2. Open the project in IntelliJ IDEA or Android Studio or open `iosApp` module in Xcode.
-3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Core/AuthenticationManager.swift#L22) and [Entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
+3. Configure your backend
+   - Set your backend domain and entitlements. Update these values in [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) and [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
+     - [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) - Define your backend domain:
+     ```swift
+     let domain: String = "passkeys-service.com" // Example domain; replace with your backend domain
+     ```
+     - [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7) - Specify entitlements:
+     ```swift
+     <string>webcredentials:passkeys-service.com</string> <!-- Example entitlement; update with your domain -->
+     ```
 4. Build and run the iOS app from the `iosApp` module.
 
 **Note**: To start sign up/in flows, the iPhone must have a valid iCloud account to store and fetch passkeys.
@@ -200,6 +210,23 @@ The `iosApp` module contains iOS-specific code, such as:
 
 - Sample application that works as a code snippet for integrating with the Twilio Verify Passkeys SDK
 - iOS-specific UI components
+
+## Exception Types <a name="exception-types"></a>
+
+The [TwilioException](https://github.com/twilio/twilio-verify-passkeys/blob/main/shared/src/commonMain/kotlin/com/twilio/passkeys/exception/TwilioException.kt) class offers structured error handling for various scenarios specific to Twilio's passkeys features. Each error type is represented by a subclass with a unique error code, enabling precise exception management. Below are the defined exception types:
+
+### Exception Overview
+
+| Exception                         | Code | Description                                                                                                                                                                                                                                                                                                      | Platform-Specific Details                                                                                                                                                                                                                |
+|-----------------------------------|------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **`DomException`**                | 1001 | Handles errors related to WebAuthn DOM configurations for passkeys.                                                                                                                                                                                                                                             | **Android**: Ensure `/.well-known/assetlinks.json` is set up. See [Android Guide](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal). <br> **iOS**: Ensure `/.well-known/apple-app-site-association` is set up. See [Apple Guide](https://developer.apple.com/documentation/xcode/supporting-associated-domains). |
+| **`UserCanceledException`**       | 1002 | Thrown when the user voluntarily cancels an operation, allowing graceful termination of user actions.                                                                                                                                                                                                           | N/A                                                                                                                                                                                                                                      |
+| **`InterruptedException`**        | 1003 | Thrown when an operation is interrupted, typically recoverable by retrying.                                                                                                                                                                                                                                     | **Android Only**                                                                                                                                                                                                                        |
+| **`UnsupportedException`**        | 1004 | Indicates the device does not support or has disabled the passkeys feature, preventing passkey operations.                                                                                                                                                                                                      | N/A                                                                                                                                                                                                                                      |
+| **`NoCredentialException`**       | 1005 | Thrown when no passkey credentials are available, indicating no user credentials are set up for authentication.                                                                                                                                                                                                 | **Android Only**                                                                                                                                                                                                                        |
+| **`MissingAttestationObjectException`** | 1006 | Raised when the attestation object is null, which is essential for passkey operations.                                                                                                                                                                                                                           | **iOS Only**                                                                                                                                                                                                                            |
+| **`InvalidPayloadException`**     | 1007 | Thrown when the JSON payload is invalid, meaning the data does not meet the expected format or schema.                                                                                                                                                                                                          | N/A                                                                                                                                                                                                                                      |
+| **`GeneralException`**            | 1008 | Represents a general or unspecified error used as a fallback for errors not fitting other categories.                                                                                                                                                                                                           | N/A                                                                                                                                                                                                                                      |
 
 ## Useful Gradle Tasks <a name="useful-gradle-tasks"></a>
 

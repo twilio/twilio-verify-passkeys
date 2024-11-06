@@ -100,7 +100,7 @@ class AndroidTwilioPasskeyTest {
   @Test
   fun `Create passkey with json payload fails`() {
     val exception = SerializationException("error")
-    val expectedException = TwilioException("error")
+    val expectedException = TwilioException.InvalidPayloadException(Throwable("error"))
     every { passkeyPayloadMapper.mapToCreatePasskeyRequest(createPayload) } throws exception
     every { passkeyPayloadMapper.mapException(exception) } returns expectedException
     runTest {
@@ -331,7 +331,7 @@ class AndroidTwilioPasskeyTest {
   @Test
   fun `Authenticate passkey with json payload fails`() {
     val exception = SerializationException("error")
-    val expectedException = TwilioException("error")
+    val expectedException = TwilioException.InvalidPayloadException(Throwable("error"))
     every { passkeyPayloadMapper.mapToAuthenticatePasskeyRequest(authenticatePayload) } throws exception
     every { passkeyPayloadMapper.mapException(exception) } returns expectedException
 
