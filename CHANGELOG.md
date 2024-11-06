@@ -1,5 +1,22 @@
 # Changelog
 
+# 0.3.0
+
+## 🚀 Feature
+### 🤖 Android
+- **#42** Add error codes to twilioexception (#42)
+### 🍎 iOS
+- **#42** Add error codes to twilioexception (#42)
+### 🌐 Web
+- **#42** Add error codes to twilioexception (#42)
+## 🛠️ Routine Task
+### 🤖 Android
+- **#41** Update create_github_release script (#41)
+### 🍎 iOS
+- **#41** Update create_github_release script (#41)
+### 🌐 Web
+- **#41** Update create_github_release script (#41)
+
 # 0.2.0
 
 ## 🚀 Feature
