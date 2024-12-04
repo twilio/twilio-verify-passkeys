@@ -626,6 +626,9 @@ jobs:
 
 workflows:
   build-all:
+    when:
+      and:
+        - equal: [ false, << pipeline.parameters.generate-app >> ]
     jobs:
       - assemble
       - lint-check:
