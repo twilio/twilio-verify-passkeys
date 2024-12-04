@@ -51,6 +51,11 @@ executors:
       - image: cimg/ruby:3.3.0
     working_directory: *workspace
 
+parameters:
+  generate-app:
+    type: boolean
+    default: false    
+
 commands:
   test-results-folder:
     parameters:
@@ -420,11 +425,15 @@ jobs:
           name: Generate APK
           command: |
             ./gradlew :androidApp:assembleDebug
+            mv androidApp/build/outputs/apk/debug/androidApp-debug.apk sample-app.apk
+            zip -r sample-app.zip sample-app.apk
+      - store_artifacts:
+          path: sample-app.zip
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
-            firebase appdistribution:distribute androidApp/build/outputs/apk/debug/androidApp-debug.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
+            firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
       - run:
           name: Save distributed app link
           command: |
@@ -698,3 +707,10 @@ workflows:
             branches:
               only:
                 - main
+  generate_app:
+    when:
+      and:
+        - equal: [ true, << pipeline.parameters.generate-app >> ]
+    jobs:
+      - generate-ios-simulator-app-using-internal-sdk
+      - generate-android-sample-app-using-local-sdk            
