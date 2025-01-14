@@ -54,7 +54,10 @@ executors:
 parameters:
   generate-app:
     type: boolean
-    default: false    
+    default: false
+  e2e-tests:
+    type: boolean
+    default: false
 
 commands:
   test-results-folder:
@@ -716,4 +719,16 @@ workflows:
         - equal: [ true, << pipeline.parameters.generate-app >> ]
     jobs:
       - generate-ios-simulator-app-using-internal-sdk
-      - generate-android-sample-app-using-local-sdk            
+      - generate-android-sample-app-using-local-sdk
+
+  execute_e2e_tests:
+      when:
+        and:
+        - equal: [ true, << pipeline.parameters.e2e-tests >> ]
+      jobs:
+        - generate_app
+        - run-android-e2e-tests:
+            waiting_job_name: wait-for-android-local-sdk-e2e-tests
+            requires:
+              - generate_app
+
