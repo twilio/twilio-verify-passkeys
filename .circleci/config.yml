@@ -632,6 +632,7 @@ workflows:
     when:
       and:
         - equal: [ false, << pipeline.parameters.generate-app >> ]
+        - equal: [ false, << pipeline.parameters.e2e-tests >> ]
     jobs:
       - assemble
       - lint-check:
