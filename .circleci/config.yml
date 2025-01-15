@@ -720,7 +720,6 @@ workflows:
     jobs:
       - generate-ios-simulator-app-using-internal-sdk
       - generate-android-sample-app-using-local-sdk
-
   execute_e2e_tests:
       when:
         and:
