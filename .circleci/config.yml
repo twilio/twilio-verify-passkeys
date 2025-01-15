@@ -729,6 +729,7 @@ workflows:
         - generate-ios-simulator-app-using-internal-sdk
         - generate-android-sample-app-using-local-sdk
         - run-android-local-sdk-e2e-tests:
+            waiting_job_name: wait-for-android-local-sdk-e2e-tests
             requires:
               - generate-android-sample-app-using-local-sdk
 
