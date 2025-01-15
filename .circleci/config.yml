@@ -726,6 +726,6 @@ workflows:
         and:
         - equal: [ true, << pipeline.parameters.e2e-tests >> ]
       jobs:
-        - run-android-e2e-tests:
+        - run-android-local-sdk-e2e-tests:
             waiting_job_name: wait-for-android-local-sdk-e2e-tests
 
