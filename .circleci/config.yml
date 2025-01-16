@@ -735,6 +735,8 @@ workflows:
               - generate-android-sample-app-using-local-sdk
         - run-android-local-sdk-e2e-tests:
             waiting_job_name: wait-for-android-local-sdk-e2e-tests
+            requires:
+              - run_android_e2e_tests
         - wait-for-android-local-sdk-e2e-tests:
             type: approval
             requires:
@@ -750,6 +752,8 @@ workflows:
               - generate-ios-simulator-app-using-internal-sdk
         - run-simulator-ios-internal-sdk-e2e-tests:
             waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+            requires:
+              - run_ios_e2e_tests
         - wait-for-ios-internal-sdk-e2e-tests:
             type: approval
             requires:
