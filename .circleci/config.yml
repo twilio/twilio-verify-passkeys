@@ -726,17 +726,22 @@ workflows:
         and:
         - equal: [ true, << pipeline.parameters.e2e-tests >> ]
       jobs:
-        - generate-android-sample-app-using-local-sdk
-        - generate-ios-simulator-app-using-internal-sdk
         - run_android_e2e_tests:
-            name: run_android_e2e_tests
+            name: approve_run_android_e2e_tests
             type: approval
+        - run_ios_e2e_tests:
+            name: approve_run_ios_e2e_tests
+            type: approval
+        - generate-android-sample-app-using-local-sdk:
             requires:
-              - generate-android-sample-app-using-local-sdk
+              - approve_run_android_e2e_tests
+        - generate-ios-simulator-app-using-internal-sdk:
+            requires:
+              - approve_run_ios_e2e_tests
         - run-android-local-sdk-e2e-tests:
             waiting_job_name: wait-for-android-local-sdk-e2e-tests
             requires:
-              - run_android_e2e_tests
+              - generate-android-sample-app-using-local-sdk
         - wait-for-android-local-sdk-e2e-tests:
             type: approval
             requires:
@@ -745,15 +750,10 @@ workflows:
             workflow_name_to_check: "android-tests"
             requires:
               - wait-for-android-local-sdk-e2e-tests
-        - run_ios_e2e_tests:
-            name: run_ios_e2e_tests
-            type: approval
-            requires:
-              - generate-ios-simulator-app-using-internal-sdk
         - run-simulator-ios-internal-sdk-e2e-tests:
             waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
             requires:
-              - run_ios_e2e_tests
+              - generate-ios-simulator-app-using-internal-sdk
         - wait-for-ios-internal-sdk-e2e-tests:
             type: approval
             requires:
