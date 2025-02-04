@@ -1,10 +1,10 @@
 version: 2.1
 
 orbs:
-  android: circleci/android@2.3.0
-  ruby: circleci/ruby@2.1.0
-  gcp-cli: circleci/gcp-cli@3.1.1
-  continuation: circleci/continuation@1.0.0
+  android: circleci/android@3.0.2
+  ruby: circleci/ruby@2.3.1
+  gcp-cli: circleci/gcp-cli@3.3.0
+  continuation: circleci/continuation@1.1.0
 
 setup: true
 
@@ -20,23 +20,23 @@ aliases:
 
 executors:
   ubuntu-small-executor:
-    #https://circleci:com/developer/images/image/cimg/base
+    # https://circleci.com/developer/images/image/cimg/base
     docker:
-      - image: cimg/base:2024.02
+      - image: cimg/base:2025.02
     resource_class: small
     working_directory: *workspace
 
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2024.01.1
+      - image: cimg/android:2025.02.1
     resource_class: medium
     working_directory: *workspace
 
   android-node-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2024.01.1-node
+      - image: cimg/android:2025.02.1-node
     resource_class: medium
     working_directory: *workspace
 
