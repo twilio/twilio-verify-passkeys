@@ -51,6 +51,14 @@ executors:
       - image: cimg/ruby:3.3.0
     working_directory: *workspace
 
+parameters:
+  generate-app:
+    type: boolean
+    default: false
+  e2e-tests:
+    type: boolean
+    default: false
+
 commands:
   test-results-folder:
     parameters:
@@ -420,11 +428,15 @@ jobs:
           name: Generate APK
           command: |
             ./gradlew :androidApp:assembleDebug
+            mv androidApp/build/outputs/apk/debug/androidApp-debug.apk sample-app.apk
+            zip -r sample-app.zip sample-app.apk
+      - store_artifacts:
+          path: sample-app.zip
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
-            firebase appdistribution:distribute androidApp/build/outputs/apk/debug/androidApp-debug.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
+            firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
       - run:
           name: Save distributed app link
           command: |
@@ -579,7 +591,7 @@ jobs:
             TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
             echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
             
-            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success"* ]]; then
               echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
               (exit -1) 
             fi
@@ -607,7 +619,7 @@ jobs:
             TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
             echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
 
-            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
+            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success"* ]]; then
               echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
               (exit -1) 
             fi
@@ -617,6 +629,10 @@ jobs:
 
 workflows:
   build-all:
+    when:
+      and:
+        - equal: [ false, << pipeline.parameters.generate-app >> ]
+        - equal: [ false, << pipeline.parameters.e2e-tests >> ]
     jobs:
       - assemble
       - lint-check:
@@ -698,3 +714,52 @@ workflows:
             branches:
               only:
                 - main
+  generate_app:
+    when:
+      and:
+        - equal: [ true, << pipeline.parameters.generate-app >> ]
+    jobs:
+      - generate-ios-simulator-app-using-internal-sdk
+      - generate-android-sample-app-using-local-sdk
+  execute_e2e_tests:
+      when:
+        and:
+        - equal: [ true, << pipeline.parameters.e2e-tests >> ]
+      jobs:
+        - start_execution_android_e2e_tests:
+            name: start_execution_android_e2e_tests
+            type: approval
+        - start_execution_ios_e2e_tests:
+            name: start_execution_ios_e2e_tests
+            type: approval
+        - generate-android-sample-app-using-local-sdk:
+            requires:
+              - start_execution_android_e2e_tests
+        - generate-ios-simulator-app-using-internal-sdk:
+            requires:
+              - start_execution_ios_e2e_tests
+        - run-android-local-sdk-e2e-tests:
+            waiting_job_name: wait-for-android-local-sdk-e2e-tests
+            requires:
+              - generate-android-sample-app-using-local-sdk
+        - wait-for-android-local-sdk-e2e-tests:
+            type: approval
+            requires:
+              - run-android-local-sdk-e2e-tests
+        - check-android-local-sdk-e2e-tests-result:
+            workflow_name_to_check: "android-tests"
+            requires:
+              - wait-for-android-local-sdk-e2e-tests
+        - run-simulator-ios-internal-sdk-e2e-tests:
+            waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+            requires:
+              - generate-ios-simulator-app-using-internal-sdk
+        - wait-for-ios-internal-sdk-e2e-tests:
+            type: approval
+            requires:
+              - run-simulator-ios-internal-sdk-e2e-tests
+        - check-simulator-ios-sdk-e2e-tests-result:
+            workflow_name_to_check: "ios-tests"
+            requires:
+              - wait-for-ios-internal-sdk-e2e-tests
+
