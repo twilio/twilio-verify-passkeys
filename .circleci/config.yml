@@ -18,6 +18,27 @@ aliases:
   - &env-vars-file
       env_vars
 
+  - android-publish-release-candidate-tag-filter: &android-publish-release-candidate
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
+        branches:
+          ignore: /.*/
+  - android-publish-stable-release-tag-filter: &android-publish-stable-release
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+$/
+        branches:
+          ignore: /.*/
+
+  - any-branch-or-android-release-candidate-tag-filter: &any-branch-or-android-release-candidate
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
+
 executors:
   ubuntu-small-executor:
     # https://circleci.com/developer/images/image/cimg/base
@@ -83,6 +104,22 @@ commands:
             sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
             sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
             java -version
+
+  install-android-sdk:
+    parameters:
+      gradle-dir:
+        default: .
+        type: string
+    steps:
+      - run:
+          name: "Download and setup android SDK"
+          command: |
+            ANDROID_SDK_ROOT="$HOME/android-sdk"
+              ./scripts/download_android_sdk.sh "$ANDROID_SDK_ROOT"
+              echo "sdk.dir=$ANDROID_SDK_ROOT" >> "$PROJECT_GRADLE_DIR/local.properties"
+              echo "org.gradle.daemon=false" >> "$PROJECT_GRADLE_DIR/gradle.properties"
+          environment:
+            PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
 
   danger-check:
     parameters:
@@ -627,6 +664,32 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
+  publish-android-release-candidate:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - install-android-sdk
+      - run:
+          name: Generate signing key ring file
+          command: |
+            echo $SIGNING_KEY | base64 -d >> $SIGNING_SECRET_KEY_RING_FILE
+      - run:
+          name: Publish SDK to internal repository
+          command: ./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
+      - run:
+          name: Save internal repository link
+          command: ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - .
+
 workflows:
   build-all:
     when:
@@ -634,86 +697,112 @@ workflows:
         - equal: [ false, << pipeline.parameters.generate-app >> ]
         - equal: [ false, << pipeline.parameters.e2e-tests >> ]
     jobs:
-      - assemble
-      - lint-check:
+      - assemble:
+          <<: *any-branch-or-android-release-candidate
+#      - lint-check:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - assemble
+#      - android-sdk-size-report:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - assemble
+#      - ios-sdk-size-report:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - assemble
+#      - detekt-check:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - assemble
+#      - android-unit-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - lint-check
+#            - detekt-check
+#      - android-instrumented-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - android-unit-tests
+#      - ios-unit-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - lint-check
+#            - detekt-check
+#      - ios-generate-framework:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - ios-unit-tests
+#      - generate-ios-simulator-app-using-internal-sdk:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - ios-generate-framework
+#      - android-generate-aar:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - android-instrumented-tests
+#      - generate-android-sample-app-using-local-sdk:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - android-instrumented-tests
+#            - ios-unit-tests
+#      - run-android-local-sdk-e2e-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          waiting_job_name: wait-for-android-local-sdk-e2e-tests
+#          requires:
+#            - generate-android-sample-app-using-local-sdk
+#      - wait-for-android-local-sdk-e2e-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          type: approval
+#          requires:
+#            - run-android-local-sdk-e2e-tests
+#      - check-android-local-sdk-e2e-tests-result:
+#          <<: *any-branch-or-android-release-candidate
+#          workflow_name_to_check: "android-tests"
+#          requires:
+#            - wait-for-android-local-sdk-e2e-tests
+#      - generate-ios-sample-app-using-internal-sdk:
+#          <<: *any-branch-or-android-release-candidate
+#          requires:
+#            - ios-sdk-size-report
+#            - ios-generate-framework
+#      - run-simulator-ios-internal-sdk-e2e-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+#          requires:
+#            - generate-ios-simulator-app-using-internal-sdk
+#      - wait-for-ios-internal-sdk-e2e-tests:
+#          <<: *any-branch-or-android-release-candidate
+#          type: approval
+#          requires:
+#            - run-simulator-ios-internal-sdk-e2e-tests
+#      - check-simulator-ios-sdk-e2e-tests-result:
+#          <<: *any-branch-or-android-release-candidate
+#          workflow_name_to_check: "ios-tests"
+#          requires:
+#            - wait-for-ios-internal-sdk-e2e-tests
+      - publish-android-release-candidate:
+          <<: *android-publish-release-candidate
           requires:
             - assemble
-      - android-sdk-size-report:
-          requires:
-            - assemble
-      - ios-sdk-size-report:
-          requires:
-            - assemble
-      - detekt-check:
-          requires:
-            - assemble
-      - android-unit-tests:
-          requires:
-            - lint-check
-            - detekt-check
-      - android-instrumented-tests:
-          requires:
-            - android-unit-tests
-      - ios-unit-tests:
-          requires:
-            - lint-check
-            - detekt-check
-      - ios-generate-framework:
-          requires:
-            - ios-unit-tests
-      - generate-ios-simulator-app-using-internal-sdk:
-          requires:
-            - ios-generate-framework
-      - android-generate-aar:
-          requires:
-            - android-instrumented-tests
-      - generate-android-sample-app-using-local-sdk:
-          requires:
-            - android-instrumented-tests
-            - ios-unit-tests
-      - run-android-local-sdk-e2e-tests:
-          waiting_job_name: wait-for-android-local-sdk-e2e-tests
-          requires:
-            - generate-android-sample-app-using-local-sdk
-      - wait-for-android-local-sdk-e2e-tests:
-          type: approval
-          requires:
-            - run-android-local-sdk-e2e-tests
-      - check-android-local-sdk-e2e-tests-result:
-          workflow_name_to_check: "android-tests"
-          requires:
-            - wait-for-android-local-sdk-e2e-tests
-      - generate-ios-sample-app-using-internal-sdk:
-          requires:
-            - ios-sdk-size-report
-            - ios-generate-framework
-      - run-simulator-ios-internal-sdk-e2e-tests:
-          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
-          requires:
-            - generate-ios-simulator-app-using-internal-sdk
-      - wait-for-ios-internal-sdk-e2e-tests:
-          type: approval
-          requires:
-            - run-simulator-ios-internal-sdk-e2e-tests
-      - check-simulator-ios-sdk-e2e-tests-result:
-          workflow_name_to_check: "ios-tests"
-          requires:
-            - wait-for-ios-internal-sdk-e2e-tests
-      - should-release-kmp-version:
-          requires:
-            - check-android-local-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
-      - should-release-ios-version:
-          requires:
-            - ios-generate-framework
-            - check-simulator-ios-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
+#            - check-android-local-sdk-e2e-tests-result
+
+
+#      - should-release-kmp-version:
+#          requires:
+#            - check-android-local-sdk-e2e-tests-result
+#          filters:
+#            branches:
+#              only:
+#                - main
+#      - should-release-ios-version:
+#          requires:
+#            - ios-generate-framework
+#            - check-simulator-ios-sdk-e2e-tests-result
+#          filters:
+#            branches:
+#              only:
+#                - main
   generate_app:
     when:
       and:
