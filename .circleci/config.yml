@@ -407,14 +407,14 @@ jobs:
               exit 1
             fi
             mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
+            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | awk '{print $1}')
             echo "Checksum: $CHECKSUM"
             git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
             cd twilio-verify-passkeys-ios
             sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
             sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
-            git config --global user.email $GITHUB_USER_EMAIL
-            git config --global user.name $GITHUB_USER_NAME
+            git config user.email $GITHUB_USER_EMAIL
+            git config user.name $GITHUB_USER_NAME
             git add .
             git commit -m "Update to version v$VERSION_BUMP"
             git tag "v$VERSION_BUMP"
