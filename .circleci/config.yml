@@ -1,10 +1,10 @@
 version: 2.1
 
 orbs:
-  android: circleci/android@2.3.0
-  ruby: circleci/ruby@2.1.0
-  gcp-cli: circleci/gcp-cli@3.1.1
-  continuation: circleci/continuation@1.0.0
+  android: circleci/android@3.0.2
+  ruby: circleci/ruby@2.3.1
+  gcp-cli: circleci/gcp-cli@3.3.0
+  continuation: circleci/continuation@1.1.0
 
 setup: true
 
@@ -20,23 +20,23 @@ aliases:
 
 executors:
   ubuntu-small-executor:
-    #https://circleci:com/developer/images/image/cimg/base
+    # https://circleci.com/developer/images/image/cimg/base
     docker:
-      - image: cimg/base:2024.02
+      - image: cimg/base:2025.02
     resource_class: small
     working_directory: *workspace
 
   android-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2024.01.1
+      - image: cimg/android:2025.02.1
     resource_class: medium
     working_directory: *workspace
 
   android-node-executor:
     docker:
       # https://circleci.com/developer/images/image/cimg/android#image-tags
-      - image: cimg/android:2024.01.1-node
+      - image: cimg/android:2025.02.1-node
     resource_class: medium
     working_directory: *workspace
 
@@ -127,8 +127,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - ruby/install-deps
       - run:
           name: Assemble build
@@ -141,8 +141,8 @@ jobs:
           to: builds
       - danger-check:
           danger_params: --danger_id=assemble --dangerfile=dangerfiles/dangerfile_pr_validation
-      - android/save-gradle-cache
-      - android/save-build-cache
+      - android/save_gradle_cache
+      - android/save_build_cache
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -153,8 +153,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - ruby/install-deps
       - install-jdk-17
       - run:
@@ -162,32 +162,32 @@ jobs:
           command: ./gradlew ktlintCheck
       - danger-check:
           danger_params: --danger_id=lint --dangerfile=dangerfiles/dangerfile_ktlint
-      - android/save-gradle-cache
-      - android/save-build-cache
+      - android/save_gradle_cache
+      - android/save_build_cache
 
   detekt-check:
     executor: android-executor
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - ruby/install-deps
       - run:
           name: Detekt check
           command: ./gradlew detekt
       - danger-check:
           danger_params: --danger_id=detekt --dangerfile=dangerfiles/dangerfile_detekt
-      - android/save-gradle-cache
-      - android/save-build-cache
+      - android/save_gradle_cache
+      - android/save_build_cache
 
   android-unit-tests:
     executor: android-executor
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - ruby/install-deps
       - run:
           name: Kover code coverage report
@@ -197,8 +197,8 @@ jobs:
       - run:
           name: Kover code coverage rule
           command: ./gradlew :shared:koverVerify
-      - android/save-gradle-cache
-      - android/save-build-cache
+      - android/save_gradle_cache
+      - android/save_build_cache
       - test-results-folder
       - store_test_results:
           path: *unit-test-folder-result
@@ -212,8 +212,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: *workspace
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - gcp-cli/setup
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
@@ -225,13 +225,13 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - run:
           name: Run Unit tests
           command: ./gradlew :shared:iosSimulatorArm64Test
-      - android/save-gradle-cache
-      - android/save-build-cache
+      - android/save_gradle_cache
+      - android/save_build_cache
       - test-results-folder
       - store_test_results:
           path: *unit-test-folder-result
@@ -243,8 +243,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - ruby/install-deps
       - run:
           name: Android SDK size report
@@ -416,8 +416,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - attach_workspace:
           at: *workspace
       - run:

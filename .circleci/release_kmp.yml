@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  android: circleci/android@2.3.0
+  android: circleci/android@3.0.2
 
 aliases:
   - &workspace
@@ -169,8 +169,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - attach_workspace:
           at: *workspace
       - run:
@@ -269,8 +269,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: *workspace
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - run:
           name: Publish to Maven Central
           command: |

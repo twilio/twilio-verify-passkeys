@@ -211,10 +211,10 @@ koverReport {
 
 android {
   namespace = "com.twilio.passkeys"
-  compileSdk = 34
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
-    minSdk = 24
-    targetSdkVersion(34) // Don't remove this, apkscale plugin needs it
+    minSdk = libs.versions.minSdk.get().toInt()
+    targetSdkVersion(libs.versions.targetSdk.get().toInt()) // Don't remove this, apkscale plugin needs it
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   compileOptions {
