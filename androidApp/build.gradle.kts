@@ -42,7 +42,7 @@ repositories {
 }
 
 val sampleBackendUrl: String by extra
-val sdkVersionName: String by extra
+val kmpSdkVersionName: String by extra
 
 android {
   namespace = "com.twilio.passkeys.android"
@@ -52,7 +52,7 @@ android {
     minSdk = libs.versions.minSdk.get().toInt()
     targetSdk = libs.versions.targetSdk.get().toInt()
     versionCode = 1
-    versionName = sdkVersionName
+    versionName = kmpSdkVersionName
 
     buildConfigField("String", "SAMPLE_BACKEND_URL", sampleBackendUrl)
   }
@@ -95,7 +95,7 @@ dependencies {
   implementation(libs.androidx.material3.android)
   implementation(libs.androidx.ui.tooling.preview.android)
   debugImplementation(projects.shared)
-  releaseImplementation("com.twilio:twilio-verify-passkeys-android:$sdkVersionName")
+  releaseImplementation("com.twilio:twilio-verify-passkeys-android:$kmpSdkVersionName")
   implementation(libs.androidx.activity.compose)
   implementation(libs.hilt.android)
   implementation(libs.androidx.hilt.navigation.compose)

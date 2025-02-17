@@ -17,7 +17,7 @@ begin
   # Retrieve commits based on the specified platform
   commits = GitCommits.get_commits(platform)
 
-  sdk_version = GradlePropertyUtils.get_property("sdkVersionName")
+  sdk_version = GradlePropertyUtils.get_property("kmpSdkVersionName")
   puts ChangelogGenerator.generate_changelog(sdk_version, commits, is_ios_only)
 rescue ArgumentError => e
   puts e.message

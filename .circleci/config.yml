@@ -5,6 +5,7 @@ orbs:
   ruby: circleci/ruby@2.3.1
   gcp-cli: circleci/gcp-cli@3.3.0
   continuation: circleci/continuation@1.1.0
+  path-filtering: circleci/path-filtering@1.2.0
 
 setup: true
 
@@ -17,6 +18,28 @@ aliases:
       tmp/workspace
   - &env-vars-file
       env_vars
+
+  - android-publish-release-candidate-tag-filter: &android-publish-release-candidate
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
+        branches:
+          ignore: /.*/
+
+  - android-publish-stable-release-tag-filter: &android-publish-stable-release
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+$/
+        branches:
+          ignore: /.*/
+
+  - any-branch-or-android-release-tag-filter: &any-branch-or-android-release
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
 
 executors:
   ubuntu-small-executor:
@@ -354,7 +377,7 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
 
-  should-release-ios-version:
+  release-android:
     executor: ruby-executor
 
     steps:
@@ -362,50 +385,75 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Perform Versioning, Bump Up & Generate ChangeLog
+          name: Pre release check
           command: |
-            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
-            echo "Release type = $IOS_RELEASE_TYPE"
-
-            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
-              echo "No need to release a new version"
-              circleci-agent step halt
-            else
-              echo "Starting a new $IOS_RELEASE_TYPE release"
+            # Fetch the new and latest Android SDK versions
+            NEW_ANDROID_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb kmpSdkVersionName)
+            LATEST_ANDROID_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb KMP)
+            
+            # Compare versions and exit if they are the same
+            if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
+              echo "❌ Release Aborted: The new Android SDK version $NEW_ANDROID_SDK_VERSION is identical to the latest released version ($LATEST_ANDROID_SDK_VERSION)."
+              echo "Error: Version $NEW_IOS_SDK_VERSION already exists as the latest release ($LATEST_IOS_SDK_VERSION)."
+              exit 1
             fi
+            
+            echo "✅ New Android SDK version $NEW_ANDROID_SDK_VERSION is unique and ready for release."
 
-            VERSION_BUMP=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE")
-            echo "Version Bump = $VERSION_BUMP"
-            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
-            echo "Changelog: $CHANGELOG"
-            echo "VERSION_BUMP=$VERSION_BUMP" >> $BASH_ENV
-            echo "CHANGELOG=$CHANGELOG" >> $BASH_ENV
+
+  release-ios:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Pre release check
+          command: |
+            # Fetch the new and latest iOS SDK versions
+            NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb iosSdkVersionName)
+            LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
+            
+            # Compare versions and exit if they are the same
+            if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
+              echo "❌ Release Aborted: The new iOS SDK version $NEW_IOS_SDK_VERSION is identical to the latest released version ($LATEST_IOS_SDK_VERSION)."
+              exit 1
+            fi
+            
+            echo "✅ New iOS SDK version $NEW_IOS_SDK_VERSION is unique and ready for release."
+            echo "NEW_IOS_SDK_VERSION=$NEW_IOS_SDK_VERSION" >> $BASH_ENV
           shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
       - run:
-          name: Publish XCFramework to GitHub
+          name: Release iOS SDK - Publishing XCFramework to GitHub
           command: |
             if [ ! -f releaseFramework.zip ]; then
               echo "releaseFramework.zip not found in workspace"
               exit 1
             fi
+            
             mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
             CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
             echo "Checksum: $CHECKSUM"
+            
+            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
+            echo "Changelog: $CHANGELOG"
+            
             git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
             cd twilio-verify-passkeys-ios
-            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
+            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$NEW_IOS_SDK_VERSION/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
             sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
             git config --global user.email $GITHUB_USER_EMAIL
             git config --global user.name $GITHUB_USER_NAME
             git add .
-            git commit -m "Update to version v$VERSION_BUMP"
-            git tag "v$VERSION_BUMP"
+            git commit -m "Update to version v$NEW_IOS_SDK_VERSION"
+            git tag "v$NEW_IOS_SDK_VERSION"
             git push origin main
             gem install faraday
-            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$VERSION_BUMP" "TwilioPasskeysAuthentication v$VERSION_BUMP" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
+            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$NEW_IOS_SDK_VERSION" "TwilioPasskeysAuthentication v$NEW_IOS_SDK_VERSION" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
           shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
@@ -627,6 +675,17 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
+  wait-passkey-tests-passed:
+    executor: ubuntu-small-executor
+    description: "Waits for all tests to finish"
+    steps:
+      - run:
+          name: All tests passed
+          command: echo "All tests passed"
+
+  publish-kmp-release-candidate:
+
+
 workflows:
   build-all:
     when:
@@ -699,17 +758,26 @@ workflows:
           workflow_name_to_check: "ios-tests"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      - should-release-kmp-version:
+      - wait-passkey-tests-passed:
           requires:
             - check-android-local-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
+            - check-simulator-ios-sdk-e2e-tests-result
+      - publish-kmp-release-candidate:
+          <<: android-publish-release-candidate
+          requires:
+            - wait-passkey-tests-passed
       - should-release-ios-version:
           requires:
             - ios-generate-framework
             - check-simulator-ios-sdk-e2e-tests-result
+          filters:
+            branches:
+              only:
+                - main
+      - should-release-kmp-version:
+          requires:
+            - check-android-local-sdk-e2e-tests-result
+            - should-release-ios-version
           filters:
             branches:
               only:

@@ -18,7 +18,7 @@ begin
   else raise ArgumentError, "version_bump_type '#{args[0]}' is invalid. Use 'MAJOR', 'MINOR', or 'PATCH'"
   end
 
-  property = "sdkVersionName"
+  property = "kmpSdkVersionName"
   current_sdk_version = GradlePropertyUtils.get_property(property)
   # Check if it's the first release to prevent bumping and use the already set sdk version
   platform = ReleasePlatform[:KMP]
