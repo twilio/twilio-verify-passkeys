@@ -46,11 +46,11 @@ val sdkVersionName: String by extra
 
 android {
   namespace = "com.twilio.passkeys.android"
-  compileSdk = 34
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
     applicationId = "com.twilio.passkeys.android"
-    minSdk = 24
-    targetSdk = 34
+    minSdk = libs.versions.minSdk.get().toInt()
+    targetSdk = libs.versions.targetSdk.get().toInt()
     versionCode = 1
     versionName = sdkVersionName
 
