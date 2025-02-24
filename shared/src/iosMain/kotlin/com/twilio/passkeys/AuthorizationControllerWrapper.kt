@@ -83,7 +83,9 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
                 transports = listOf("internal"),
               )
             } ?: kotlin.run {
-              createPasskeyCompletion?.invoke(CreatePasskeyResult.Error(TwilioException.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null"))))
+            createPasskeyCompletion?.invoke(
+              CreatePasskeyResult.Error(TwilioException.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null"))),
+            )
             return
           }
 

@@ -16,7 +16,6 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.INVALID_JSON_PAYLOAD_EXCEPTION
 import com.twilio.passkeys.exception.TwilioException
 import com.twilio.passkeys.mocks.ATTESTATION_OBJECT
 import com.twilio.passkeys.mocks.AUTHENTICATOR_ATTACHMENT
@@ -41,7 +40,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 @OptIn(ExperimentalNativeApi::class)
-class TwilioPasskeyTest {
+class TwilioPasskeysTests {
   // region Properties
   private val passkeyPayloadMapper = PasskeyPayloadMapper
   private val authControllerWrapper: AuthorizationControllerWrapperMock = AuthorizationControllerWrapperMock()

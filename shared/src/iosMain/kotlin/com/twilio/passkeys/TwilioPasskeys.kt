@@ -18,25 +18,14 @@
 
 package com.twilio.passkeys
 
-import com.twilio.passkeys.exception.TwilioException
-import com.twilio.passkeys.extensions.toTwilioException
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
-import com.twilio.passkeys.models.AuthenticatePasskeyResponse
 import com.twilio.passkeys.models.CreatePasskeyRequest
-import com.twilio.passkeys.models.CreatePasskeyResponse
-import com.twilio.passkeys.utils.DeviceUtils
 import kotlinx.coroutines.suspendCancellableCoroutine
-import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationController
-import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
 import platform.AuthenticationServices.ASAuthorizationControllerPresentationContextProvidingProtocol
-import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialAssertion
 import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialProvider
-import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialRegistration
-import platform.AuthenticationServices.ASAuthorizationPublicKeyCredentialAttachment
 import platform.AuthenticationServices.ASPresentationAnchor
 import platform.Foundation.NSData
-import platform.Foundation.NSError
 import platform.Foundation.base64Encoding
 import platform.Foundation.create
 import platform.UIKit.UIWindow
@@ -45,7 +34,6 @@ import kotlin.coroutines.resume
 
 internal const val ATTACHMENT_SUPPORT_MIN_OS_VERSION = "16.6"
 internal const val PASSKEY_TYPE = "public-key"
-private val deviceUtils: DeviceUtils = DeviceUtils()
 
 internal enum class Attachment(val value: String) {
   PLATFORM("platform"),
@@ -68,101 +56,6 @@ actual open class TwilioPasskeys internal constructor(
     passkeyPayloadMapper = PasskeyPayloadMapper,
     authControllerWrapper = AuthorizationControllerWrapper(),
   )
-
-  internal var createContinuation: (CreatePasskeyResult) -> Unit = {}
-  internal var authenticateContinuation: (AuthenticatePasskeyResult) -> Unit = {}
-
-  private val createPasskeyDelegate =
-    object : NSObject(), ASAuthorizationControllerDelegateProtocol {
-      override fun authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithAuthorization: ASAuthorization,
-      ) {
-        val credentialRegistration =
-          didCompleteWithAuthorization.credential as ASAuthorizationPlatformPublicKeyCredentialRegistration
-        val createPasskeyResponse =
-          credentialRegistration.rawAttestationObject?.toUrlSafeString()
-            ?.let { attestationObject ->
-              CreatePasskeyResponse(
-                id = credentialRegistration.credentialID.toUrlSafeString(),
-                rawId = credentialRegistration.credentialID.toUrlSafeString(),
-                authenticatorAttachment =
-                  if (deviceUtils.isOSVersionSupported(ATTACHMENT_SUPPORT_MIN_OS_VERSION)) {
-                    getAuthenticatorAttachment(credentialRegistration.attachment)
-                  } else {
-                    getAuthenticatorAttachment(ASAuthorizationPublicKeyCredentialAttachment.ASAuthorizationPublicKeyCredentialAttachmentPlatform)
-                  },
-                type = PASSKEY_TYPE,
-                attestationObject = attestationObject,
-                clientDataJSON = credentialRegistration.rawClientDataJSON.toUrlSafeString(),
-                transports = listOf("internal"),
-              )
-            } ?: kotlin.run {
-            createContinuation(
-              CreatePasskeyResult.Error(
-                TwilioException.MissingAttestationObjectException(NullPointerException("rawAttestationObject is null")),
-              ),
-            )
-            return
-          }
-
-        createContinuation(
-          CreatePasskeyResult.Success(
-            createPasskeyResponse,
-          ),
-        )
-      }
-
-      override fun authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithError: NSError,
-      ) {
-        createContinuation(
-          CreatePasskeyResult.Error(didCompleteWithError.toTwilioException()),
-        )
-      }
-    }
-
-  private val authenticatePasskeyDelegate =
-    object : NSObject(), ASAuthorizationControllerDelegateProtocol {
-      override fun authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithAuthorization: ASAuthorization,
-      ) {
-        val credentialAuthentication =
-          didCompleteWithAuthorization.credential as ASAuthorizationPlatformPublicKeyCredentialAssertion
-        val authenticatePasskeyResponse =
-          AuthenticatePasskeyResponse(
-            id = credentialAuthentication.credentialID.toUrlSafeString(),
-            rawId = credentialAuthentication.credentialID.toUrlSafeString(),
-            authenticatorAttachment =
-              if (deviceUtils.isOSVersionSupported(ATTACHMENT_SUPPORT_MIN_OS_VERSION)) {
-                getAuthenticatorAttachment(credentialAuthentication.attachment)
-              } else {
-                getAuthenticatorAttachment(ASAuthorizationPublicKeyCredentialAttachment.ASAuthorizationPublicKeyCredentialAttachmentPlatform)
-              },
-            type = PASSKEY_TYPE,
-            clientDataJSON = credentialAuthentication.rawClientDataJSON.toUrlSafeString(),
-            authenticatorData = credentialAuthentication.rawAuthenticatorData?.toUrlSafeString(),
-            signature = credentialAuthentication.signature?.toUrlSafeString(),
-            userHandle = credentialAuthentication.userID?.toUrlSafeString(),
-          )
-        authenticateContinuation(
-          AuthenticatePasskeyResult.Success(
-            authenticatePasskeyResponse,
-          ),
-        )
-      }
-
-      override fun authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithError: NSError,
-      ) {
-        authenticateContinuation(
-          AuthenticatePasskeyResult.Error(didCompleteWithError.toTwilioException()),
-        )
-      }
-    }
 
   private fun getPresentationContextProvidingProtocol(appContext: AppContext): ASAuthorizationControllerPresentationContextProvidingProtocol {
     return object : NSObject(), ASAuthorizationControllerPresentationContextProvidingProtocol {
@@ -280,13 +173,6 @@ actual open class TwilioPasskeys internal constructor(
       authenticate(authenticatePasskeyRequest, appContext)
     } catch (e: Exception) {
       AuthenticatePasskeyResult.Error(passkeyPayloadMapper.mapException(e))
-    }
-  }
-
-  private fun getAuthenticatorAttachment(attachment: ASAuthorizationPublicKeyCredentialAttachment): String {
-    return when (attachment) {
-      ASAuthorizationPublicKeyCredentialAttachment.ASAuthorizationPublicKeyCredentialAttachmentCrossPlatform -> Attachment.CROSS_PLATFORM.value
-      else -> Attachment.PLATFORM.value
     }
   }
 }
