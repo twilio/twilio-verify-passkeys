@@ -49,7 +49,7 @@ class TwilioPasskeysTests {
 
   // region Tests
   @Test
-  fun `Test Passkey Creation With A Valid Response Should Succeed`() =
+  fun `Passkey creation with a valid response should succeed`() =
     runTest {
       // Given
       val createPasskeyResponse = passkeyPayloadMapper.mapToCreatePasskeyResponse(registrationResultJson = createResultPayload)
@@ -78,7 +78,7 @@ class TwilioPasskeysTests {
     }
 
   @Test
-  fun `Test Passkey Creation With An Invalid Response Should Fail`() =
+  fun `Passkey creation with an invalid response should fail`() =
     runTest {
       // Given
       val expectedError = TwilioException.InvalidPayloadException(Exception("Invalid Payload Exception"))
@@ -100,7 +100,7 @@ class TwilioPasskeysTests {
     }
 
   @Test
-  fun `Test Passkey Authentication With A Valid Response Should Succeed`() =
+  fun `Passkey authentication with a valid response should succeed`() =
     runTest {
       // Given
       val authenticatePasskeyResponse =
@@ -132,7 +132,7 @@ class TwilioPasskeysTests {
     }
 
   @Test
-  fun `Test Passkey Authentication With An Invalid Response Should Fail`() =
+  fun `Passkey authentication with an invalid response should fail`() =
     runTest {
       // Given
       val expectedError = TwilioException.InvalidPayloadException(Exception("Invalid Payload Exception"))

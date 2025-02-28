@@ -10,7 +10,14 @@ import com.twilio.passkeys.models.KeyCredential
 import com.twilio.passkeys.models.PubKeyCredParams
 import com.twilio.passkeys.models.Rp
 import com.twilio.passkeys.models.User
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
+@OptIn(ExperimentalEncodingApi::class)
+val CREATE_CHALLENGE = Base64.encode("PLACEHOLDER VALUE".encodeToByteArray())
+
+@OptIn(ExperimentalEncodingApi::class)
+val USER_ID = Base64.encode("USER 1".encodeToByteArray())
 val createPasskeyChallengePayload =
   """
   {
@@ -19,11 +26,11 @@ val createPasskeyChallengePayload =
       "name": "Example"
     },
     "user": {
-      "id": "WUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0NjA3YjIxOTEyYg",
+      "id": "$USER_ID",
       "name": "user1",
       "displayName": "User One"
     },
-    "challenge": "WUYwNDhkMWE3ZWMzYTJhNjk3MDA1OWMyNzY2YmJjN2UwZg",
+    "challenge": "$CREATE_CHALLENGE",
     "pubKeyCredParams": [
       {
         "type": "public-key",
@@ -46,10 +53,8 @@ val createPasskeyChallengePayload =
 
 const val RP_ID = "example.com"
 const val RP_NAME = "Example"
-const val USER_ID = "PLACEHOLDERIDWUU0ZmQzYWFmNGU0NTMyNGQwZjNlMTM0N"
 const val USER_NAME = "user1"
 const val USER_DISPLAY_NAME = "User One"
-const val CREATE_CHALLENGE = "WUYwNDhkMWE3ZWMzYTJhNjk3MDA1OWMyNzY2YmJjN2UwZg"
 const val PUB_KEY_CRED_TYPE = "public-key"
 const val PUB_KEY_CRED_ALG = -7
 const val TIMEOUT = 600000L
