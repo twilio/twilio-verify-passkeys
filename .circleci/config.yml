@@ -119,6 +119,19 @@ commands:
             cd iosApp
             sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
             sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
+  setup-certificates:
+    steps:
+      - run:
+          name: Install Apple Certificate and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh setup
+
+  cleanup-signing:
+    steps:
+      - run:
+          name: Clean Up Keychain and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh cleanup
 
 
 jobs:
@@ -273,6 +286,7 @@ jobs:
           command: |
             cd iosApp
             bundle install
+      - setup-certificates
       - run:
           name: Build and measure
           command: |
@@ -280,6 +294,7 @@ jobs:
             bundle exec fastlane size_demo_app
       - danger-check:
           danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
+      - cleanup-signing
       - persist_to_workspace:
             root: .
             paths:
@@ -464,8 +479,9 @@ jobs:
             bundle install
       - run:
           name: Configure GCloud App Distribution service
-          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-app-distribution-service-key.json
+          command: echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode -o ${HOME}/gcloud-app-distribution-service-key.json
       - set-sample-backend-for-ios
+      - setup-certificates
       - run:
           name: Deploy to Firebase App Distribution
           command: |
@@ -474,6 +490,7 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - cleanup-signing
       - persist_to_workspace:
           root: .
           paths:
@@ -493,6 +510,7 @@ jobs:
             cd iosApp
             bundle install
       - set-sample-backend-for-ios
+      - setup-certificates
       - run:
           name: Generate simulator build
           command: |
@@ -507,6 +525,7 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - cleanup-signing
       - store_artifacts:
           path: iosApp/sample-app.zip
       - persist_to_workspace:
@@ -642,6 +661,8 @@ workflows:
           requires:
             - assemble
       - ios-sdk-size-report:
+          context:
+            - verify-passkeys
           requires:
             - assemble
       - detekt-check:
@@ -655,13 +676,19 @@ workflows:
           requires:
             - android-unit-tests
       - ios-unit-tests:
+          context:
+            - verify-passkeys
           requires:
             - lint-check
             - detekt-check
       - ios-generate-framework:
+          context:
+            - verify-passkeys
           requires:
             - ios-unit-tests
       - generate-ios-simulator-app-using-internal-sdk:
+          context:
+            - verify-passkeys
           requires:
             - ios-generate-framework
       - android-generate-aar:
@@ -684,6 +711,8 @@ workflows:
           requires:
             - wait-for-android-local-sdk-e2e-tests
       - generate-ios-sample-app-using-internal-sdk:
+          context:
+            - verify-passkeys
           requires:
             - ios-sdk-size-report
             - ios-generate-framework
@@ -707,6 +736,8 @@ workflows:
               only:
                 - main
       - should-release-ios-version:
+          context:
+            - verify-passkeys
           requires:
             - ios-generate-framework
             - check-simulator-ios-sdk-e2e-tests-result
@@ -719,7 +750,9 @@ workflows:
       and:
         - equal: [ true, << pipeline.parameters.generate-app >> ]
     jobs:
-      - generate-ios-simulator-app-using-internal-sdk
+      - generate-ios-simulator-app-using-internal-sdk:
+          context:
+            - verify-passkeys
       - generate-android-sample-app-using-local-sdk
   execute_e2e_tests:
       when:
@@ -736,6 +769,8 @@ workflows:
             requires:
               - start_execution_android_e2e_tests
         - generate-ios-simulator-app-using-internal-sdk:
+            context:
+              - verify-passkeys
             requires:
               - start_execution_ios_e2e_tests
         - run-android-local-sdk-e2e-tests:
