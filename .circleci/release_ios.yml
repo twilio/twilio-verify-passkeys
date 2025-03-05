@@ -15,7 +15,7 @@ executors:
   ubuntu-small-executor:
     #https://circleci:com/developer/images/image/cimg/base
     docker:
-      - image: cimg/base:2024.02
+      - image: cimg/base:2025.02
     resource_class: small
     working_directory: *workspace
 
