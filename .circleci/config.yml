@@ -5,7 +5,6 @@ orbs:
   ruby: circleci/ruby@2.3.1
   gcp-cli: circleci/gcp-cli@3.3.0
   continuation: circleci/continuation@1.1.0
-  path-filtering: circleci/path-filtering@1.2.0
 
 setup: true
 
@@ -19,15 +18,7 @@ aliases:
   - &env-vars-file
       env_vars
 
-  - android-publish-release-candidate-tag-filter: &android-publish-release-candidate
-      filters:
-        tags:
-          only:
-            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
-        branches:
-          ignore: /.*/
-
-  - android-publish-stable-release-tag-filter: &android-publish-stable-release
+  - android-publish-release-tag-filter: &android-publish-release
       filters:
         tags:
           only:
@@ -35,11 +26,13 @@ aliases:
         branches:
           ignore: /.*/
 
-  - any-branch-or-android-release-tag-filter: &any-branch-or-android-release
+  - ios-publish-release-tag-filter: &ios-publish-release
       filters:
         tags:
           only:
-            - /^release-passkeys-android-\d+\.\d+\.\d+-rc\d+$/
+            - /^release-passkeys-ios-\d+\.\d+\.\d+$/
+        branches:
+          ignore: /.*/
 
 executors:
   ubuntu-small-executor:
@@ -142,7 +135,6 @@ commands:
             cd iosApp
             sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
             sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
-
 
 jobs:
   assemble:
@@ -353,7 +345,7 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
-  should-release-kmp-version:
+  release-kmp:
     executor: ruby-executor
 
     steps:
@@ -361,16 +353,8 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determine the type of release for KMP SDK
-          command:  |
-            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
-            echo "Release type = $KMP_RELEASE_TYPE"
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-              echo "No need to release a new version"
-              circleci-agent step halt
-            else
-              echo "Starting a new $KMP_RELEASE_TYPE release"
-            fi
+          name: Starting KMP release
+          command: echo "Starting KMP SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -409,55 +393,13 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Pre release check
-          command: |
-            # Fetch the new and latest iOS SDK versions
-            NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb iosSdkVersionName)
-            LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
-            
-            # Compare versions and exit if they are the same
-            if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
-              echo "❌ Release Aborted: The new iOS SDK version $NEW_IOS_SDK_VERSION is identical to the latest released version ($LATEST_IOS_SDK_VERSION)."
-              exit 1
-            fi
-            
-            echo "✅ New iOS SDK version $NEW_IOS_SDK_VERSION is unique and ready for release."
-            echo "NEW_IOS_SDK_VERSION=$NEW_IOS_SDK_VERSION" >> $BASH_ENV
-          shell: /bin/bash -l
+          name: Starting iOS release
+          command: echo "Starting iOS SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - run:
-          name: Release iOS SDK - Publishing XCFramework to GitHub
-          command: |
-            if [ ! -f releaseFramework.zip ]; then
-              echo "releaseFramework.zip not found in workspace"
-              exit 1
-            fi
-            
-            mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
-            echo "Checksum: $CHECKSUM"
-            
-            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
-            echo "Changelog: $CHANGELOG"
-            
-            git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
-            cd twilio-verify-passkeys-ios
-            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$NEW_IOS_SDK_VERSION/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
-            sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
-            git config --global user.email $GITHUB_USER_EMAIL
-            git config --global user.name $GITHUB_USER_NAME
-            git add .
-            git commit -m "Update to version v$NEW_IOS_SDK_VERSION"
-            git tag "v$NEW_IOS_SDK_VERSION"
-            git push origin main
-            gem install faraday
-            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$NEW_IOS_SDK_VERSION" "TwilioPasskeysAuthentication v$NEW_IOS_SDK_VERSION" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
-          shell: /bin/bash -l
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+      - continuation/continue:
+          configuration_path: .circleci/release_ios.yml
 
   generate-android-sample-app-using-local-sdk:
     executor: android-node-executor
@@ -683,9 +625,6 @@ jobs:
           name: All tests passed
           command: echo "All tests passed"
 
-  publish-kmp-release-candidate:
-
-
 workflows:
   build-all:
     when:
@@ -762,26 +701,17 @@ workflows:
           requires:
             - check-android-local-sdk-e2e-tests-result
             - check-simulator-ios-sdk-e2e-tests-result
-      - publish-kmp-release-candidate:
-          <<: android-publish-release-candidate
-          requires:
-            - wait-passkey-tests-passed
-      - should-release-ios-version:
-          requires:
-            - ios-generate-framework
-            - check-simulator-ios-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
-      - should-release-kmp-version:
-          requires:
-            - check-android-local-sdk-e2e-tests-result
-            - should-release-ios-version
-          filters:
-            branches:
-              only:
-                - main
+
+  release-kmp-sdk:
+    jobs:
+      - release-kmp:
+          <<: *android-publish-release
+
+  release-ios-sdk:
+    jobs:
+      - release-ios:
+          <<: *ios-publish-release
+
   generate_app:
     when:
       and:
@@ -789,6 +719,7 @@ workflows:
     jobs:
       - generate-ios-simulator-app-using-internal-sdk
       - generate-android-sample-app-using-local-sdk
+
   execute_e2e_tests:
       when:
         and:

@@ -68,7 +68,7 @@ commands:
               PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
 
 jobs:
-  release-type:
+  pre-release-kmp-check:
     executor: ruby-executor
 
     steps:
@@ -76,67 +76,20 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determinate the type of release for KMP SDK
+          name: Pre release check
           command: |
-            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
-            echo "Release type = $KMP_RELEASE_TYPE"
-            
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-              echo "No need to release a new version"
+            # Fetch the new and latest Android SDK versions
+            NEW_KMP_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb kmpSdkVersionName)
+            LATEST_KMP_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb KMP)
+
+            # Compare versions and exit if they are the same
+            if [ "$NEW_KMP_SDK_VERSION" = "$LATEST_KMP_SDK_VERSION" ]; then
+              echo "❌ Release Aborted: The new KMP SDK version $NEW_KMP_SDK_VERSION is identical to the latest released version ($LATEST_KMP_SDK_VERSION)."
+              echo "Error: Version $NEW_KMP_SDK_VERSION already exists as the latest release ($LATEST_KMP_SDK_VERSION)."
               exit 1
             fi
-            
-            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - *tmp-workspace
 
-  prepare-new-version:
-    executor: ruby-executor
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Version bump
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            NEXT_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
-            echo "Next version = ${NEXT_VERSION}"
-            ./scripts/add_env_variable_to_file.sh NEXT_VERSION $NEXT_VERSION $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - run:
-           name: Generate changelog
-           command: |
-             CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb false)
-             echo "CHANGELOG = $CHANGELOG"
-             
-             CHANGELOG_FILE="CHANGELOG.md"
-             if [ ! -f "$CHANGELOG_FILE" ]; then
-               # If the file doesn't exist, create it and add a header
-               echo -e "# Changelog\n" > "$CHANGELOG_FILE"
-             fi
-
-             # Create the new content by placing $CHANGELOG after the title
-             NEW_CONTENT=$(echo -e "$(head -n 1 "$CHANGELOG_FILE")\n\n$CHANGELOG\n$(tail -n +2 "$CHANGELOG_FILE")")
-
-             # Overwrite the changelog file with the new content
-             echo -e "$NEW_CONTENT" > "$CHANGELOG_FILE"
-           environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - run: git status
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - .
+            echo "✅ New KMP SDK version $NEW_KMP_SDK_VERSION is unique and ready for release."
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: mac-os-executor
@@ -262,7 +215,7 @@ jobs:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
-  perform-release:
+  publish-kmp:
     executor: android-executor
 
     steps:
@@ -282,50 +235,20 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-
-  post-release:
-    executor: ruby-executor
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run: git status
-      - run:
-          name: Commit Changelog and new version update
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
-            git config --global user.email $GITHUB_USER_EMAIL
-            git config --global user.name $GITHUB_USER_NAME
-            git add gradle.properties CHANGELOG.md docs
-            git commit -m "Release ${NEXT_VERSION} [skip ci]"
-            git push origin $CIRCLE_BRANCH
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
       - run:
           name: Create GitHub release
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TAG_VERSION=$CIRCLE_TAG
             RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
-            SDK_VERSION="${NEXT_VERSION}-kmp"
-
-            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $TAG_VERSION $TAG_VERSION "${RELEASE_NOTES}"
 
 workflows:
   release-kmp:
     jobs:
-      - release-type
-      - prepare-new-version:
-          requires:
-            - release-type
+      - pre-release-kmp-check
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
           requires:
-            - prepare-new-version
+            - pre-release-kmp-check
       - generate-android-sample-app-using-internal-release-sdk:
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
@@ -345,9 +268,6 @@ workflows:
           type: approval
           requires:
             - check-android-internal-release-sdk-e2e-tests-result
-      - perform-release:
+      - publish-kmp:
           requires:
             - wait-for-manual-approval-to-release
-      - post-release:
-          requires:
-            - perform-release
