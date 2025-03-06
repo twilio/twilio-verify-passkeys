@@ -23,10 +23,6 @@ platform :ios do
   desc "Size Demo Project & SDK"
   lane :size_demo_app do
     # Archive App
-    match(
-      type: "development",
-      app_identifier: ["com.passkeys.twilio.sampleCode"]
-    )
     settings_to_override = {
       :BUNDLE_IDENTIFIER => "com.passkeys.twilio.sampleCode",
       :PROVISIONING_PROFILE_SPECIFIER => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
@@ -36,6 +32,11 @@ platform :ios do
       scheme: "iosApp",
       project: "iosApp.xcodeproj",
       export_method: "development",
+      export_options: {
+        provisioningProfiles: {
+          "com.passkeys.twilio.sampleCode" => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"]
+        }
+      },
       xcargs: settings_to_override,
       silent: true,
       output_directory: "IPAs/",
@@ -54,6 +55,11 @@ platform :ios do
       scheme: "iosAppWithoutSDK",
       project: "iosApp.xcodeproj",
       export_method: "development",
+      export_options: {
+        provisioningProfiles: {
+          "com.passkeys.twilio.sampleCode" => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"]
+        }
+      },
       xcargs: settings_to_override,
       silent: true,
       output_directory: "IPAs/",
@@ -98,10 +104,6 @@ platform :ios do
 
   desc "Generate simulator build"
   lane :simulator_app do
-    match(
-      type: "development",
-      app_identifier: ["com.passkeys.twilio.sampleCode"]
-    )
     settings_to_override = {
       :BUNDLE_IDENTIFIER => "com.passkeys.twilio.sampleCode",
       :PROVISIONING_PROFILE_SPECIFIER => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
@@ -114,6 +116,11 @@ platform :ios do
       skip_package_ipa: true,
       skip_archive: true,
       export_method: "development",
+      export_options: {
+        provisioningProfiles: {
+          "com.passkeys.twilio.sampleCode" => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"]
+        }
+      },
       xcargs: settings_to_override,
       destination: "generic/platform=iOS Simulator",
       configuration: "Debug",
