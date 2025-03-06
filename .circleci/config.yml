@@ -361,30 +361,6 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
 
-  release-android:
-    executor: ruby-executor
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Pre release check
-          command: |
-            # Fetch the new and latest Android SDK versions
-            NEW_ANDROID_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb kmpSdkVersionName)
-            LATEST_ANDROID_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb KMP)
-            
-            # Compare versions and exit if they are the same
-            if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
-              echo "❌ Release Aborted: The new Android SDK version $NEW_ANDROID_SDK_VERSION is identical to the latest released version ($LATEST_ANDROID_SDK_VERSION)."
-              echo "Error: Version $NEW_IOS_SDK_VERSION already exists as the latest release ($LATEST_IOS_SDK_VERSION)."
-              exit 1
-            fi
-            
-            echo "✅ New Android SDK version $NEW_ANDROID_SDK_VERSION is unique and ready for release."
-
-
   release-ios:
     executor: ruby-executor
 
