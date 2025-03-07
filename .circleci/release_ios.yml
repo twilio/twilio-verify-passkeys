@@ -30,6 +30,21 @@ executors:
       - image: cimg/ruby:3.3.0
     working_directory: *workspace
 
+commands:
+  setup-certificates:
+    steps:
+      - run:
+          name: Install Apple Certificate and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh setup
+
+  cleanup-signing:
+    steps:
+      - run:
+          name: Clean Up Keychain and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh cleanup
+            
 jobs:
   pre-release-ios-check:
     executor: ruby-executor
@@ -86,6 +101,43 @@ jobs:
             - debugFramework.zip
             - releaseFramework.zip
 
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - set-sample-backend-for-ios
+      - setup-certificates
+      - run:
+          name: Generate simulator build
+          command: |
+            cd iosApp
+            bundle exec fastlane simulator_app
+            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
+            zip -r sample-app.zip sample-app.app
+            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
+            echo $IOS_SIMULATOR_APP_URL
+            cd ..
+            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - cleanup-signing
+      - store_artifacts:
+          path: iosApp/sample-app.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
   run-simulator-ios-internal-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
@@ -130,7 +182,7 @@ jobs:
             fi
 
             mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | cut -d ' ' -f 1)
+            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | awk '{print $1}')
             echo "Checksum: $CHECKSUM"
 
             CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
@@ -140,8 +192,8 @@ jobs:
             cd twilio-verify-passkeys-ios
             sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$NEW_IOS_SDK_VERSION/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
             sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
-            git config --global user.email $GITHUB_USER_EMAIL
-            git config --global user.name $GITHUB_USER_NAME
+            git config user.email $GITHUB_USER_EMAIL
+            git config user.name $GITHUB_USER_NAME
             git add .
             git commit -m "Update to version v$NEW_IOS_SDK_VERSION"
             git tag "v$NEW_IOS_SDK_VERSION"
@@ -158,11 +210,20 @@ workflows:
     jobs:
       - pre-release-ios-check
       - generate-framework:
+          context:
+            - verify-passkeys
           requires:
             - pre-release-ios-check
-      - run-simulator-ios-internal-sdk-e2e-tests:
+      - generate-ios-simulator-app-using-internal-sdk:
+          context:
+            - verify-passkeys
           requires:
             - generate-framework
+      - run-simulator-ios-internal-sdk-e2e-tests:
+          context:
+            - verify-passkeys
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
       - wait-for-ios-internal-sdk-e2e-tests:
           type: approval
           requires:
@@ -176,5 +237,7 @@ workflows:
           requires:
             - check-simulator-ios-sdk-e2e-tests-result
       - publish-ios:
+          context:
+            - verify-passkeys
           requires:
             - wait-for-manual-approval-to-release
