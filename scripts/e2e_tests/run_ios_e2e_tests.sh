@@ -2,14 +2,14 @@
 
 # Bash script to trigger iOS internal SDK E2E tests
 
-# Usage: ./run_ios_e2e_tests.sh <TMP_WORKSPACE> <ENV_VARS_FILE>
+# Usage: ./run_ios_e2e_tests.sh <TMP_WORKSPACE> <ENV_VARS_FILE> <WAITING_JOB_NAME>
 
 set -euo pipefail
 
 # Set environment/workspace paths
 TMP_WORKSPACE=$1
 ENV_VARS_FILE=$2
-
+WAITING_JOB_NAME=$3
 # Load environment variables
 source "$TMP_WORKSPACE/$ENV_VARS_FILE"
 
