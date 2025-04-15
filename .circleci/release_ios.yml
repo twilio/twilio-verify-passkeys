@@ -84,13 +84,7 @@ jobs:
           command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
-          command: |
-            ln -s shared/build/XCFrameworks/debug/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r debugFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
-            ln -s shared/build/XCFrameworks/release/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r releaseFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
+          command: ./scripts/compress_xcframework.sh
       - store_artifacts:
           path: debugFramework.zip
       - store_artifacts:
@@ -118,15 +112,7 @@ jobs:
       - setup-certificates
       - run:
           name: Generate simulator build
-          command: |
-            cd iosApp
-            bundle exec fastlane simulator_app
-            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
-            zip -r sample-app.zip sample-app.app
-            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
-            echo $IOS_SIMULATOR_APP_URL
-            cd ..
-            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          command: ./scripts/build_ios_simulator_app.sh
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -152,12 +138,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $IOS_SIMULATOR_APP_URL
-
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
-            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            ./scripts/e2e_tests/run_ios_e2e_tests.sh
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -175,31 +156,7 @@ jobs:
           at: *workspace
       - run:
           name: Release iOS SDK - Publishing XCFramework to GitHub
-          command: |
-            if [ ! -f releaseFramework.zip ]; then
-              echo "releaseFramework.zip not found in workspace"
-              exit 1
-            fi
-
-            mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | awk '{print $1}')
-            echo "Checksum: $CHECKSUM"
-
-            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
-            echo "Changelog: $CHANGELOG"
-
-            git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
-            cd twilio-verify-passkeys-ios
-            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$NEW_IOS_SDK_VERSION/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
-            sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
-            git config user.email $GITHUB_USER_EMAIL
-            git config user.name $GITHUB_USER_NAME
-            git add .
-            git commit -m "Update to version v$NEW_IOS_SDK_VERSION"
-            git tag "v$NEW_IOS_SDK_VERSION"
-            git push origin main
-            gem install faraday
-            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$NEW_IOS_SDK_VERSION" "TwilioPasskeysAuthentication v$NEW_IOS_SDK_VERSION" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
+          command: ./scripts/release_ios_sdk.sh
           shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace

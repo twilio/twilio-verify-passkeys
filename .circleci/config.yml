@@ -325,13 +325,7 @@ jobs:
           command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
-          command: |
-            ln -s shared/build/XCFrameworks/debug/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r debugFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
-            ln -s shared/build/XCFrameworks/release/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r releaseFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
+          command: ./scripts/compress_xcframework.sh
       - store_artifacts:
           path: debugFramework.zip
       - store_artifacts:
@@ -479,15 +473,7 @@ jobs:
       - setup-certificates
       - run:
           name: Generate simulator build
-          command: |
-            cd iosApp
-            bundle exec fastlane simulator_app
-            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
-            zip -r sample-app.zip sample-app.app
-            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
-            echo $IOS_SIMULATOR_APP_URL
-            cd ..
-            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          command: ./scripts/build_ios_simulator_app.sh
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -542,12 +528,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $IOS_SIMULATOR_APP_URL
-
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
-            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            ./scripts/e2e_tests/run_ios_e2e_tests.sh
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
