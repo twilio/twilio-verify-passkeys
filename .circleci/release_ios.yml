@@ -138,7 +138,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            ./scripts/e2e_tests/run_ios_e2e_tests.sh
+            ./scripts/e2e_tests/run_ios_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
