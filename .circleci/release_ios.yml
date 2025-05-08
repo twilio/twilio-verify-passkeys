@@ -147,6 +147,25 @@ jobs:
           paths:
             - *tmp-workspace
 
+  check-simulator-ios-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
+
+    parameters:
+      workflow_name_to_check:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered workflow status
+          command: |
+            ./scripts/e2e_tests/check_ios_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
   publish-ios:
     executor: ruby-executor
 
@@ -174,6 +193,7 @@ workflows:
       - generate-ios-simulator-app-using-internal-sdk:
           context:
             - verify-passkeys
+            - verify-passkeys-ios
           requires:
             - generate-framework
       - run-simulator-ios-internal-sdk-e2e-tests:
@@ -186,6 +206,8 @@ workflows:
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
       - check-simulator-ios-sdk-e2e-tests-result:
+          context:
+            - verify-passkeys
           workflow_name_to_check: "ios-tests"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
