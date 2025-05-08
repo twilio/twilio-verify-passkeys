@@ -244,8 +244,8 @@ jobs:
       - android/restore_gradle_cache
       - run:
           command: |
-            FTEST_CLOUD_KEY=$(echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode)
-            export FTEST_CLOUD_KEY
+            KEY=$(echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode)
+            echo 'export FTEST_CLOUD_KEY="$KEY"' >> "$BASH_ENV"
       - gcp-cli/setup:
           gcloud_service_key: FTEST_CLOUD_KEY
       - run:
