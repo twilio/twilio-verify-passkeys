@@ -125,6 +125,14 @@ commands:
       - run:
           name: Install Firebase CLI
           command: npm install --save-dev firebase-tools
+  set-gcloud-key:
+    steps:
+      - run:
+          name: Set sample backend URL
+          command: |
+            echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode -o ${HOME}/gcloud-app-distribution-service-key.json
+            GCLOUD_SERVICE_KEY=$(cat ${HOME}/gcloud-app-distribution-service-key.json)
+            export GCLOUD_SERVICE_KEY
   set-sample-backend-for-ios:
     steps:
       - run:
@@ -242,6 +250,7 @@ jobs:
           at: *workspace
       - android/restore_build_cache
       - android/restore_gradle_cache
+      - set-gcloud-key
       - gcp-cli/setup
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
@@ -437,9 +446,7 @@ jobs:
           command: |
             cd iosApp
             bundle install
-      - run:
-          name: Configure GCloud App Distribution service
-          command: echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode -o ${HOME}/gcloud-app-distribution-service-key.json
+      - set-gcloud-key
       - set-sample-backend-for-ios
       - setup-certificates
       - run:
