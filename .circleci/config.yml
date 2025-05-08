@@ -128,9 +128,9 @@ commands:
   set-gcloud-key:
     steps:
       - run:
-          name: Set sample backend URL
+          name: Set gcloud key
           command: |
-            echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode -o ${HOME}/gcloud-app-distribution-service-key.json
+            echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-app-distribution-service-key.json
             GCLOUD_SERVICE_KEY=$(cat ${HOME}/gcloud-app-distribution-service-key.json)
             export GCLOUD_SERVICE_KEY
   set-sample-backend-for-ios:
