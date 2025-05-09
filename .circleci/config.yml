@@ -242,13 +242,13 @@ jobs:
           at: *workspace
       - android/restore_build_cache
       - android/restore_gradle_cache
+      - gcp-cli/install
       - run:
+          name: Initialize gcloud CLI to connect to Google Cloud
           command: |
-            KEY=$(echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode)
-            echo 'export FTEST_CLOUD_KEY="$KEY"' >> "$BASH_ENV"
-            source "$BASH_ENV"
-      - gcp-cli/setup:
-          gcloud_service_key: FTEST_CLOUD_KEY
+            echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project "$GOOGLE_PROJECT_ID"
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
           command: |
