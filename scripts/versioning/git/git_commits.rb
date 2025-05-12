@@ -11,7 +11,7 @@ module GitCommits
       end
 
       platform_tag_suffix = platform_tag_suffix
-      last_tag = GitTools.get_last_tag(platform_tag_suffix)
+      last_tag = GitTools.get_previous_version_tag(platform_tag_suffix)
 
       commit_history = GitTools.get_commit_history(last_tag)
       return commit_history
