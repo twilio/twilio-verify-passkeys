@@ -38,8 +38,8 @@ dependencies {
 }
 
 val libId = "twilio-verify-passkeys"
-val sdkVersionName: String by extra
-version = sdkVersionName
+val kmpSdkVersionName: String by extra
+version = kmpSdkVersionName
 
 val dokkaOutputDir = "$buildDir/dokka"
 val dokkaOutputVersionDir = "$dokkaOutputDir/$version"

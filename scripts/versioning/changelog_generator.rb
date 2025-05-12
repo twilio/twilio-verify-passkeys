@@ -20,10 +20,9 @@ module ChangelogGenerator
       case p.strip.downcase
       when Platform[:ANDROID][:platform_name].downcase then Platform[:ANDROID]
       when Platform[:IOS][:platform_name].downcase then Platform[:IOS]
-      when Platform[:WEB][:platform_name].downcase then Platform[:WEB]
       else nil
       end
-    end || [Platform[:ANDROID], Platform[:IOS], Platform[:WEB]]
+    end || [Platform[:ANDROID], Platform[:IOS]]
 
     return nil if type.nil?
     return [type, platforms]

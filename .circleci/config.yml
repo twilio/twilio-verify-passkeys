@@ -18,6 +18,22 @@ aliases:
   - &env-vars-file
       env_vars
 
+  - android-publish-release-tag-filter: &android-publish-release
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-android-\d+\.\d+\.\d+$/
+        branches:
+          ignore: /.*/
+
+  - ios-publish-release-tag-filter: &ios-publish-release
+      filters:
+        tags:
+          only:
+            - /^release-passkeys-ios-\d+\.\d+\.\d+$/
+        branches:
+          ignore: /.*/
+
 executors:
   ubuntu-small-executor:
     # https://circleci.com/developer/images/image/cimg/base
@@ -133,7 +149,6 @@ commands:
           command: |
             ./scripts/certificates_setup.sh cleanup
 
-
 jobs:
   assemble:
     executor: android-executor
@@ -227,7 +242,13 @@ jobs:
           at: *workspace
       - android/restore_build_cache
       - android/restore_gradle_cache
-      - gcp-cli/setup
+      - gcp-cli/install
+      - run:
+          name: Initialize gcloud CLI to connect to Google Cloud
+          command: |
+            echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project "$GOOGLE_PROJECT_ID"
       - run:
           name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
           command: |
@@ -310,13 +331,7 @@ jobs:
           command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
-          command: |
-            ln -s shared/build/XCFrameworks/debug/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r debugFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
-            ln -s shared/build/XCFrameworks/release/TwilioPasskeysAuthentication.xcframework TwilioPasskeysAuthentication.xcframework
-            zip -r releaseFramework.zip TwilioPasskeysAuthentication.xcframework
-            rm TwilioPasskeysAuthentication.xcframework
+          command: ./scripts/compress_xcframework.sh
       - store_artifacts:
           path: debugFramework.zip
       - store_artifacts:
@@ -345,7 +360,7 @@ jobs:
       - store_artifacts:
           path: TwilioPasskeys.aar
 
-  should-release-kmp-version:
+  release-kmp:
     executor: ruby-executor
 
     steps:
@@ -353,23 +368,15 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determine the type of release for KMP SDK
-          command:  |
-            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
-            echo "Release type = $KMP_RELEASE_TYPE"
-            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
-              echo "No need to release a new version"
-              circleci-agent step halt
-            else
-              echo "Starting a new $KMP_RELEASE_TYPE release"
-            fi
+          name: Starting KMP release
+          command: echo "Starting KMP SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
       - continuation/continue:
           configuration_path: .circleci/release_kmp.yml
 
-  should-release-ios-version:
+  release-ios:
     executor: ruby-executor
 
     steps:
@@ -377,54 +384,13 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Perform Versioning, Bump Up & Generate ChangeLog
-          command: |
-            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
-            echo "Release type = $IOS_RELEASE_TYPE"
-
-            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
-              echo "No need to release a new version"
-              circleci-agent step halt
-            else
-              echo "Starting a new $IOS_RELEASE_TYPE release"
-            fi
-
-            VERSION_BUMP=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE")
-            echo "Version Bump = $VERSION_BUMP"
-            CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb true)
-            echo "Changelog: $CHANGELOG"
-            echo "VERSION_BUMP=$VERSION_BUMP" >> $BASH_ENV
-            echo "CHANGELOG=$CHANGELOG" >> $BASH_ENV
-          shell: /bin/bash -l
+          name: Starting iOS release
+          command: echo "Starting iOS SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - run:
-          name: Publish XCFramework to GitHub
-          command: |
-            if [ ! -f releaseFramework.zip ]; then
-              echo "releaseFramework.zip not found in workspace"
-              exit 1
-            fi
-            mv releaseFramework.zip TwilioPasskeysAuthentication.xcframework.zip
-            CHECKSUM=$(sha256sum TwilioPasskeysAuthentication.xcframework.zip | awk '{print $1}')
-            echo "Checksum: $CHECKSUM"
-            git clone git@github.com:twilio/twilio-verify-passkeys-ios.git
-            cd twilio-verify-passkeys-ios
-            sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$VERSION_BUMP/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
-            sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
-            git config user.email $GITHUB_USER_EMAIL
-            git config user.name $GITHUB_USER_NAME
-            git add .
-            git commit -m "Update to version v$VERSION_BUMP"
-            git tag "v$VERSION_BUMP"
-            git push origin main
-            gem install faraday
-            ruby ../scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys-ios $GITHUB_API_TOKEN "v$VERSION_BUMP" "TwilioPasskeysAuthentication v$VERSION_BUMP" "${CHANGELOG}" ../TwilioPasskeysAuthentication.xcframework.zip
-          shell: /bin/bash -l
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+      - continuation/continue:
+          configuration_path: .circleci/release_ios.yml
 
   generate-android-sample-app-using-local-sdk:
     executor: android-node-executor
@@ -513,15 +479,7 @@ jobs:
       - setup-certificates
       - run:
           name: Generate simulator build
-          command: |
-            cd iosApp
-            bundle exec fastlane simulator_app
-            mv simulator_build/Build/Products/Debug-iphonesimulator/iosApp.app sample-app.app
-            zip -r sample-app.zip sample-app.app
-            export IOS_SIMULATOR_APP_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/iosApp/sample-app.zip"
-            echo $IOS_SIMULATOR_APP_URL
-            cd ..
-            ./scripts/add_env_variable_to_file.sh IOS_SIMULATOR_APP_URL $IOS_SIMULATOR_APP_URL $TMP_WORKSPACE $ENV_VARS_FILE
+          command: ./scripts/build_ios_simulator_app.sh
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -548,12 +506,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_APP_DOWNLOAD_URL
-            
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
-            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            ./scripts/e2e_tests/run_android_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.waiting_job_name >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -576,12 +529,7 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $IOS_SIMULATOR_APP_URL
-
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> false true)
-            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            ./scripts/e2e_tests/run_ios_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.waiting_job_name >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -604,16 +552,7 @@ jobs:
       - run:
           name: Check triggered workflow status
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
-            
-            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
-            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
-            
-            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success"* ]]; then
-              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
-              (exit -1) 
-            fi
+            ./scripts/e2e_tests/check_android_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -632,19 +571,18 @@ jobs:
       - run:
           name: Check triggered workflow status
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_LOCAL_E2E_TESTS_TRIGGERED_PIPELINE
-
-            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $IOS_INTERNAL_SDK_E2E_TEST_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
-            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
-
-            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success"* ]]; then
-              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
-              (exit -1) 
-            fi
+            ./scripts/e2e_tests/check_ios_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+
+  wait-passkey-tests-passed:
+    executor: ubuntu-small-executor
+    description: "Waits for all tests to finish"
+    steps:
+      - run:
+          name: All tests passed
+          command: echo "All tests passed"
 
 workflows:
   build-all:
@@ -653,26 +591,39 @@ workflows:
         - equal: [ false, << pipeline.parameters.generate-app >> ]
         - equal: [ false, << pipeline.parameters.e2e-tests >> ]
     jobs:
-      - assemble
+      - assemble:
+          context:
+            - verify-passkeys
       - lint-check:
+          context:
+            - verify-passkeys
           requires:
             - assemble
       - android-sdk-size-report:
+          context:
+            - verify-passkeys
           requires:
             - assemble
       - ios-sdk-size-report:
           context:
             - verify-passkeys
+            - verify-passkeys-ios
           requires:
             - assemble
       - detekt-check:
+          context:
+            - verify-passkeys
           requires:
             - assemble
       - android-unit-tests:
+          context:
+            - verify-passkeys
           requires:
             - lint-check
             - detekt-check
       - android-instrumented-tests:
+          context:
+            - verify-passkeys
           requires:
             - android-unit-tests
       - ios-unit-tests:
@@ -689,16 +640,22 @@ workflows:
       - generate-ios-simulator-app-using-internal-sdk:
           context:
             - verify-passkeys
+            - verify-passkeys-ios
           requires:
             - ios-generate-framework
       - android-generate-aar:
           requires:
             - android-instrumented-tests
       - generate-android-sample-app-using-local-sdk:
+          context:
+            - verify-passkeys
+            - verify-passkeys-android
           requires:
             - android-instrumented-tests
             - ios-unit-tests
       - run-android-local-sdk-e2e-tests:
+          context:
+            - verify-passkeys
           waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-local-sdk
@@ -707,16 +664,22 @@ workflows:
           requires:
             - run-android-local-sdk-e2e-tests
       - check-android-local-sdk-e2e-tests-result:
+          context:
+            - verify-passkeys
           workflow_name_to_check: "android-tests"
           requires:
             - wait-for-android-local-sdk-e2e-tests
       - generate-ios-sample-app-using-internal-sdk:
           context:
             - verify-passkeys
+            - verify-passkeys-ios
           requires:
             - ios-sdk-size-report
             - ios-generate-framework
       - run-simulator-ios-internal-sdk-e2e-tests:
+          context:
+            - verify-passkeys
+            - verify-passkeys-ios
           waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
@@ -725,26 +688,26 @@ workflows:
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
       - check-simulator-ios-sdk-e2e-tests-result:
+          context:
+            - verify-passkeys
           workflow_name_to_check: "ios-tests"
           requires:
             - wait-for-ios-internal-sdk-e2e-tests
-      - should-release-kmp-version:
+      - wait-passkey-tests-passed:
           requires:
             - check-android-local-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
-      - should-release-ios-version:
-          context:
-            - verify-passkeys
-          requires:
-            - ios-generate-framework
             - check-simulator-ios-sdk-e2e-tests-result
-          filters:
-            branches:
-              only:
-                - main
+
+  release-kmp-sdk:
+    jobs:
+      - release-kmp:
+          <<: *android-publish-release
+
+  release-ios-sdk:
+    jobs:
+      - release-ios:
+          <<: *ios-publish-release
+
   generate_app:
     when:
       and:
@@ -753,7 +716,11 @@ workflows:
       - generate-ios-simulator-app-using-internal-sdk:
           context:
             - verify-passkeys
-      - generate-android-sample-app-using-local-sdk
+            - verify-passkeys-ios
+      - generate-android-sample-app-using-local-sdk:
+          context:
+            - verify-passkeys
+
   execute_e2e_tests:
       when:
         and:
@@ -766,14 +733,19 @@ workflows:
             name: start_execution_ios_e2e_tests
             type: approval
         - generate-android-sample-app-using-local-sdk:
+            context:
+              - verify-passkeys
             requires:
               - start_execution_android_e2e_tests
         - generate-ios-simulator-app-using-internal-sdk:
             context:
               - verify-passkeys
+              - verify-passkeys-ios
             requires:
               - start_execution_ios_e2e_tests
         - run-android-local-sdk-e2e-tests:
+            context:
+              - verify-passkeys
             waiting_job_name: wait-for-android-local-sdk-e2e-tests
             requires:
               - generate-android-sample-app-using-local-sdk
@@ -782,10 +754,14 @@ workflows:
             requires:
               - run-android-local-sdk-e2e-tests
         - check-android-local-sdk-e2e-tests-result:
+            context:
+              - verify-passkeys
             workflow_name_to_check: "android-tests"
             requires:
               - wait-for-android-local-sdk-e2e-tests
         - run-simulator-ios-internal-sdk-e2e-tests:
+            context:
+              - verify-passkeys
             waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
             requires:
               - generate-ios-simulator-app-using-internal-sdk
@@ -794,6 +770,8 @@ workflows:
             requires:
               - run-simulator-ios-internal-sdk-e2e-tests
         - check-simulator-ios-sdk-e2e-tests-result:
+            context:
+              - verify-passkeys
             workflow_name_to_check: "ios-tests"
             requires:
               - wait-for-ios-internal-sdk-e2e-tests

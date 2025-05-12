@@ -15,6 +15,19 @@ module GitTools
     end
   end
 
+  def self.get_previous_version_tag(platform_tag_suffix)
+    command = "git tag --list \"*#{platform_tag_suffix}\" --sort=-v:refname"
+    output, status = Open3.capture2(command)
+
+    if status.success?
+      tags = output.strip.split("\n")
+
+      return tags[1] if tags.length > 1 # Second-to-last tag
+    end
+
+    nil # Return nil if there's no second-to-last tag
+  end
+
   # Function to get commit history from a given tag to HEAD
   def self.get_commit_history(from_tag)
     if from_tag.strip.empty?
