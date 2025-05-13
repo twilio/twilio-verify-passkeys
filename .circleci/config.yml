@@ -406,11 +406,11 @@ jobs:
           command: |
             ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
       - run:
-          name: Generate APK
-          command: |
-            ./gradlew :androidApp:assembleDebug
-            mv androidApp/build/outputs/apk/debug/androidApp-debug.apk sample-app.apk
-            zip -r sample-app.zip sample-app.apk
+          name: Generate simulator build
+          command: ./scripts/build_android_simulator_app.sh
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - store_artifacts:
           path: sample-app.zip
       - install-firebase-cli
@@ -418,13 +418,6 @@ jobs:
           name: Deploy to Firebase App Distribution
           command: |
             firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
-      - run:
-          name: Save distributed app link
-          command: |
-            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <TRIGGERED_WORKFLOW> <JOB_NAME_TO_CHECK>"
     exit 1

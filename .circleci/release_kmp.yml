@@ -138,21 +138,25 @@ jobs:
             echo $REPO_URL
 
             ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
+            mv androidApp/build/outputs/apk/release/androidApp-release.apk sample-app.apk
+            zip -r sample-app.zip sample-app.apk
+            ANDROID_APP_DOWNLOAD_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/sample-app.zip"
+            export ANDROID_APP_DOWNLOAD_URL
+
+            echo "Generated Android Simulator App URL: $ANDROID_APP_DOWNLOAD_URL"
+
+            # Persist to environment file
+            ./scripts/add_env_variable_to_file.sh ANDROID_APP_DOWNLOAD_URL "$ANDROID_APP_DOWNLOAD_URL" "$TMP_WORKSPACE" "$ENV_VARS_FILE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - store_artifacts:
+          path: sample-app.zip
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
             firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
-      - run:
-          name: Save distributed app link
-          command: |
-            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:
