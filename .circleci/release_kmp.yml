@@ -156,7 +156,7 @@ jobs:
       - run:
           name: Deploy to Firebase App Distribution
           command: |
-            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
+            firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
       - persist_to_workspace:
           root: *workspace
           paths:
