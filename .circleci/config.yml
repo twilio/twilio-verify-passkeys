@@ -678,7 +678,10 @@ workflows:
             - verify-passkeys
           job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
           requires:
-            - wait-for-android-local-sdk-e2e-tests
+            - wait-for-android-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - generate-ios-sample-app-using-internal-sdk:
           context:
             - verify-passkeys
@@ -706,7 +709,10 @@ workflows:
             - verify-passkeys
           job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests
+            - wait-for-ios-internal-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-passkey-tests-passed:
           requires:
             - check-android-local-sdk-e2e-tests-result
@@ -772,7 +778,10 @@ workflows:
               - verify-passkeys
             job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
             requires:
-              - wait-for-android-local-sdk-e2e-tests
+              - wait-for-android-local-sdk-e2e-tests:
+                  - success
+                  - failed
+                  - canceled
         - run-simulator-ios-internal-sdk-e2e-tests:
             context:
               - verify-passkeys
@@ -788,5 +797,8 @@ workflows:
               - verify-passkeys
             job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
             requires:
-              - wait-for-ios-internal-sdk-e2e-tests
+              - wait-for-ios-internal-sdk-e2e-tests:
+                  - success
+                  - failed
+                  - canceled
 

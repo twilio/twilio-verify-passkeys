@@ -262,7 +262,10 @@ workflows:
             - verify-passkeys
           job_name_to_check: "wait-for-android-internal-release-sdk-e2e-tests"
           requires:
-            - wait-for-android-internal-release-sdk-e2e-tests
+            - wait-for-android-internal-release-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-for-manual-approval-to-release:
           type: approval
           requires:

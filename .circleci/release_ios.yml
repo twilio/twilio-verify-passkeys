@@ -213,7 +213,10 @@ workflows:
             - verify-passkeys
           job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests
+            - wait-for-ios-internal-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-for-manual-approval-to-release:
           type: approval
           requires:
