@@ -542,27 +542,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-android-local-sdk-e2e-tests-result:
-    executor: ubuntu-small-executor
-
-    parameters:
-      job_name_to_check:
-        default: ""
-        type: string
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Check triggered job status
-          command: |
-            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
-            echo "Trigger pipeline status: $RESULT"
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-
-  check-simulator-ios-sdk-e2e-tests-result:
+  check-local-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
@@ -673,7 +653,8 @@ workflows:
           type: approval
           requires:
             - run-android-local-sdk-e2e-tests
-      - check-android-local-sdk-e2e-tests-result:
+      - check-local-sdk-e2e-tests-result:
+          name: check-android-local-sdk-e2e-tests-result
           context:
             - verify-passkeys
           job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
@@ -704,7 +685,8 @@ workflows:
           type: approval
           requires:
             - run-simulator-ios-internal-sdk-e2e-tests
-      - check-simulator-ios-sdk-e2e-tests-result:
+      - check-local-sdk-e2e-tests-result:
+          name: check-simulator-ios-sdk-e2e-tests-result
           context:
             - verify-passkeys
           job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
@@ -773,7 +755,7 @@ workflows:
             type: approval
             requires:
               - run-android-local-sdk-e2e-tests
-        - check-android-local-sdk-e2e-tests-result:
+        - check-local-sdk-e2e-tests-result:
             context:
               - verify-passkeys
             job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
@@ -792,7 +774,7 @@ workflows:
             type: approval
             requires:
               - run-simulator-ios-internal-sdk-e2e-tests
-        - check-simulator-ios-sdk-e2e-tests-result:
+        - check-local-sdk-e2e-tests-result:
             context:
               - verify-passkeys
             job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
