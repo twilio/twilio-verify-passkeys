@@ -30,7 +30,7 @@ WHO_APPROVED=$(curl --request GET \
 
 if [[ "$WHO_APPROVED" != "$GITHUB_USER_NAME" ]]; then
     echo "Workflow not successful - approved by ${WHO_APPROVED}"
-    (exit -1) 
+    exit 1
 fi
 
 echo "APPROVED"
