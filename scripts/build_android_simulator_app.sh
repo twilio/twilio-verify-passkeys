@@ -10,7 +10,6 @@ set -euo pipefail
 : "${TMP_WORKSPACE:?Must set TMP_WORKSPACE}"
 : "${ENV_VARS_FILE:?Must set ENV_VARS_FILE}"
 
-cd ..
 ./gradlew :androidApp:assembleDebug
 mv androidApp/build/outputs/apk/debug/androidApp-debug.apk sample-app.apk
 zip -r sample-app.zip sample-app.apk
