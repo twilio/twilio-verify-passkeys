@@ -510,7 +510,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-simulator-ios-internal-sdk-e2e-tests:
+  run-simulator-ios-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -663,28 +663,28 @@ workflows:
           requires:
             - ios-sdk-size-report
             - ios-generate-framework
-      - run-simulator-ios-internal-sdk-e2e-tests:
+      - run-simulator-ios-local-sdk-e2e-tests:
           context:
             - verify-passkeys
             - verify-passkeys-ios
-          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          waiting_job_name: wait-for-ios-local-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
           filters:
             branches:
               only:
                 - dev
-      - wait-for-ios-internal-sdk-e2e-tests:
+      - wait-for-ios-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-simulator-ios-internal-sdk-e2e-tests
+            - run-simulator-ios-local-sdk-e2e-tests
       - check-local-sdk-e2e-tests-result:
           name: check-simulator-ios-sdk-e2e-tests-result
           context:
             - verify-passkeys
-          job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
+          job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests:
+            - wait-for-ios-local-sdk-e2e-tests:
                 - success
                 - failed
                 - canceled
@@ -758,23 +758,23 @@ workflows:
                   - success
                   - failed
                   - canceled
-        - run-simulator-ios-internal-sdk-e2e-tests:
+        - run-simulator-ios-local-sdk-e2e-tests:
             context:
               - verify-passkeys
-            waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+            waiting_job_name: wait-for-ios-local-sdk-e2e-tests
             requires:
-              - generate-ios-simulator-app-using-internal-sdk
-        - wait-for-ios-internal-sdk-e2e-tests:
+              - generate-ios-simulator-app-using-local-sdk
+        - wait-for-ios-local-sdk-e2e-tests:
             type: approval
             requires:
-              - run-simulator-ios-internal-sdk-e2e-tests
+              - run-simulator-ios-local-sdk-e2e-tests
         - check-local-sdk-e2e-tests-result:
             name: check-simulator-ios-sdk-e2e-tests-result
             context:
               - verify-passkeys
-            job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
+            job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
             requires:
-              - wait-for-ios-internal-sdk-e2e-tests:
+              - wait-for-ios-local-sdk-e2e-tests:
                   - success
                   - failed
                   - canceled

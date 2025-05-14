@@ -44,6 +44,17 @@ commands:
           name: Clean Up Keychain and Provisioning Profile
           command: |
             ./scripts/certificates_setup.sh cleanup
+
+  set-sample-backend-for-ios:
+    steps:
+      - run:
+          name: Set sample backend URL
+          command: |
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_URL/https:\/\/}"
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_DOMAIN/\/}"
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
             
 jobs:
   pre-release-ios-check:
@@ -124,7 +135,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-simulator-ios-internal-sdk-e2e-tests:
+  run-simulator-ios-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -199,21 +210,21 @@ workflows:
             - verify-passkeys-ios
           requires:
             - generate-framework
-      - run-simulator-ios-internal-sdk-e2e-tests:
+      - run-simulator-ios-local-sdk-e2e-tests:
           context:
             - verify-passkeys
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      - wait-for-ios-internal-sdk-e2e-tests:
+      - wait-for-ios-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-simulator-ios-internal-sdk-e2e-tests
+            - run-simulator-ios-local-sdk-e2e-tests
       - check-simulator-ios-sdk-e2e-tests-result:
           context:
             - verify-passkeys
-          job_name_to_check: "wait-for-ios-internal-sdk-e2e-tests"
+          job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests:
+            - wait-for-ios-local-sdk-e2e-tests:
                 - success
                 - failed
                 - canceled

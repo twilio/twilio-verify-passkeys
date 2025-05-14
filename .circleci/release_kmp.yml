@@ -162,7 +162,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-android-internal-release-sdk-e2e-tests:
+  run-android-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -187,7 +187,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-android-internal-release-sdk-e2e-tests-result:
+  check-android-local-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
@@ -251,29 +251,29 @@ workflows:
             - verify-maven-publishing-android
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-android-internal-release-sdk-e2e-tests:
+      - run-android-local-sdk-e2e-tests:
           context:
             - verify-passkeys
-          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
+          waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-internal-release-sdk
-      - wait-for-android-internal-release-sdk-e2e-tests:
+      - wait-for-android-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-android-internal-release-sdk-e2e-tests
-      - check-android-internal-release-sdk-e2e-tests-result:
+            - run-android-local-sdk-e2e-tests
+      - check-android-local-sdk-e2e-tests-result:
           context:
             - verify-passkeys
-          job_name_to_check: "wait-for-android-internal-release-sdk-e2e-tests"
+          job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
           requires:
-            - wait-for-android-internal-release-sdk-e2e-tests:
+            - wait-for-android-local-sdk-e2e-tests:
                 - success
                 - failed
                 - canceled
       - wait-for-manual-approval-to-release:
           type: approval
           requires:
-            - check-android-internal-release-sdk-e2e-tests-result
+            - check-android-local-sdk-e2e-tests-result
       - publish-kmp:
           context:
             - verify-passkeys
