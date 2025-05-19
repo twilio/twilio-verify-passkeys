@@ -44,6 +44,17 @@ commands:
           name: Clean Up Keychain and Provisioning Profile
           command: |
             ./scripts/certificates_setup.sh cleanup
+
+  set-sample-backend-for-ios:
+    steps:
+      - run:
+          name: Set sample backend URL
+          command: |
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_URL/https:\/\/}"
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_DOMAIN/\/}"
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
             
 jobs:
   pre-release-ios-check:
@@ -124,7 +135,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-simulator-ios-internal-sdk-e2e-tests:
+  run-simulator-ios-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -138,7 +149,9 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            ./scripts/e2e_tests/run_ios_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.waiting_job_name >>
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
+            echo "Trigger pipeline: $TRIGGER_PIPELINE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -151,7 +164,7 @@ jobs:
     executor: ubuntu-small-executor
 
     parameters:
-      workflow_name_to_check:
+      job_name_to_check:
         default: ""
         type: string
     steps:
@@ -159,9 +172,10 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Check triggered workflow status
+          name: Check triggered job status
           command: |
-            ./scripts/e2e_tests/check_ios_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
+            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
+            echo "Trigger pipeline status: $RESULT"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -196,21 +210,24 @@ workflows:
             - verify-passkeys-ios
           requires:
             - generate-framework
-      - run-simulator-ios-internal-sdk-e2e-tests:
+      - run-simulator-ios-local-sdk-e2e-tests:
           context:
             - verify-passkeys
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      - wait-for-ios-internal-sdk-e2e-tests:
+      - wait-for-ios-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-simulator-ios-internal-sdk-e2e-tests
+            - run-simulator-ios-local-sdk-e2e-tests
       - check-simulator-ios-sdk-e2e-tests-result:
           context:
             - verify-passkeys
-          workflow_name_to_check: "ios-tests"
+          job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests
+            - wait-for-ios-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-for-manual-approval-to-release:
           type: approval
           requires:
