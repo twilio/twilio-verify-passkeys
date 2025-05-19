@@ -18,6 +18,7 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 ## Documentation <a name="documentation"></a>
 
 [Verify Passkeys Overview](https://www.twilio.com/docs/verify/passkeys)
+[WebAuthn](https://www.w3.org/TR/webauthn-2/)
 
 ## Requirements <a name="requirements"></a>
 
@@ -44,10 +45,13 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
   ```
 
 #### iOS
-1. Download the XCFramework form the [release page](https://github.com/twilio/twilio-verify-passkeys/releases).
-2. Create a Framework folder or use any name of your preference.
-3. Copy/Move the XCFramework into the folder created at the previous step.
-4. On your Project Configurations > General > Frameworks, Libraries, and Embedded Content section, drag & drop the XCFramework.
+1. In Xcode project go to File > Add Packages
+2. Enter the repository URL 
+  ```
+    https://github.com/twilio/twilio-verify-passkeys-ios
+  ```
+3. Select the version you'd like to use (preferably the latest release)
+4. Click Add Package to finish integrating the SDK
 5. Import TwilioPasskeys in the files you will make use of it:
 ```
 let twilioPasskey = TwilioPasskey()
