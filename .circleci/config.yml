@@ -58,7 +58,7 @@ executors:
 
   mac-os-executor:
     macos:
-      xcode: "15.1.0"
+      xcode: "16.4.0"
     resource_class: macos.m1.medium.gen1
     working_directory: *workspace
 
@@ -250,9 +250,9 @@ jobs:
             gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
             gcloud --quiet config set project "$GOOGLE_PROJECT_ID"
       - run:
-          name: Run android instrumented tests in Firebase test lab - Device Pixel 6 Api 33
+          name: Run android instrumented tests in Firebase test lab - Device Pixel 9 Api 35
           command: |
-            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=oriole,version=33,locale=en,orientation=portrait
+            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=tokay,version=35,locale=en,orientation=portrait
 
   ios-unit-tests:
     executor: mac-os-executor
