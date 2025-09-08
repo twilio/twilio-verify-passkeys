@@ -406,11 +406,11 @@ jobs:
           command: |
             ./scripts/update_gradle_properties.sh sampleBackendUrl \"${SAMPLE_BACKEND_URL}\" androidApp/gradle.properties
       - run:
-          name: Generate APK
-          command: |
-            ./gradlew :androidApp:assembleDebug
-            mv androidApp/build/outputs/apk/debug/androidApp-debug.apk sample-app.apk
-            zip -r sample-app.zip sample-app.apk
+          name: Generate simulator build
+          command: ./scripts/build_android_simulator_app.sh
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
       - store_artifacts:
           path: sample-app.zip
       - install-firebase-cli
@@ -418,13 +418,6 @@ jobs:
           name: Deploy to Firebase App Distribution
           command: |
             firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
-      - run:
-          name: Save distributed app link
-          command: |
-            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -506,7 +499,9 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            ./scripts/e2e_tests/run_android_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.waiting_job_name >>
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_android_e2e_tests.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
+            echo "Trigger pipeline: $TRIGGER_PIPELINE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -515,7 +510,7 @@ jobs:
           paths:
             - *tmp-workspace
 
-  run-simulator-ios-internal-sdk-e2e-tests:
+  run-simulator-ios-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -529,7 +524,9 @@ jobs:
       - run:
           name: Start automation pipeline to run E2E tests
           command: |
-            ./scripts/e2e_tests/run_ios_e2e_tests.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.waiting_job_name >>
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
+            echo "Trigger pipeline: $TRIGGER_PIPELINE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -538,11 +535,11 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-android-local-sdk-e2e-tests-result:
+  check-local-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
-      workflow_name_to_check:
+      job_name_to_check:
         default: ""
         type: string
     steps:
@@ -550,28 +547,10 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Check triggered workflow status
+          name: Check triggered job status
           command: |
-            ./scripts/e2e_tests/check_android_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-
-  check-simulator-ios-sdk-e2e-tests-result:
-    executor: ubuntu-small-executor
-
-    parameters:
-      workflow_name_to_check:
-        default: ""
-        type: string
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Check triggered workflow status
-          command: |
-            ./scripts/e2e_tests/check_ios_e2e_result.sh $TMP_WORKSPACE $ENV_VARS_FILE << parameters.workflow_name_to_check >>
+            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
+            echo "Trigger pipeline status: $RESULT"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -659,16 +638,24 @@ workflows:
           waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-local-sdk
+          filters:
+            branches:
+              only:
+                - dev
       - wait-for-android-local-sdk-e2e-tests:
           type: approval
           requires:
             - run-android-local-sdk-e2e-tests
-      - check-android-local-sdk-e2e-tests-result:
+      - check-local-sdk-e2e-tests-result:
+          name: check-android-local-sdk-e2e-tests-result
           context:
             - verify-passkeys
-          workflow_name_to_check: "android-tests"
+          job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
           requires:
-            - wait-for-android-local-sdk-e2e-tests
+            - wait-for-android-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - generate-ios-sample-app-using-internal-sdk:
           context:
             - verify-passkeys
@@ -676,23 +663,31 @@ workflows:
           requires:
             - ios-sdk-size-report
             - ios-generate-framework
-      - run-simulator-ios-internal-sdk-e2e-tests:
+      - run-simulator-ios-local-sdk-e2e-tests:
           context:
             - verify-passkeys
             - verify-passkeys-ios
-          waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+          waiting_job_name: wait-for-ios-local-sdk-e2e-tests
           requires:
             - generate-ios-simulator-app-using-internal-sdk
-      - wait-for-ios-internal-sdk-e2e-tests:
+          filters:
+            branches:
+              only:
+                - dev
+      - wait-for-ios-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-simulator-ios-internal-sdk-e2e-tests
-      - check-simulator-ios-sdk-e2e-tests-result:
+            - run-simulator-ios-local-sdk-e2e-tests
+      - check-local-sdk-e2e-tests-result:
+          name: check-simulator-ios-sdk-e2e-tests-result
           context:
             - verify-passkeys
-          workflow_name_to_check: "ios-tests"
+          job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
           requires:
-            - wait-for-ios-internal-sdk-e2e-tests
+            - wait-for-ios-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-passkey-tests-passed:
           requires:
             - check-android-local-sdk-e2e-tests-result
@@ -753,26 +748,34 @@ workflows:
             type: approval
             requires:
               - run-android-local-sdk-e2e-tests
-        - check-android-local-sdk-e2e-tests-result:
+        - check-local-sdk-e2e-tests-result:
+            name: check-android-local-sdk-e2e-tests-result
             context:
               - verify-passkeys
-            workflow_name_to_check: "android-tests"
+            job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
             requires:
-              - wait-for-android-local-sdk-e2e-tests
-        - run-simulator-ios-internal-sdk-e2e-tests:
+              - wait-for-android-local-sdk-e2e-tests:
+                  - success
+                  - failed
+                  - canceled
+        - run-simulator-ios-local-sdk-e2e-tests:
             context:
               - verify-passkeys
-            waiting_job_name: wait-for-ios-internal-sdk-e2e-tests
+            waiting_job_name: wait-for-ios-local-sdk-e2e-tests
             requires:
-              - generate-ios-simulator-app-using-internal-sdk
-        - wait-for-ios-internal-sdk-e2e-tests:
+              - generate-ios-simulator-app-using-local-sdk
+        - wait-for-ios-local-sdk-e2e-tests:
             type: approval
             requires:
-              - run-simulator-ios-internal-sdk-e2e-tests
-        - check-simulator-ios-sdk-e2e-tests-result:
+              - run-simulator-ios-local-sdk-e2e-tests
+        - check-local-sdk-e2e-tests-result:
+            name: check-simulator-ios-sdk-e2e-tests-result
             context:
               - verify-passkeys
-            workflow_name_to_check: "ios-tests"
+            job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
             requires:
-              - wait-for-ios-internal-sdk-e2e-tests
+              - wait-for-ios-local-sdk-e2e-tests:
+                  - success
+                  - failed
+                  - canceled
 
