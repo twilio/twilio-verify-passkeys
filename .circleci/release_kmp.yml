@@ -35,7 +35,7 @@ executors:
 
   mac-os-executor:
     macos:
-      xcode: "15.1.0"
+      xcode: "16.4.0"
     resource_class: macos.m1.medium.gen1
     working_directory: *workspace
 
