@@ -23,7 +23,7 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 ## Requirements <a name="requirements"></a>
 
 - [Android Studio](https://developer.android.com/studio) for Android development. Minimum version Hedgehog
-- [Xcode](https://developer.apple.com/xcode/) for iOS development. 15.x
+- [Xcode](https://developer.apple.com/xcode/) for iOS development. 16.x
 - [IntelliJ IDEA](https://www.jetbrains.com/idea/) or [Android Studio](https://developer.android.com/studio) for shared code development.
 - Android 9 (API Level 28) or higher
 - iOS 16 or higher
