@@ -62,6 +62,8 @@ GEM
       faraday (>= 0.8)
     faraday-net_http (3.4.1)
       net-http (>= 0.5.0)
+    faraday-retry (2.3.2)
+      faraday (~> 2.0)
     git (2.3.3)
       activesupport (>= 5.0)
       addressable (~> 2.8)
@@ -124,6 +126,7 @@ DEPENDENCIES
   danger-kotlin_detekt (>= 0.0.3)
   danger-ktlint (>= 0.0.9)
   danger-shroud (>= 0.0.7)
+  faraday-retry
   oga (>= 3.4)
 
 BUNDLED WITH
