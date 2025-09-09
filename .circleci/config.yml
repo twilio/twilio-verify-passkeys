@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   android: circleci/android@3.0.2
-  ruby: circleci/ruby@2.3.1
+  ruby: circleci/ruby@2.5.3
   gcp-cli: circleci/gcp-cli@3.3.0
   continuation: circleci/continuation@1.1.0
 
