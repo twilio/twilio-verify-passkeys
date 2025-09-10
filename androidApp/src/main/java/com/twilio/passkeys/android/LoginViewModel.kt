@@ -142,7 +142,7 @@ class LoginViewModel
     }
 
     fun areFieldsValid(username: String): Boolean {
-      if (username.isBlank() || username.length < 3) {
+      if (username.isBlank()) {
         _state.tryEmit(LoginState.UsernameError)
         return false
       }
