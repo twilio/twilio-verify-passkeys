@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
           loginViewModel.authenticate(this@MainActivity)
         }
 
-        LoginState.NumberError -> {}
+        LoginState.UsernameError -> {}
         LoginState.Logout -> {
           navController.navigate("login")
         }
@@ -96,10 +96,10 @@ class MainActivity : ComponentActivity() {
     NavHost(navController = navController, startDestination = "login") {
       composable("login") {
         LoginPage(
-          onUsernameEntered = { username ->
-            this.username = username
+          onUsernameEntered = { value ->
+            username = value
             if (loginViewModel.areFieldsValid(username)) {
-              loginViewModel.create(this.username, this@MainActivity)
+              loginViewModel.create(username, this@MainActivity)
             }
           },
           fetchPasskeys = {
