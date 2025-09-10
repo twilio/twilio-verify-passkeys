@@ -5,13 +5,11 @@
 * [About](#about)
 * [Documentation](#documentation)
 * [Requirements](#requirements)
-* [Installation](#installation)
 * [Quickstart](#quickstart)
 * [Building and Running Sample App](#building-and-running-sample-app)
 * [Project Structure](#project-structure)
 * [Code Structure](#code-structure)
-* [Exception Types](#exception-types)
-* [Useful Gradle Tasks](#useful-gradle-tasks)
+* [Troubleshooting](#troubleshooting)
 
 ## About <a name="about"></a>
 
@@ -20,45 +18,60 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 ## Documentation <a name="documentation"></a>
 
 [Verify Passkeys Overview](https://www.twilio.com/docs/verify/passkeys)
+[WebAuthn](https://www.w3.org/TR/webauthn-2/)
 
 ## Requirements <a name="requirements"></a>
 
 - [Android Studio](https://developer.android.com/studio) for Android development. Minimum version Hedgehog
-- [Xcode](https://developer.apple.com/xcode/) for iOS development. 15.x
+- [Xcode](https://developer.apple.com/xcode/) for iOS development. 16.x
 - [IntelliJ IDEA](https://www.jetbrains.com/idea/) or [Android Studio](https://developer.android.com/studio) for shared code development.
 - Android 9 (API Level 28) or higher
 - iOS 16 or higher
 - Gradle 8.2
 - Java 17
 
-## Installation <a name="installation"></a>
+## Quickstart <a name="quickstart"></a>
 
-### Installation Android
-1. Download the .aar file from the [release page](https://github.com/twilio/twilio-verify-passkeys/releases).
-2. Create a folder `libs` in the module directory.
-3. Copy/move the .aar file in `libs` folder.
-4. Add the implementation statement in dependencies:
-```
-implementation(files("libs/TwilioPasskeys.aar"))
-```
-5. Sync the project.
-6. Use the SDK by creating an instance of TwilioPasskey:
-```
-val twilioPasskey = TwilioPasskey(context)
-```
+### Initialize the SDK
+#### Android
+1. Add the implementation app build gradle:
+  ```
+    implementation("com.twilio:twilio-verify-passkeys-android:$sdkVersionName")
+  ```
+2. Sync the project.
+3. Use the SDK by creating an instance of TwilioPasskey:
+  ```
+    val twilioPasskey = TwilioPasskey(context)
+  ```
 
-### Installation iOS
-
-1. Download the XCFramework form the [release page](https://github.com/twilio/twilio-verify-passkeys/releases).
-2. Create a Framework folder or use any name of your preference.
-3. Copy/Move the XCFramework into the folder created at the previous step.
-4. On your Project Configurations > General > Frameworks, Libraries, and Embedded Content section, drag & drop the XCFramework.
+#### iOS
+1. In Xcode project go to File > Add Packages
+2. Enter the repository URL 
+  ```
+    https://github.com/twilio/twilio-verify-passkeys-ios
+  ```
+3. Select the version you'd like to use (preferably the latest release)
+4. Click Add Package to finish integrating the SDK
 5. Import TwilioPasskeys in the files you will make use of it:
 ```
 let twilioPasskey = TwilioPasskey()
 ```
 
-## Quickstart <a name="quickstart"></a>
+#### KMP
+1. Add the implementation statement in dependencies:
+  ```
+    implementation("com.twilio:twilio-verify-passkeys-common:$sdkVersionName")
+  ```
+2. Sync the project.
+3. To use the passkeys SDK in KMP there are separate initialization for iOS and Android as the SDK needs the Android context to work:
+   - iOS
+     ```
+       val twilioPasskey = TwilioPasskey()
+     ```
+   - Android
+     ```
+        val twilioPasskey = TwilioPasskey(context)
+      ```
 
 ### Create registration
 
@@ -72,7 +85,7 @@ You can also call the `create(CreatePasskeyRequest, AppContext)` function, where
 
 **Android**
 ```
-val createPasskeyResult = twilioPasskey.create(createPayload, AppContext(activity))
+val createPasskeyResult = twilioPasskey.create(createPasskeyRequest, AppContext(activity))
 when(createPasskeyResult) {
   is CreatePasskeyResult.Success -> {
     // verify the createPasskeyResult.createPasskeyResponse against your backend and finish sign up
@@ -87,14 +100,13 @@ when(createPasskeyResult) {
 **iOS**
 
 ```
-let response = try await twilioPasskey.create(createPayload: createPayload, appContext: AppContext(uiWindow: window))
+let response = try await twilioPasskey.create(createPasskeyRequest: createPasskeyRequest, appContext: AppContext(uiWindow: window))
 if let success = response as? CreatePasskeyResult.Success {
   // verify the createPasskeyResult.createPasskeyResponse against your backend and finish sign up
 } else if let error = response as? CreatePasskeyResult.Error {
   // handle error
 }
 ```
-
 
 ### Authenticate a user
 
@@ -109,7 +121,7 @@ You can also call the `authenticate(AuthenticatePasskeyRequest, AppContext)` fun
 **Android**
 
 ```
-val authenticatePasskeyResult = twilioPasskey.authenticate(authenticatePayload, AppContext(activity))
+val authenticatePasskeyResult = twilioPasskey.authenticate(authenticatePasskeyRequest, AppContext(activity))
 when(authenticatePasskeyResult) {
   is AuthenticatePasskeyResult.Success -> {
     // verify the authenticatePasskeyResult.authenticatePasskeyResponse against your backend
@@ -124,7 +136,7 @@ when(authenticatePasskeyResult) {
 **iOS**
 
 ```
-let response = try await twilioPasskey.authenticate(challengePayload: json, appContext: AppContext(uiWindow: window))
+let response = try await twilioPasskey.authenticate(authenticatePasskeyRequest: authenticatePasskeyRequest, appContext: AppContext(uiWindow: window))
 if let success = response as? AuthenticatePasskeyResult.Success {
   // verify the authenticatePasskeyResult.authenticatePasskeyResponse against your backend and finish sign in.
 } else if let error = response as? AuthenticatePasskeyResult.Error {
@@ -136,38 +148,184 @@ if let success = response as? AuthenticatePasskeyResult.Success {
 
 The creation payload for creating a passkey is a String obtained by requesting your backend a challenge for registering a user, it uses the JSON schema:
 ```
-{"rp":{"id":"your_backend","name":"PasskeySample"},"user":{"id":"WUV...5Ng","name":"1234567890","displayName":"1234567890"},"challenge":"WUY...jZQ","pubKeyCredParams":[{"type":"public-key","alg":-7}],"timeout":600000,"excludeCredentials":[],"authenticatorSelection":{"authenticatorAttachment":"platform","requireResidentKey":false,"residentKey":"preferred","userVerification":"preferred"},"attestation":"none"}
+{
+  "rp": {
+    "id": "your_backend",
+    "name": "PasskeySample"
+  },
+  "user": {
+    "id": "WUV...5Ng",
+    "name": "1234567890",
+    "displayName": "1234567890"
+  },
+  "challenge": "WUY...jZQ",
+  "pubKeyCredParams": [
+    {
+      "type": "public-key",
+      "alg": -7
+    }
+  ],
+  "timeout": 600000,
+  "excludeCredentials": [],
+  "authenticatorSelection": {
+    "authenticatorAttachment": "platform",
+    "residentKey": "preferred",
+    "userVerification": "preferred"
+  }
+}
 ```
+
+1. **rp** (Relying Party - Server Details)
+  - **id**
+    - The domain where the passkey will be used (e.g., `example.com`).
+    - Must match the domain where the authentication will happen.
+
+  - **name**
+    - A human-readable name for the service (shown to the user during registration).
+
+2. **user** (User Information)
+  - **id**
+    - A Base64 URL-encoded unique user ID (usually a server-generated random value).
+    - Used to identify the user uniquely in the system.
+
+  - **name**
+    - A username or account identifier.
+    - Could be an email, phone number, or user ID.
+
+  - **displayName**
+    - A user-friendly name displayed during registration.
+    - Typically the same as `name`, but could be more descriptive.
+
+3. **challenge** (Server-Generated Random Value)
+  - A Base64 URL-encoded random value generated by the server.
+  - Prevents replay attacks by ensuring each request is unique.
+  - The client (browser/device) signs this challenge when authenticating.
+
+4. **pubKeyCredParams** (Public Key Parameters)
+  - **type**
+    - Indicates the credential being created is a public-private key pair.
+    - Always `"public-key"` for WebAuthn and passkeys to work.
+
+  - **alg**
+    - Represents `ES256` (Elliptic Curve Digital Signature Algorithm - ECDSA using SHA-256).
+    - Other possible values include `-257` for RSA.
+
+5. **timeout**
+  - Specifies how long the user has to complete the registration.
+
+6. **excludeCredentials** (Prevent Duplicate Registrations)
+  - An empty array means the system allows registering new passkeys.
+  - If filled, prevents the user from registering a new credential if they already have one matching the specified credential IDs.
+
+7. **authenticatorSelection**
+  - **authenticatorAttachment**
+    - `platform` → Uses a built-in authenticator (e.g., Google Credential Manager, iCloud Keychain, 1Password, etc). The credential is stored on the device and can only be used there.
+    - `cross-platform` → Uses a roaming authenticator (e.g., security keys like YubiKey, external FIDO2 devices). These credentials can be used across multiple devices.
+
+  - **residentKey**
+    - `required` → Guarantees the credential is discoverable (stored on the authenticator). If the authenticator does not support discoverable credentials, registration will fail.
+    - `preferred` → Requests a discoverable credential if the authenticator supports it, but if not, a non-discoverable credential may be created instead.
+    - `discouraged` → Creates a non-discoverable credential, meaning the relying party (RP) must store and provide the credential ID for authentication.
+
+  - **userVerification**
+    - `required` → The authenticator must verify the user (e.g., fingerprint, face recognition, PIN). If the authenticator does not support user verification, registration/authentication will fail.
+    - `preferred` → The authenticator will attempt user verification if supported (e.g., biometric authentication). If not, it may still proceed without verification.
+    - `discouraged` → User verification is not required. The credential can be used without any local authentication, making it more convenient but less secure.
 
 ### Authenticate Passkey Payload <a name="authenticate-passkey-payload"></a>
 
 The authenticate payload for authenticating a user is a JSON with the schema:
 ```
-{"publicKey":{"challenge":"WUM...2Mw","timeout":300000,"rpId":"your_backend","allowCredentials":[],"userVerification":"preferred"}}
+{
+  "publicKey": {
+    "challenge": "WUM...2Mw",
+    "timeout": 300000,
+    "rpId": "your_backend",
+    "allowCredentials": [],
+    "userVerification": "preferred"
+  }
+}
 ```
+
+1. **challenge** (Server-Generated Random Value)
+  - A Base64 URL-encoded random value generated by the server.
+  - Prevents replay attacks by ensuring each request is unique.
+  - The client (browser/device) signs this challenge when authenticating.
+
+2. **timeout**
+  - Timeout in milliseconds (e.g., `300000 ms = 5 minutes`).
+  - Defines how long the client has to complete the authentication before it expires.
+
+3. **rpId** (Relying Party ID)
+  - The domain of the service requesting authentication.
+  - Must match the domain for which the passkey was originally created.
+  - **Example:** If a passkey was registered for `example.com`, this value must be `"example.com"`.
+
+4. **allowCredentials**
+  - An empty array means the client can use any available passkey for this domain.
+  - If specific credentials (public keys) are listed here, the client will be restricted to only those.
+  - This is useful for allowing specific passkeys if a user has multiple.
+
+5. **userVerification**
+  - Specifies whether the system should require user verification (e.g., biometrics or PIN).
+    - **`required`** → The authenticator must verify the user (e.g., fingerprint, face recognition, PIN). If the authenticator does not support user verification, authentication will fail.
+    - **`preferred`** → The authenticator will attempt user verification if supported (e.g., biometric authentication). If not, it may still proceed without verification.
+    - **`discouraged`** → User verification is not required. The credential can be used without any local authentication, making it more convenient but less secure.
 
 ## Building and Running Sample App <a name="building-and-running-sample-app"></a>
 
 #### Android
 
-1. Clone this repository.
-2. Open the project in IntelliJ IDEA or Android Studio.
-3. Set your backend URL [BaseUrl](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/gradle.properties#L17).
-4. Build and run the Android app from the `androidApp` module.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/twilio/twilio-verify-passkeys.git
+   ```
+2. **Open the project**
+   - Use **IntelliJ IDEA** or **Android Studio**.
+3. **Configure the backend URL**
+   - Update the `BaseUrl` in [`gradle.properties`](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/gradle.properties#L17).
+4. **Build and run**
+   - Select the `androidApp` module and run the app.
 
-**Note**: To start sign up/in flows, the Android device must have a valid Google account to store and fetch passkeys.
+#### Sample backend configuration for Android sample app
 
-**Backend-side configuration for Android Sample App**<br>
+In order to create passkeys you need to create the association for the sample app to communicate to the RP.
+1. [Add support for digital asset links](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal). You can generate a sha256 by running `./gradlew signingreport` and copying the sha256 of the keystore used to build the app. 
+2. Replace [value](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L20) with sha256. 
+3. To sync passkeys with Web browsers you should replace https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L9 with the website url e.g. https://passkeys.twil.io Check Android association 
+4. Add the [origin](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/functions/registration/start.js#L38), following the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin).
 
-1. Make sure you already [added support for digital asset links](https://developer.android.com/training/sign-in/passkeys#add-support-dal) in your backend by checking whether an entry with the build sha256 value exists. You can generate a sha256 by running `./gradlew signingreport`.
-2. Add the origin if you have not added it yet, following the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin).
+##### Preparing device for correct passkey testing
 
+For accurate passkey testing, ensure the following on your emulator or physical device:
+- **Google Account**: Sign in with a Google account.
+- **Google Play Services**: Confirm that Google Play services are enabled.
+- **Device Security**: Set up a screen lock with security measures and enable biometric authentication (e.g., fingerprint or face recognition).
+
+To enable passkeys on the backend you can follow the [detailed guide](https://www.twilio.com/docs/verify/passkeys). Then you should also:
+
+1. **Verify Digital Asset Links support**
+  - Ensure you have [added support for digital asset links](https://developer.android.com/training/sign-in/passkeys#add-support-dal) and your backend includes an entry with the **SHA-256** signature of your app.
+  - Generate the **SHA-256** fingerprint using:
+    ```bash
+    ./gradlew signingReport
+    ```
+2. **Add the origin**
+  - If not already configured, follow the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin) to add the origin.
+
+| Passkey Creation | Passkey Authentication |
+|------------------|-----------------------|
+| <img src="assets/android_passkey_creation.gif" width="300"> | <img src="assets/android_passkey_authentication.gif" width="300"> |
 
 #### iOS
 
-1. Clone this repository.
-2. Open the project in IntelliJ IDEA or Android Studio or open `iosApp` module in Xcode.
-3. Configure your backend
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/twilio/twilio-verify-passkeys.git
+   ```
+2. **Open the project**
+   - Use **IntelliJ IDEA** or **Android Studio** or open `iosApp` module in **Xcode**.
+3. **Configure your backend**
    - Set your backend domain and entitlements. Update these values in [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) and [iosApp.entitlements](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/iosApp.entitlements#L7)
      - [Constants.swift](https://github.com/twilio/twilio-verify-passkeys/blob/main/iosApp/iosApp/Constants.swift#L12) - Define your backend domain:
      ```swift
@@ -177,9 +335,30 @@ The authenticate payload for authenticating a user is a JSON with the schema:
      ```swift
      <string>webcredentials:passkeys-service.com</string> <!-- Example entitlement; update with your domain -->
      ```
-4. Build and run the iOS app from the `iosApp` module.
+4. **Build and run**
+   - Select the `iosApp` module and run the app.
 
-**Note**: To start sign up/in flows, the iPhone must have a valid iCloud account to store and fetch passkeys.
+
+#### Sample backend configuration for iOS sample app
+In order to create passkeys you need to create the association for the sample app to communicate to the RP.
+
+##### Preparing device for correct passkey testing
+
+For accurate passkey testing, ensure the following on your **physical device**:
+- **Apple ID**: Ensure the device is signed in with an Apple ID.
+- **iCloud Keychain**: Confirm that iCloud Keychain is enabled. 
+- **Device Security**: Set up a passcode and enable Face ID or Touch ID for biometric authentication.
+
+For **simulators**:
+- Use Xcode 14+ with iOS 16+ simulators for the latest passkey support.
+- Go to “Features” > “Face ID” or “Touch ID” > “Enrolled”.
+- Trigger biometric events with “Matching Touch” or “Non-Matching Touch”.
+
+
+| Passkey Creation | Passkey Authentication |
+|------------------|-----------------------|
+| <img src="assets/ios_passkey_creation.gif" width="300"> | <img src="assets/ios_passkey_authentication.gif" width="300"> |
+
 
 ## Project Structure <a name="project-structure"></a>
 
@@ -211,70 +390,107 @@ The `iosApp` module contains iOS-specific code, such as:
 - Sample application that works as a code snippet for integrating with the Twilio Verify Passkeys SDK
 - iOS-specific UI components
 
-## Exception Types <a name="exception-types"></a>
+## Troubleshooting <a name="troubleshooting"></a>
 
-The [TwilioException](https://github.com/twilio/twilio-verify-passkeys/blob/main/shared/src/commonMain/kotlin/com/twilio/passkeys/exception/TwilioException.kt) class offers structured error handling for various scenarios specific to Twilio's passkeys features. Each error type is represented by a subclass with a unique error code, enabling precise exception management. Below are the defined exception types:
+This section provides guidance on resolving common issues encountered when using the **Android and iOS SDKs**. The SDK may throw various exceptions to indicate specific errors. Below are troubleshooting steps for each exception type.
 
-### Exception Overview
+---
 
-| Exception                         | Code | Description                                                                                                                                                                                                                                                                                                      | Platform-Specific Details                                                                                                                                                                                                                |
-|-----------------------------------|------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **`DomException`**                | 1001 | Handles errors related to WebAuthn DOM configurations for passkeys.                                                                                                                                                                                                                                             | **Android**: Ensure `/.well-known/assetlinks.json` is set up. See [Android Guide](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal). <br> **iOS**: Ensure `/.well-known/apple-app-site-association` is set up. See [Apple Guide](https://developer.apple.com/documentation/xcode/supporting-associated-domains). |
-| **`UserCanceledException`**       | 1002 | Thrown when the user voluntarily cancels an operation, allowing graceful termination of user actions.                                                                                                                                                                                                           | N/A                                                                                                                                                                                                                                      |
-| **`InterruptedException`**        | 1003 | Thrown when an operation is interrupted, typically recoverable by retrying.                                                                                                                                                                                                                                     | **Android Only**                                                                                                                                                                                                                        |
-| **`UnsupportedException`**        | 1004 | Indicates the device does not support or has disabled the passkeys feature, preventing passkey operations.                                                                                                                                                                                                      | N/A                                                                                                                                                                                                                                      |
-| **`NoCredentialException`**       | 1005 | Thrown when no passkey credentials are available, indicating no user credentials are set up for authentication.                                                                                                                                                                                                 | **Android Only**                                                                                                                                                                                                                        |
-| **`MissingAttestationObjectException`** | 1006 | Raised when the attestation object is null, which is essential for passkey operations.                                                                                                                                                                                                                           | **iOS Only**                                                                                                                                                                                                                            |
-| **`InvalidPayloadException`**     | 1007 | Thrown when the JSON payload is invalid, meaning the data does not meet the expected format or schema.                                                                                                                                                                                                          | N/A                                                                                                                                                                                                                                      |
-| **`GeneralException`**            | 1008 | Represents a general or unspecified error used as a fallback for errors not fitting other categories.                                                                                                                                                                                                           | N/A                                                                                                                                                                                                                                      |
+## **Exception Troubleshooting**
 
-## Useful Gradle Tasks <a name="useful-gradle-tasks"></a>
+### **1. DomException (Code: 1001)**
+Handles errors related to WebAuthn DOM configurations for passkeys.
 
-### Running Unit Tests
+#### **Troubleshooting Steps:**
+- **Android:**
+  - Verify that the `/.well-known/assetlinks.json` file is correctly set up on your server.
+  - Ensure the file has the proper syntax and contains the correct SHA256 certificate fingerprints.
+  - Reference the **Android Guide** for setup details.
 
-#### Shared iOS Unit Tests
+- **iOS:**
+  - Confirm that the `/.well-known/apple-app-site-association` (AASA) file is correctly configured.
+  - Check that the file is served with the correct MIME type (`application/json` without extension).
+  - **Check Apple CDN Cache:** The AASA file is cached by Apple’s CDN, and updates may not reflect immediately.
+    - Visit: `https://app-site-association.cdn-apple.com/a/v1/<your-domain>` to verify the cached version.
+  - **Note:** The CDN should refresh upon app installation, but delays can occur.
+    - More info: [Apple Documentation](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.associated-domains)
+  - Refer to the **Apple Guide** for detailed instructions.
 
-```
-./gradlew :shared:iosSimulatorArm64Test
-```
+---
 
-#### Shared Android Unit Tests
+### **2. UserCanceledException (Code: 1002)**
+Thrown when the user voluntarily cancels an operation.
 
-```
-./gradlew :shared:testDebugUnitTest
-```
+#### **Troubleshooting Steps:**
+- This exception is intentional and indicates user action.
+- Provide **clear UI feedback** to inform users of the cancellation.
+- Offer an **option to retry** the operation if necessary.
 
-To run tests with coverage report
+---
 
-```
-./gradlew :shared:koverHtmlReportDebug
-```
+### **3. InterruptedException (Code: 1003) (Android Only)**
+Thrown when an operation is interrupted.
 
-Code coverage rule only working on Android
+#### **Troubleshooting Steps:**
+- Check for **background processes or app lifecycle events** that may be interrupting the operation.
+- Retry the operation in a **controlled manner**.
+- Ensure that **proper exception handling** is implemented in coroutine or thread-based operations.
 
-```
-./gradlew :shared:koverVerify
-```
+---
 
-### Code rules
+### **4. UnsupportedException (Code: 1004)**
+Indicates the device does not support or has disabled the passkeys feature.
 
-#### Ktlint Check
-Check Ktlint rule violations
+#### **Troubleshooting Steps:**
+- Confirm that the device **supports WebAuthn and passkeys**.
+- **Android/iOS:** Ensure that **biometric or device credentials** are enabled.
+- **Web:** Check for **browser compatibility** with WebAuthn.
 
-```
-./gradlew ktlintCheck
-```
+---
 
-#### Ktlint Format
-Try to solve Ktlint rule violations
+### **5. NoCredentialException (Code: 1005) (Android Only)**
+Thrown when no passkey credentials are available.
 
-```
-./gradlew ktlintFormat
-```
+#### **Troubleshooting Steps:**
+- Verify that the user has **registered passkey credentials** on the device.
+- Prompt the user to **create a passkey** if none are available.
+- Ensure the app **correctly queries for existing credentials**.
 
-#### Detekt Check
-Check Detekt rule violations
+---
 
-```
-./gradlew detekt
-```
+### **6. MissingAttestationObjectException (Code: 1006) (iOS Only)**
+Raised when the attestation object is `null`.
+
+#### **Troubleshooting Steps:**
+- Verify that the **iOS device supports passkey attestation**.
+- Ensure that **attestation is enabled** in the authentication request.
+- Update to the **latest iOS version** if compatibility issues persist.
+
+---
+
+### **7. InvalidPayloadException (Code: 1007)**
+Thrown when the JSON payload is invalid.
+
+#### **Troubleshooting Steps:**
+- Validate the **JSON payload structure** against the expected schema.
+- Use **JSON validation tools** to identify formatting errors.
+- Ensure that **all required fields** are included and correctly formatted.
+
+---
+
+### **8. GeneralException (Code: 1008)**
+Represents an unspecified error.
+
+#### **Troubleshooting Steps:**
+- Check the **error message and stack trace** for additional context.
+- Ensure the **SDK is up-to-date**.
+- If the issue persists:
+  - Enable **detailed logging**.
+  - Contact **support** with logs for further investigation.
+
+---
+
+## **Additional Tips**
+- Keep the **SDK and dependencies updated** to the latest version.
+- Refer to **platform-specific SDK documentation** for detailed integration steps.
+- Use **logging extensively** to capture error details during development and production.
