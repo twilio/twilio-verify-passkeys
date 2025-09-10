@@ -57,7 +57,7 @@ import com.twilio.passkeys.android.ui.blue
 @Composable
 @Preview
 fun HomePage(
-  number: String = "+1 1111 1111",
+  username: String = "user123",
   onDisconnect: () -> Unit = {},
 ) {
   ConstraintLayout(modifier = Modifier.fillMaxSize()) {
@@ -100,7 +100,7 @@ fun HomePage(
       }
 
       Text(
-        text = "Hello $number",
+        text = "Hello $username",
         style =
           TextStyle(
             fontSize = 32.sp,

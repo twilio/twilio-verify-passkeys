@@ -43,7 +43,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-  private var name = ""
+  private var username = ""
 
   @OptIn(ExperimentalComposeUiApi::class)
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,31 +89,31 @@ class MainActivity : ComponentActivity() {
         }
 
         is LoginState.PasskeySuccess -> {
-          navController.navigate("home/${uiState.number}")
+          navController.navigate("home/${uiState.username}")
         }
       }
     }
     NavHost(navController = navController, startDestination = "login") {
       composable("login") {
         LoginPage(
-          onNumberEntered = { phoneNumber ->
-            name = phoneNumber
-            if (loginViewModel.areFieldsValid(phoneNumber)) {
-              loginViewModel.create(name, this@MainActivity)
+          onUsernameEntered = { username ->
+            this.username = username
+            if (loginViewModel.areFieldsValid(username)) {
+              loginViewModel.create(this.username, this@MainActivity)
             }
           },
           fetchPasskeys = {
             loginViewModel.authenticate(this@MainActivity)
           },
-          numberError = uiState is LoginState.NumberError,
+          usernameError = uiState is LoginState.UsernameError,
         )
       }
       composable(
-        "home/{number}",
-        arguments = listOf(navArgument("number") { type = NavType.StringType }),
+        "home/{username}",
+        arguments = listOf(navArgument("username") { type = NavType.StringType }),
       ) { backStackEntry ->
-        val number = backStackEntry.arguments?.getString("number")!!
-        HomePage(number = number, onDisconnect = {
+        val username = backStackEntry.arguments?.getString("username")!!
+        HomePage(username = username, onDisconnect = {
           loginViewModel.logout()
         })
       }

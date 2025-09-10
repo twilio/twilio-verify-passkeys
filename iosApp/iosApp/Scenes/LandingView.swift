@@ -12,7 +12,7 @@ struct LandingView: View {
 
     // MARK: - Properties
 
-    @State var phoneNumber: String = .init()
+    @State var username: String = .init()
     @ObservedObject var authenticationManager: AuthenticationManager
 
     // MARK: - Private Methods
@@ -33,7 +33,7 @@ struct LandingView: View {
                 HomeView(userId: username)
                     .environmentObject(authenticationManager)
                     .onAppear {
-                        phoneNumber = .init()
+                        username = .init()
                     }
                     .tabItem {
                         Label("Accounts", image: "Accounts")
@@ -45,7 +45,7 @@ struct LandingView: View {
                 TabDemo(name: "More", icon: "More")
             }
         } else {
-            SignUpView(phoneNumber: $phoneNumber)
+            SignUpView(username: $username)
                 .environmentObject(authenticationManager)
         }
     }

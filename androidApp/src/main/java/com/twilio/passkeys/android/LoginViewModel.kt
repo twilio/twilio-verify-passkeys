@@ -141,9 +141,9 @@ class LoginViewModel
       }
     }
 
-    fun areFieldsValid(phoneNumber: String): Boolean {
-      if (!android.util.Patterns.PHONE.matcher(phoneNumber).matches()) {
-        _state.tryEmit(LoginState.NumberError)
+    fun areFieldsValid(username: String): Boolean {
+      if (username.isBlank() || username.length < 3) {
+        _state.tryEmit(LoginState.UsernameError)
         return false
       }
       return true
@@ -161,11 +161,11 @@ class LoginViewModel
 sealed interface LoginState {
   data object Initial : LoginState
 
-  data object NumberError : LoginState
+  data object UsernameError : LoginState
 
   data object Logout : LoginState
 
-  data class PasskeySuccess(val number: String) : LoginState
+  data class PasskeySuccess(val username: String) : LoginState
 
   data class PasskeyError(val message: String) : LoginState
 }

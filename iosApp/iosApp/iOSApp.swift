@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct iOSApp: App {
-    @State var phoneNumber: String = ""
+    @State var username: String = ""
     @StateObject private var authenticationManager = AuthenticationManager()
 
 	var body: some Scene {

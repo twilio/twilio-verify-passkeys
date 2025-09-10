@@ -58,11 +58,11 @@ import com.twilio.passkeys.android.ui.twilio
 @Composable
 @Preview
 fun LoginPage(
-  onNumberEntered: (phoneNumber: String) -> Unit = {},
+  onUsernameEntered: (username: String) -> Unit = {},
   fetchPasskeys: () -> Unit = {},
-  numberError: Boolean = false,
+  usernameError: Boolean = false,
 ) {
-  val number = remember { mutableStateOf(TextFieldValue()) }
+  val username = remember { mutableStateOf(TextFieldValue()) }
   Column(
     modifier =
       Modifier
@@ -97,7 +97,7 @@ fun LoginPage(
         ),
     )
     Text(
-      text = "What's your phone number?",
+      text = "What's your username?",
       modifier = Modifier.padding(top = 8.dp),
       style =
         TextStyle(
@@ -109,16 +109,16 @@ fun LoginPage(
         ),
     )
     OutlinedTextField(
-      label = { Text(text = "Phone number") },
-      value = number.value,
-      onValueChange = { number.value = it },
-      isError = numberError,
-      supportingText = { if (numberError) Text(text = "Invalid input, please type a valid phone number") },
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+      label = { Text(text = "Username") },
+      value = username.value,
+      onValueChange = { username.value = it },
+      isError = usernameError,
+      supportingText = { if (usernameError) Text(text = "Invalid input, please type a valid username") },
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
       singleLine = true,
       modifier =
         Modifier
-          .testTag("phone_number")
+          .testTag("username")
           .fillMaxWidth()
           .padding(top = 4.dp),
       trailingIcon = {
@@ -137,7 +137,7 @@ fun LoginPage(
           .fillMaxWidth()
           .height(72.dp)
           .padding(top = 16.dp),
-      onClick = { onNumberEntered(number.value.text) },
+      onClick = { onUsernameEntered(username.value.text) },
       colors =
         ButtonDefaults.buttonColors(
           containerColor = button_color,
