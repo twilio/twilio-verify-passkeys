@@ -67,7 +67,7 @@ struct SignUpView: View {
 
                 Button {
                     // Validate username first
-                    if username.isEmpty || username.count < 3 {
+                    if username.isEmpty {
                         showUsernameError = true
                     } else {
                         showUsernameError = false

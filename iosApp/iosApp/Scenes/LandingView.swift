@@ -33,7 +33,7 @@ struct LandingView: View {
                 HomeView(userId: username)
                     .environmentObject(authenticationManager)
                     .onAppear {
-                        username = .init()
+                        self.username = .init()
                     }
                     .tabItem {
                         Label("Accounts", image: "Accounts")
