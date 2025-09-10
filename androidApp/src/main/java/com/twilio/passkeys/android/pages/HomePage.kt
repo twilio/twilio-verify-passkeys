@@ -100,7 +100,7 @@ fun HomePage(
       }
 
       Text(
-        text = "Hello +$number",
+        text = "Hello $number",
         style =
           TextStyle(
             fontSize = 32.sp,
