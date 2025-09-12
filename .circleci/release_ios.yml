@@ -21,7 +21,7 @@ executors:
 
   mac-os-executor:
     macos:
-      xcode: "15.1.0"
+      xcode: "16.4.0"
     resource_class: macos.m1.medium.gen1
     working_directory: *workspace
 
@@ -67,9 +67,24 @@ jobs:
       - run:
           name: Pre release check
           command: |
-            # Fetch the new and latest iOS SDK versions
-            NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb iosSdkVersionName)
+            # Identify the type of release (major, minor, patch, or none)
+            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+            echo "Release type = $IOS_RELEASE_TYPE"
+
+            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a precheck for a $IOS_RELEASE_TYPE release"
+            fi
+
+            # Bump the iOS SDK version based on the release type
+            NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE" iosSdkVersionName)
+            echo "Version Bump = $VERSION_BUMP"
+
+            # Fetch the latest iOS SDK versions
             LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
+            echo "Latest iOS SDK version = $LATEST_IOS_SDK_VERSION"
 
             # Compare versions and exit if they are the same
             if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then

@@ -21,11 +21,10 @@ module GitTools
 
     if status.success?
       tags = output.strip.split("\n")
-
       return tags[1] if tags.length > 1 # Second-to-last tag
     end
 
-    nil # Return nil if there's no second-to-last tag
+    "" # return empty string if there's no second-to-last tag
   end
 
   # Function to get commit history from a given tag to HEAD

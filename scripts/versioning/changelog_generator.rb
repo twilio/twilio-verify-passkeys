@@ -77,7 +77,8 @@ module ChangelogGenerator
 
   # Helper method to generate a formatted description from a commit message
   def self.generate_full_description(message)
-    description = message.split(': ', 2).last.capitalize
+    description = message.split(': ', 2).last
+    description = description[0].upcase + description[1..] if description && description.length > 1
     scope = message[/\((.*?)\)/, 1]&.capitalize
     full_description = "- "
     full_description << "**#{scope}** " if scope

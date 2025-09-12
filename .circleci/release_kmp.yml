@@ -78,9 +78,24 @@ jobs:
       - run:
           name: Pre release check
           command: |
-            # Fetch the new and latest Android SDK versions
-            NEW_KMP_SDK_VERSION=$(ruby scripts/versioning/util/get_gradle_property.rb kmpSdkVersionName)
+            # Identify the type of release (major, minor, patch, or none)
+            KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
+            echo "Release type = $KMP_RELEASE_TYPE"
+
+            if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a precheck for a $KMP_RELEASE_TYPE release"
+            fi
+
+            # Bump the KMP SDK version based on the release type
+            NEW_KMP_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$KMP_RELEASE_TYPE" kmpSdkVersionName)
+            echo "Version Bump = $NEW_KMP_SDK_VERSION"
+
+            # Fetch the latest KMP SDK version
             LATEST_KMP_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb KMP)
+            echo "Latest KMP SDK version = $LATEST_KMP_SDK_VERSION"
 
             # Compare versions and exit if they are the same
             if [ "$NEW_KMP_SDK_VERSION" = "$LATEST_KMP_SDK_VERSION" ]; then
@@ -90,6 +105,11 @@ jobs:
             fi
 
             echo "✅ New KMP SDK version $NEW_KMP_SDK_VERSION is unique and ready for release."
+            echo "NEW_KMP_SDK_VERSION=$NEW_KMP_SDK_VERSION" >> $BASH_ENV
+          shell: /bin/bash -l
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: mac-os-executor
