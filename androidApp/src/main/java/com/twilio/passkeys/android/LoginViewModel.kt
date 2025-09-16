@@ -121,7 +121,7 @@ class LoginViewModel
                 )
                 _state.emit(
                   LoginState.PasskeySuccess(
-                    "test",
+                    response.userHandle ?: response.id,
                   ),
                 )
               } catch (e: Exception) {
