@@ -53,12 +53,173 @@ import androidx.constraintlayout.compose.Dimension
 import com.twilio.passkeys.android.R
 import com.twilio.passkeys.android.ui.blue
 
-@Suppress("FunctionName")
+@Composable
+fun HomeHeader(onLogout: () -> Unit) {
+  Row(
+    horizontalArrangement = Arrangement.SpaceBetween,
+    modifier = Modifier.fillMaxWidth(),
+  ) {
+    Icon(
+      painter = painterResource(id = R.drawable.owl_inverted),
+      tint = Color.White,
+      contentDescription = "Owl",
+      modifier = Modifier.padding(32.dp),
+    )
+    IconButton(
+      onClick = onLogout,
+      modifier =
+        Modifier
+          .padding(32.dp)
+          .testTag("logout"),
+    ) {
+      Icon(
+        painter = painterResource(id = R.drawable.menu),
+        tint = Color.White,
+        contentDescription = "Logout",
+      )
+    }
+  }
+}
+
+@Composable
+fun WelcomeSection(username: String) {
+  Text(
+    text = "Hello $username",
+    style =
+      TextStyle(
+        fontSize = 32.sp,
+        lineHeight = 48.sp,
+        fontWeight = FontWeight(500),
+        color = Color(0xFFFFFFFF),
+      ),
+    modifier = Modifier.padding(horizontal = 32.dp),
+  )
+  Text(
+    text = "Welcome to OwlBank",
+    style =
+      TextStyle(
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight(400),
+        color = Color(0xB2FFFFFF),
+      ),
+    modifier = Modifier.padding(horizontal = 32.dp),
+  )
+}
+
+@Composable
+fun SearchBar() {
+  OutlinedTextField(
+    leadingIcon = {
+      Icon(
+        imageVector = Icons.Filled.Search,
+        contentDescription = "Search",
+        tint = Color.White,
+      )
+    },
+    value = "",
+    onValueChange = {},
+    colors =
+      OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = Color(0xFF0385EB),
+        unfocusedBorderColor = Color(0xFF0385EB),
+      ),
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 32.dp, vertical = 24.dp),
+    shape = RoundedCornerShape(100.dp),
+  )
+}
+
+@Composable
+fun ActionCard(
+  icon: Int,
+  text: String,
+  contentDescription: String,
+  useShadow: Boolean = false,
+) {
+  Card(
+    elevation =
+      CardDefaults.cardElevation(
+        defaultElevation = 8.dp,
+      ),
+    modifier =
+      Modifier
+        .width(336.dp)
+        .height(80.dp),
+    shape = RoundedCornerShape(size = 2.dp),
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier =
+        if (useShadow) {
+          Modifier
+            .shadow(
+              elevation = 28.dp,
+              spotColor = Color(0x08000000),
+              ambientColor = Color(0x08000000),
+            )
+            .padding(top = 8.dp)
+            .width(336.dp)
+            .height(80.dp)
+            .background(
+              color = Color(0xFFFFFFFF),
+              shape = RoundedCornerShape(size = 2.dp),
+            )
+        } else {
+          Modifier
+            .fillMaxSize()
+            .background(color = Color(0xFFFFFFFF))
+        },
+    ) {
+      Icon(
+        modifier = Modifier.padding(start = 24.dp),
+        painter = painterResource(id = icon),
+        contentDescription = contentDescription,
+      )
+      Text(
+        modifier = Modifier.padding(start = 24.dp),
+        text = text,
+        style =
+          TextStyle(
+            fontSize = 18.sp,
+            fontWeight = FontWeight(500),
+            color = Color(0xFF05090A),
+            letterSpacing = 0.4.sp,
+          ),
+      )
+    }
+  }
+}
+
+@Composable
+fun ActionCardsSection() {
+  ActionCard(
+    icon = R.drawable.copy,
+    text = "Open an account",
+    contentDescription = "Open account",
+    useShadow = false,
+  )
+  ActionCard(
+    icon = R.drawable.credit_card,
+    text = "Get a credit card",
+    contentDescription = "Get credit card",
+    useShadow = true,
+  )
+  ActionCard(
+    icon = R.drawable.dollar,
+    text = "Apply for a loan",
+    contentDescription = "Apply for loan",
+    useShadow = true,
+  )
+}
+
 @Composable
 @Preview
 fun HomePage(
   username: String = "user123",
-  onDisconnect: () -> Unit = {},
+  onLogout: () -> Unit = {},
 ) {
   ConstraintLayout(modifier = Modifier.fillMaxSize()) {
     val (column1, column2, spacer) = createRefs()
@@ -74,74 +235,9 @@ fun HomePage(
           }
           .background(blue),
     ) {
-      Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth(),
-      ) {
-        Icon(
-          painter = painterResource(id = R.drawable.owl_inverted),
-          tint = Color.White,
-          contentDescription = "Owl",
-          modifier = Modifier.padding(32.dp),
-        )
-        IconButton(
-          onClick = onDisconnect,
-          modifier =
-            Modifier
-              .padding(32.dp)
-              .testTag("logout"),
-        ) {
-          Icon(
-            painter = painterResource(id = R.drawable.menu),
-            tint = Color.White,
-            contentDescription = "Logout",
-          )
-        }
-      }
-
-      Text(
-        text = "Hello $username",
-        style =
-          TextStyle(
-            fontSize = 32.sp,
-            lineHeight = 48.sp,
-            fontWeight = FontWeight(500),
-            color = Color(0xFFFFFFFF),
-          ),
-        modifier = Modifier.padding(horizontal = 32.dp),
-      )
-      Text(
-        text = "Welcome to OwlBank",
-        style =
-          TextStyle(
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            fontWeight = FontWeight(400),
-            color = Color(0xB2FFFFFF),
-          ),
-        modifier = Modifier.padding(horizontal = 32.dp),
-      )
-      OutlinedTextField(
-        leadingIcon = {
-          Icon(
-            imageVector = Icons.Filled.Search,
-            contentDescription = "Search",
-            tint = Color.White,
-          )
-        },
-        value = "",
-        onValueChange = {},
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFF0385EB),
-            unfocusedBorderColor = Color(0xFF0385EB),
-          ),
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 24.dp),
-        shape = RoundedCornerShape(100.dp),
-      )
+      HomeHeader(onLogout)
+      WelcomeSection(username)
+      SearchBar()
     }
 
     Spacer(
@@ -162,135 +258,7 @@ fun HomePage(
             end.linkTo(parent.end)
           },
     ) {
-      Card(
-        elevation =
-          CardDefaults.cardElevation(
-            defaultElevation = 8.dp,
-          ),
-        modifier =
-          Modifier
-            .width(336.dp)
-            .height(80.dp),
-        shape = RoundedCornerShape(size = 2.dp),
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier =
-            Modifier
-              .fillMaxSize()
-              .background(color = Color(0xFFFFFFFF)),
-        ) {
-          Icon(
-            modifier = Modifier.padding(start = 24.dp),
-            painter = painterResource(id = R.drawable.copy),
-            contentDescription = "Open account",
-          )
-          Text(
-            modifier = Modifier.padding(start = 24.dp),
-            text = "Open an account",
-            style =
-              TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight(500),
-                color = Color(0xFF05090A),
-                letterSpacing = 0.4.sp,
-              ),
-          )
-        }
-      }
-      Card(
-        elevation =
-          CardDefaults.cardElevation(
-            defaultElevation = 8.dp,
-          ),
-        modifier =
-          Modifier
-            .width(336.dp)
-            .height(80.dp),
-        shape = RoundedCornerShape(size = 2.dp),
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier =
-            Modifier
-              .shadow(
-                elevation = 28.dp,
-                spotColor = Color(0x08000000),
-                ambientColor = Color(0x08000000),
-              )
-              .padding(top = 8.dp)
-              .width(336.dp)
-              .height(80.dp)
-              .background(
-                color = Color(0xFFFFFFFF),
-                shape = RoundedCornerShape(size = 2.dp),
-              ),
-        ) {
-          Icon(
-            modifier = Modifier.padding(start = 24.dp),
-            painter = painterResource(id = R.drawable.credit_card),
-            contentDescription = "Open account",
-          )
-          Text(
-            modifier = Modifier.padding(start = 24.dp),
-            text = "Get a credit card",
-            style =
-              TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight(500),
-                color = Color(0xFF05090A),
-                letterSpacing = 0.4.sp,
-              ),
-          )
-        }
-      }
-
-      Card(
-        elevation =
-          CardDefaults.cardElevation(
-            defaultElevation = 8.dp,
-          ),
-        modifier =
-          Modifier
-            .width(336.dp)
-            .height(80.dp),
-        shape = RoundedCornerShape(size = 2.dp),
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier =
-            Modifier
-              .shadow(
-                elevation = 28.dp,
-                spotColor = Color(0x08000000),
-                ambientColor = Color(0x08000000),
-              )
-              .padding(top = 8.dp)
-              .width(336.dp)
-              .height(80.dp)
-              .background(
-                color = Color(0xFFFFFFFF),
-                shape = RoundedCornerShape(size = 2.dp),
-              ),
-        ) {
-          Icon(
-            modifier = Modifier.padding(start = 24.dp),
-            painter = painterResource(id = R.drawable.dollar),
-            contentDescription = "Open account",
-          )
-          Text(
-            modifier = Modifier.padding(start = 24.dp),
-            text = "Apply for a loan",
-            style =
-              TextStyle(
-                fontSize = 18.sp,
-                fontWeight = FontWeight(500),
-                color = Color(0xFF05090A),
-                letterSpacing = 0.4.sp,
-              ),
-          )
-        }
-      }
+      ActionCardsSection()
     }
   }
 }

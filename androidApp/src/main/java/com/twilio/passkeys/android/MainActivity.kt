@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
         arguments = listOf(navArgument("username") { type = NavType.StringType }),
       ) { backStackEntry ->
         val username = backStackEntry.arguments?.getString("username")!!
-        HomePage(username = username, onDisconnect = {
+        HomePage(username = username, onLogout = {
           loginViewModel.logout()
         })
       }
