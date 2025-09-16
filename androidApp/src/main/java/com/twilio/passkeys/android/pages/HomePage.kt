@@ -53,6 +53,7 @@ import androidx.constraintlayout.compose.Dimension
 import com.twilio.passkeys.android.R
 import com.twilio.passkeys.android.ui.blue
 
+@Suppress("FunctionName")
 @Composable
 fun HomeHeader(onLogout: () -> Unit) {
   Row(
@@ -81,6 +82,7 @@ fun HomeHeader(onLogout: () -> Unit) {
   }
 }
 
+@Suppress("FunctionName")
 @Composable
 fun WelcomeSection(username: String) {
   Text(
@@ -107,6 +109,7 @@ fun WelcomeSection(username: String) {
   )
 }
 
+@Suppress("FunctionName")
 @Composable
 fun SearchBar() {
   OutlinedTextField(
@@ -132,6 +135,7 @@ fun SearchBar() {
   )
 }
 
+@Suppress("FunctionName")
 @Composable
 fun ActionCard(
   icon: Int,
@@ -193,6 +197,7 @@ fun ActionCard(
   }
 }
 
+@Suppress("FunctionName")
 @Composable
 fun ActionCardsSection() {
   ActionCard(
@@ -215,6 +220,7 @@ fun ActionCardsSection() {
   )
 }
 
+@Suppress("FunctionName")
 @Composable
 @Preview
 fun HomePage(
