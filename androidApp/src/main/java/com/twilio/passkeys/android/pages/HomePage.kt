@@ -61,9 +61,10 @@ import com.twilio.passkeys.android.ui.blue
 fun HomeHeader(onLogout: () -> Unit) {
   Row(
     horizontalArrangement = Arrangement.SpaceBetween,
-    modifier = Modifier
-      .fillMaxWidth()
-      .windowInsetsPadding(WindowInsets.statusBars),
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .windowInsetsPadding(WindowInsets.statusBars),
   ) {
     Icon(
       painter = painterResource(id = R.drawable.owl_inverted),
