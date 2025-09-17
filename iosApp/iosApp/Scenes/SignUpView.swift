@@ -48,7 +48,7 @@ struct SignUpView: View {
 
             VStack(spacing: 16) {
                 if showUsernameError {
-                    Text("Please enter a valid username (at least 3 characters)")
+                    Text("Please enter a valid username")
                         .foregroundColor(.red)
                         .font(.caption)
                 }

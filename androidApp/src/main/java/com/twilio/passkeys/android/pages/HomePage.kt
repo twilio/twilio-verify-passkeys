@@ -21,11 +21,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -58,7 +61,8 @@ import com.twilio.passkeys.android.ui.blue
 fun HomeHeader(onLogout: () -> Unit) {
   Row(
     horizontalArrangement = Arrangement.SpaceBetween,
-    modifier = Modifier.fillMaxWidth(),
+    modifier = Modifier.fillMaxWidth()
+      .windowInsetsPadding(WindowInsets.statusBars),
   ) {
     Icon(
       painter = painterResource(id = R.drawable.owl_inverted),
@@ -86,10 +90,10 @@ fun HomeHeader(onLogout: () -> Unit) {
 @Composable
 fun WelcomeSection(username: String) {
   Text(
-    text = "Hello $username",
+    text = "Hello $username,",
     style =
       TextStyle(
-        fontSize = 32.sp,
+        fontSize = 28.sp,
         lineHeight = 48.sp,
         fontWeight = FontWeight(500),
         color = Color(0xFFFFFFFF),
@@ -97,7 +101,7 @@ fun WelcomeSection(username: String) {
     modifier = Modifier.padding(horizontal = 32.dp),
   )
   Text(
-    text = "Welcome to OwlBank",
+    text = "Welcome back!",
     style =
       TextStyle(
         fontSize = 16.sp,
@@ -234,7 +238,7 @@ fun HomePage(
         Modifier
           .fillMaxWidth()
           .constrainAs(column1) {
-            height = Dimension.value(340.dp)
+            height = Dimension.value(480.dp)
             top.linkTo(parent.top)
             start.linkTo(parent.start)
             end.linkTo(parent.end)
@@ -249,7 +253,7 @@ fun HomePage(
     Spacer(
       modifier =
         Modifier
-          .height(80.dp)
+          .height(50.dp)
           .constrainAs(spacer) {
             linkTo(top = column1.bottom, bottom = column1.bottom)
           },
