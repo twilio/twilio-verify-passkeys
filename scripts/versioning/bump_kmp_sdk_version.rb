@@ -6,9 +6,9 @@ require_relative 'model/version_bump_type'
 begin
   args = ARGV
 
-  # Check if the required argument is provided
-  if args.empty?
-    raise ArgumentError,  "Invalid usage: use `ruby bump_kmp_sdk_version.rb {{version_bump_type}}`"
+  # Require both arguments: bump type and property name
+  if args.length < 2
+    raise ArgumentError,  "Invalid usage: use `ruby bump_kmp_sdk_version.rb {{version_bump_type}} {{property_name}}`"
   end
 
   bump_type = case args[0].upcase
@@ -18,7 +18,7 @@ begin
   else raise ArgumentError, "version_bump_type '#{args[0]}' is invalid. Use 'MAJOR', 'MINOR', or 'PATCH'"
   end
 
-  property = "kmpSdkVersionName"
+  property = args[1]
   current_sdk_version = GradlePropertyUtils.get_property(property)
   # Check if it's the first release to prevent bumping and use the already set sdk version
   platform = ReleasePlatform[:KMP]
