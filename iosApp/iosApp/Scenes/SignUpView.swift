@@ -13,7 +13,8 @@ struct SignUpView: View {
     // MARK: - Properties
 
     @EnvironmentObject private var authenticationManager: AuthenticationManager
-    @Binding var phoneNumber: String
+    @Binding var username: String
+    @State private var showUsernameError: Bool = false
 
     // MARK: - View
 
@@ -38,19 +39,24 @@ struct SignUpView: View {
             VStack(spacing: 8) {
                 Text("Welcome to ") + Text("OwlBank").bold()
 
-                Text("What's your phone number?")
-                    .textContentType(.name)
+                Text("What's your username?")
+                    .textContentType(.username)
                     .font(.title2)
                     .bold()
             }
             .padding(.bottom, 42)
 
             VStack(spacing: 16) {
+                if showUsernameError {
+                    Text("Please enter a valid username")
+                        .foregroundColor(.red)
+                        .font(.caption)
+                }
 
                 HStack {
-                    TextField("Phone number", text: $phoneNumber)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
+                    TextField("Username", text: $username)
+                        .textContentType(.username)
+                        .keyboardType(.default)
                     Image("Twilio")
                 }
                 .padding(16)
@@ -60,13 +66,19 @@ struct SignUpView: View {
                 )
 
                 Button {
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let window = windowScene.windows.first {
-                        Task {
-                            do {
-                                try await authenticationManager.signUp(as: phoneNumber, on: window)
-                            } catch {
-                                print(error)
+                    // Validate username first
+                    if username.isEmpty {
+                        showUsernameError = true
+                    } else {
+                        showUsernameError = false
+                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                           let window = windowScene.windows.first {
+                            Task {
+                                do {
+                                    try await authenticationManager.signUp(as: username, on: window)
+                                } catch {
+                                    print(error)
+                                }
                             }
                         }
                     }
@@ -89,6 +101,6 @@ struct SignUpView: View {
 
 struct SignUpView_Previews: PreviewProvider {
     static var previews: some View {
-        SignUpView(phoneNumber: .constant("123456"))
+        SignUpView(username: .constant("user123"))
     }
 }
