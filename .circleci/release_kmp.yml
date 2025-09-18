@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  android: circleci/android@2.3.0
+  android: circleci/android@3.0.2
 
 aliases:
   - &workspace
@@ -15,7 +15,7 @@ executors:
   ubuntu-small-executor:
     #https://circleci:com/developer/images/image/cimg/base
     docker:
-      - image: cimg/base:2024.02
+      - image: cimg/base:2025.02
     resource_class: small
     working_directory: *workspace
 
@@ -35,7 +35,7 @@ executors:
 
   mac-os-executor:
     macos:
-      xcode: "15.1.0"
+      xcode: "16.4.0"
     resource_class: macos.m1.medium.gen1
     working_directory: *workspace
 
@@ -68,7 +68,7 @@ commands:
               PROJECT_GRADLE_DIR: << parameters.gradle-dir >>
 
 jobs:
-  release-type:
+  pre-release-kmp-check:
     executor: ruby-executor
 
     steps:
@@ -76,67 +76,40 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Determinate the type of release for KMP SDK
+          name: Pre release check
           command: |
+            # Identify the type of release (major, minor, patch, or none)
             KMP_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb false)
             echo "Release type = $KMP_RELEASE_TYPE"
-            
+
             if [ "$KMP_RELEASE_TYPE" == "NONE" ]; then
               echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a precheck for a $KMP_RELEASE_TYPE release"
+            fi
+
+            # Bump the KMP SDK version based on the release type
+            NEW_KMP_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$KMP_RELEASE_TYPE" kmpSdkVersionName)
+            echo "Version Bump = $NEW_KMP_SDK_VERSION"
+
+            # Fetch the latest KMP SDK version
+            LATEST_KMP_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb KMP)
+            echo "Latest KMP SDK version = $LATEST_KMP_SDK_VERSION"
+
+            # Compare versions and exit if they are the same
+            if [ "$NEW_KMP_SDK_VERSION" = "$LATEST_KMP_SDK_VERSION" ]; then
+              echo "❌ Release Aborted: The new KMP SDK version $NEW_KMP_SDK_VERSION is identical to the latest released version ($LATEST_KMP_SDK_VERSION)."
+              echo "Error: Version $NEW_KMP_SDK_VERSION already exists as the latest release ($LATEST_KMP_SDK_VERSION)."
               exit 1
             fi
-            
-            ./scripts/add_env_variable_to_file.sh KMP_RELEASE_TYPE $KMP_RELEASE_TYPE $TMP_WORKSPACE $ENV_VARS_FILE
+
+            echo "✅ New KMP SDK version $NEW_KMP_SDK_VERSION is unique and ready for release."
+            echo "NEW_KMP_SDK_VERSION=$NEW_KMP_SDK_VERSION" >> $BASH_ENV
+          shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - *tmp-workspace
-
-  prepare-new-version:
-    executor: ruby-executor
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run:
-          name: Version bump
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            NEXT_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb $KMP_RELEASE_TYPE)
-            echo "Next version = ${NEXT_VERSION}"
-            ./scripts/add_env_variable_to_file.sh NEXT_VERSION $NEXT_VERSION $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - run:
-           name: Generate changelog
-           command: |
-             CHANGELOG=$(ruby scripts/versioning/generate_changelog.rb false)
-             echo "CHANGELOG = $CHANGELOG"
-             
-             CHANGELOG_FILE="CHANGELOG.md"
-             if [ ! -f "$CHANGELOG_FILE" ]; then
-               # If the file doesn't exist, create it and add a header
-               echo -e "# Changelog\n" > "$CHANGELOG_FILE"
-             fi
-
-             # Create the new content by placing $CHANGELOG after the title
-             NEW_CONTENT=$(echo -e "$(head -n 1 "$CHANGELOG_FILE")\n\n$CHANGELOG\n$(tail -n +2 "$CHANGELOG_FILE")")
-
-             # Overwrite the changelog file with the new content
-             echo -e "$NEW_CONTENT" > "$CHANGELOG_FILE"
-           environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
-      - run: git status
-      - persist_to_workspace:
-          root: *workspace
-          paths:
-            - .
 
   publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
     executor: mac-os-executor
@@ -169,8 +142,8 @@ jobs:
 
     steps:
       - checkout
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - attach_workspace:
           at: *workspace
       - run:
@@ -185,27 +158,31 @@ jobs:
             echo $REPO_URL
 
             ./gradlew :androidApp:assembleRelease -PmavenUsername=$OSSRH_USERNAME -PmavenPassword=$OSSRH_PASSWORD -PmavenRepoUrl=$REPO_URL
+            mv androidApp/build/outputs/apk/release/androidApp-release.apk sample-app.apk
+            zip -r sample-app.zip sample-app.apk
+            ANDROID_APP_DOWNLOAD_URL="https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/sample-app.zip"
+            export ANDROID_APP_DOWNLOAD_URL
+
+            echo "Generated Android Simulator App URL: $ANDROID_APP_DOWNLOAD_URL"
+
+            # Persist to environment file
+            ./scripts/add_env_variable_to_file.sh ANDROID_APP_DOWNLOAD_URL "$ANDROID_APP_DOWNLOAD_URL" "$TMP_WORKSPACE" "$ENV_VARS_FILE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
+      - store_artifacts:
+          path: sample-app.zip
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
           command: |
-            firebase appdistribution:distribute androidApp/build/outputs/apk/release/androidApp-release.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
-      - run:
-          name: Save distributed app link
-          command: |
-            ./scripts/save_firebase_app_distribution_url.sh firebase_app_distribution_output.log $TMP_WORKSPACE $ENV_VARS_FILE
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+            firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug | tee firebase_app_distribution_output.log
       - persist_to_workspace:
           root: *workspace
           paths:
             - *tmp-workspace
 
-  run-android-internal-release-sdk-e2e-tests:
+  run-android-local-sdk-e2e-tests:
     executor: ubuntu-small-executor
 
     parameters:
@@ -220,12 +197,8 @@ jobs:
           name: Start automation pipeline to run E2E tests
           command: |
             source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_APP_DOWNLOAD_URL
-            echo << pipeline.id >>
-            echo $CIRCLE_WORKFLOW_ID
-            TRIGGERED_PIPELINE=$(./scripts/e2e_tests/trigger_e2e_tests_pipeline.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >> true false)
-            echo "Triggered pipeline: $TRIGGERED_PIPELINE"
-            ./scripts/add_env_variable_to_file.sh ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE $TRIGGERED_PIPELINE $TMP_WORKSPACE $ENV_VARS_FILE
+            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_android_e2e_tests.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
+            echo "Trigger pipeline: $TRIGGER_PIPELINE"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -234,11 +207,11 @@ jobs:
           paths:
             - *tmp-workspace
 
-  check-android-internal-release-sdk-e2e-tests-result:
+  check-android-local-sdk-e2e-tests-result:
     executor: ubuntu-small-executor
 
     parameters:
-      workflow_name_to_check:
+      job_name_to_check:
         default: ""
         type: string
     steps:
@@ -246,31 +219,23 @@ jobs:
       - attach_workspace:
           at: *workspace
       - run:
-          name: Check triggered workflow status
+          name: Check triggered job status
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            echo $ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE
-            
-            TRIGGERED_E2E_TESTS_PIPELINE_STATUS=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_status.sh $ANDROID_INTERNAL_RELEASE_E2E_TESTS_TRIGGERED_PIPELINE << parameters.workflow_name_to_check >>)
-            echo "Triggered pipeline status: $TRIGGERED_E2E_TESTS_PIPELINE_STATUS"
-            
-            if [[ "$TRIGGERED_E2E_TESTS_PIPELINE_STATUS" != "success" ]]; then
-              echo "Workflow not successful - ${TRIGGERED_E2E_TESTS_PIPELINE_STATUS}"
-              (exit -1) 
-            fi
+            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
+            echo "Trigger pipeline status: $RESULT"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
 
-  perform-release:
+  publish-kmp:
     executor: android-executor
 
     steps:
       - checkout
       - attach_workspace:
           at: *workspace
-      - android/restore-build-cache
-      - android/restore-gradle-cache
+      - android/restore_build_cache
+      - android/restore_gradle_cache
       - run:
           name: Publish to Maven Central
           command: |
@@ -282,72 +247,57 @@ jobs:
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
-
-  post-release:
-    executor: ruby-executor
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: *workspace
-      - run: git status
-      - run:
-          name: Commit Changelog and new version update
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-
-            git config --global user.email $GITHUB_USER_EMAIL
-            git config --global user.name $GITHUB_USER_NAME
-            git add gradle.properties CHANGELOG.md docs
-            git commit -m "Release ${NEXT_VERSION} [skip ci]"
-            git push origin $CIRCLE_BRANCH
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
       - run:
           name: Create GitHub release
           command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TAG_VERSION=$CIRCLE_TAG
             RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
-            SDK_VERSION="${NEXT_VERSION}-kmp"
-
-            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $SDK_VERSION $SDK_VERSION "${RELEASE_NOTES}"
-          environment:
-            TMP_WORKSPACE: *tmp-workspace
-            ENV_VARS_FILE: *env-vars-file
+            ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys $GITHUB_API_TOKEN $TAG_VERSION $TAG_VERSION "${RELEASE_NOTES}"
 
 workflows:
   release-kmp:
     jobs:
-      - release-type
-      - prepare-new-version:
-          requires:
-            - release-type
+      - pre-release-kmp-check
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
+          context:
+            - verify-passkeys-android
+            - verify-maven-publishing-android
           requires:
-            - prepare-new-version
+            - pre-release-kmp-check
       - generate-android-sample-app-using-internal-release-sdk:
+          context:
+            - verify-passkeys
+            - verify-passkeys-android
+            - verify-maven-publishing-android
           requires:
             - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
-      - run-android-internal-release-sdk-e2e-tests:
-          waiting_job_name: wait-for-android-internal-release-sdk-e2e-tests
+      - run-android-local-sdk-e2e-tests:
+          context:
+            - verify-passkeys
+          waiting_job_name: wait-for-android-local-sdk-e2e-tests
           requires:
             - generate-android-sample-app-using-internal-release-sdk
-      - wait-for-android-internal-release-sdk-e2e-tests:
+      - wait-for-android-local-sdk-e2e-tests:
           type: approval
           requires:
-            - run-android-internal-release-sdk-e2e-tests
-      - check-android-internal-release-sdk-e2e-tests-result:
-          workflow_name_to_check: "android-tests"
+            - run-android-local-sdk-e2e-tests
+      - check-android-local-sdk-e2e-tests-result:
+          context:
+            - verify-passkeys
+          job_name_to_check: "wait-for-android-local-sdk-e2e-tests"
           requires:
-            - wait-for-android-internal-release-sdk-e2e-tests
+            - wait-for-android-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
       - wait-for-manual-approval-to-release:
           type: approval
           requires:
-            - check-android-internal-release-sdk-e2e-tests-result
-      - perform-release:
+            - check-android-local-sdk-e2e-tests-result
+      - publish-kmp:
+          context:
+            - verify-passkeys
+            - verify-passkeys-android
+            - verify-maven-publishing-android
           requires:
             - wait-for-manual-approval-to-release
-      - post-release:
-          requires:
-            - perform-release

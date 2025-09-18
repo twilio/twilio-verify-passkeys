@@ -91,7 +91,7 @@ class AuthenticationManager: NSObject, ObservableObject {
     ) {
         Task {
             do {
-                let _ = try await worker.registrationVerification(request: .init(
+                let result = try await worker.registrationVerification(request: .init(
                     rawId: response.rawId,
                     id: response.id,
                     clientDataJSON: response.clientDataJSON,
@@ -99,6 +99,11 @@ class AuthenticationManager: NSObject, ObservableObject {
                     type: response.type,
                     transports: ["internal"])
                 )
+
+                guard result.status == .verified else {
+                    print("Status error while verifying the user")
+                    return
+                }
 
                 await MainActor.run {
                     currentUser = .authenticated(username: userName)

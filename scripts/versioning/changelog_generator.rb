@@ -20,10 +20,9 @@ module ChangelogGenerator
       case p.strip.downcase
       when Platform[:ANDROID][:platform_name].downcase then Platform[:ANDROID]
       when Platform[:IOS][:platform_name].downcase then Platform[:IOS]
-      when Platform[:WEB][:platform_name].downcase then Platform[:WEB]
       else nil
       end
-    end || [Platform[:ANDROID], Platform[:IOS], Platform[:WEB]]
+    end || [Platform[:ANDROID], Platform[:IOS]]
 
     return nil if type.nil?
     return [type, platforms]
@@ -78,7 +77,8 @@ module ChangelogGenerator
 
   # Helper method to generate a formatted description from a commit message
   def self.generate_full_description(message)
-    description = message.split(': ', 2).last.capitalize
+    description = message.split(': ', 2).last
+    description = description[0].upcase + description[1..] if description && description.length > 1
     scope = message[/\((.*?)\)/, 1]&.capitalize
     full_description = "- "
     full_description << "**#{scope}** " if scope

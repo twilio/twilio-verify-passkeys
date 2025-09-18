@@ -1,0 +1,254 @@
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@2.3.1
+
+aliases:
+  - &workspace
+      ~/passkeys-sdk
+  - &tmp-workspace
+      tmp/workspace
+  - &env-vars-file
+      env_vars
+
+executors:
+  ubuntu-small-executor:
+    #https://circleci:com/developer/images/image/cimg/base
+    docker:
+      - image: cimg/base:2025.02
+    resource_class: small
+    working_directory: *workspace
+
+  mac-os-executor:
+    macos:
+      xcode: "16.4.0"
+    resource_class: macos.m1.medium.gen1
+    working_directory: *workspace
+
+  ruby-executor:
+    docker:
+      - image: cimg/ruby:3.3.0
+    working_directory: *workspace
+
+commands:
+  setup-certificates:
+    steps:
+      - run:
+          name: Install Apple Certificate and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh setup
+
+  cleanup-signing:
+    steps:
+      - run:
+          name: Clean Up Keychain and Provisioning Profile
+          command: |
+            ./scripts/certificates_setup.sh cleanup
+
+  set-sample-backend-for-ios:
+    steps:
+      - run:
+          name: Set sample backend URL
+          command: |
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_URL/https:\/\/}"
+            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_DOMAIN/\/}"
+            cd iosApp
+            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
+            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
+            
+jobs:
+  pre-release-ios-check:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Pre release check
+          command: |
+            # Identify the type of release (major, minor, patch, or none)
+            IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+            echo "Release type = $IOS_RELEASE_TYPE"
+
+            if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+              echo "No need to release a new version"
+              circleci-agent step halt
+            else
+              echo "Starting a precheck for a $IOS_RELEASE_TYPE release"
+            fi
+
+            # Bump the iOS SDK version based on the release type
+            NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE" iosSdkVersionName)
+            echo "Version Bump = $VERSION_BUMP"
+
+            # Fetch the latest iOS SDK versions
+            LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
+            echo "Latest iOS SDK version = $LATEST_IOS_SDK_VERSION"
+
+            # Compare versions and exit if they are the same
+            if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
+              echo "❌ Release Aborted: The new iOS SDK version $NEW_IOS_SDK_VERSION is identical to the latest released version ($LATEST_IOS_SDK_VERSION)."
+              echo "Error: Version $NEW_IOS_SDK_VERSION already exists as the latest release ($LATEST_IOS_SDK_VERSION)."
+              exit 1
+            fi
+
+            echo "✅ New iOS SDK version $NEW_IOS_SDK_VERSION is unique and ready for release."
+            echo "NEW_IOS_SDK_VERSION=$NEW_IOS_SDK_VERSION" >> $BASH_ENV
+          shell: /bin/bash -l
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
+  generate-framework:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - run:
+          name: Create Framework
+          command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
+      - run:
+          name: Compress Artifacts
+          command: ./scripts/compress_xcframework.sh
+      - store_artifacts:
+          path: debugFramework.zip
+      - store_artifacts:
+          path: releaseFramework.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - debugFramework.zip
+            - releaseFramework.zip
+
+  generate-ios-simulator-app-using-internal-sdk:
+    executor: mac-os-executor
+
+    steps:
+      - checkout
+      - ruby/install-deps
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Install Gem dependencies
+          command: |
+            cd iosApp
+            bundle install
+      - set-sample-backend-for-ios
+      - setup-certificates
+      - run:
+          name: Generate simulator build
+          command: ./scripts/build_ios_simulator_app.sh
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - cleanup-signing
+      - store_artifacts:
+          path: iosApp/sample-app.zip
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  run-simulator-ios-local-sdk-e2e-tests:
+    executor: ubuntu-small-executor
+
+    parameters:
+      waiting_job_name:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Start automation pipeline to run E2E tests
+          command: |
+            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
+            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
+            echo "Trigger pipeline: $TRIGGER_PIPELINE"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+      - persist_to_workspace:
+          root: *workspace
+          paths:
+            - *tmp-workspace
+
+  check-simulator-ios-sdk-e2e-tests-result:
+    executor: ubuntu-small-executor
+
+    parameters:
+      job_name_to_check:
+        default: ""
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Check triggered job status
+          command: |
+            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
+            echo "Trigger pipeline status: $RESULT"
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
+  publish-ios:
+    executor: ruby-executor
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: *workspace
+      - run:
+          name: Release iOS SDK - Publishing XCFramework to GitHub
+          command: ./scripts/release_ios_sdk.sh
+          shell: /bin/bash -l
+          environment:
+            TMP_WORKSPACE: *tmp-workspace
+            ENV_VARS_FILE: *env-vars-file
+
+workflows:
+  release-ios:
+    jobs:
+      - pre-release-ios-check
+      - generate-framework:
+          context:
+            - verify-passkeys
+          requires:
+            - pre-release-ios-check
+      - generate-ios-simulator-app-using-internal-sdk:
+          context:
+            - verify-passkeys
+            - verify-passkeys-ios
+          requires:
+            - generate-framework
+      - run-simulator-ios-local-sdk-e2e-tests:
+          context:
+            - verify-passkeys
+          requires:
+            - generate-ios-simulator-app-using-internal-sdk
+      - wait-for-ios-local-sdk-e2e-tests:
+          type: approval
+          requires:
+            - run-simulator-ios-local-sdk-e2e-tests
+      - check-simulator-ios-sdk-e2e-tests-result:
+          context:
+            - verify-passkeys
+          job_name_to_check: "wait-for-ios-local-sdk-e2e-tests"
+          requires:
+            - wait-for-ios-local-sdk-e2e-tests:
+                - success
+                - failed
+                - canceled
+      - wait-for-manual-approval-to-release:
+          type: approval
+          requires:
+            - check-simulator-ios-sdk-e2e-tests-result
+      - publish-ios:
+          context:
+            - verify-passkeys
+          requires:
+            - wait-for-manual-approval-to-release
