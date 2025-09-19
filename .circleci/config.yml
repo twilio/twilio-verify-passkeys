@@ -616,6 +616,10 @@ workflows:
             - verify-passkeys
           requires:
             - ios-unit-tests
+          filters:
+            branches:
+              ignore:
+                - main
       - generate-ios-simulator-app-using-internal-sdk:
           context:
             - verify-passkeys
@@ -625,6 +629,10 @@ workflows:
       - android-generate-aar:
           requires:
             - android-instrumented-tests
+          filters:
+            branches:
+              ignore:
+                - main
       - generate-android-sample-app-using-local-sdk:
           context:
             - verify-passkeys
@@ -692,16 +700,20 @@ workflows:
           requires:
             - check-android-local-sdk-e2e-tests-result
             - check-simulator-ios-sdk-e2e-tests-result
-
-  release-kmp-sdk:
-    jobs:
       - release-kmp:
-          <<: *android-publish-release
-
-  release-ios-sdk:
-    jobs:
+          requires:
+            - android-unit-tests
+          filters:
+            branches:
+              only:
+                - main
       - release-ios:
-          <<: *ios-publish-release
+          requires:
+            - ios-unit-tests
+          filters:
+            branches:
+              only:
+                - main
 
   generate_app:
     when:
