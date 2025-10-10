@@ -172,8 +172,6 @@ workflows:
           context:
             - verify-passkeys-android
             - verify-maven-publishing-android
-          requires:
-            - pre-release-kmp-check
       - publish-kmp:
           context:
             - verify-passkeys

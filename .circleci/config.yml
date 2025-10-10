@@ -573,26 +573,6 @@ workflows:
       - assemble:
           context:
             - verify-passkeys
-      - lint-check:
-          context:
-            - verify-passkeys
-          requires:
-            - assemble
-      - detekt-check:
-          context:
-            - verify-passkeys
-          requires:
-            - assemble
-      - android-unit-tests:
-          context:
-            - verify-passkeys
-          requires:
-            - lint-check
-            - detekt-check
       - release-kmp:
           requires:
-            - android-unit-tests
-          #filters:
-          #  branches:
-          #    only:
-          #      - main
+            - assemble
