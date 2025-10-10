@@ -172,10 +172,3 @@ workflows:
           context:
             - verify-passkeys-android
             - verify-maven-publishing-android
-      - publish-kmp:
-          context:
-            - verify-passkeys
-            - verify-passkeys-android
-            - verify-maven-publishing-android
-          requires:
-            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
