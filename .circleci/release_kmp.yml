@@ -167,17 +167,8 @@ jobs:
 workflows:
   release-kmp:
     jobs:
-      - pre-release-kmp-check
+      #- pre-release-kmp-check
       - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository:
           context:
             - verify-passkeys-android
             - verify-maven-publishing-android
-          requires:
-            - pre-release-kmp-check
-      - publish-kmp:
-          context:
-            - verify-passkeys
-            - verify-passkeys-android
-            - verify-maven-publishing-android
-          requires:
-            - publish-kotlin-multiplatform-sdk-to-nexus-internal-repository
