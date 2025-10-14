@@ -710,10 +710,10 @@ workflows:
       - release-ios:
           requires:
             - ios-unit-tests
-          filters:
-            branches:
-              only:
-                - main
+          # filters:
+          #   branches:
+          #     only:
+          #       - main
 
   generate_app:
     when:
