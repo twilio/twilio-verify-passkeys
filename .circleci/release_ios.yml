@@ -80,7 +80,7 @@ jobs:
 
             # Bump the iOS SDK version based on the release type
             NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE" iosSdkVersionName)
-            echo "Version Bump = $VERSION_BUMP"
+            echo "Version Bump = $NEW_IOS_SDK_VERSION"
 
             # Fetch the latest iOS SDK versions
             LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
@@ -95,6 +95,7 @@ jobs:
 
             echo "✅ New iOS SDK version $NEW_IOS_SDK_VERSION is unique and ready for release."
             echo "NEW_IOS_SDK_VERSION=$NEW_IOS_SDK_VERSION" >> $BASH_ENV
+            export NEW_IOS_SDK_VERSION
           shell: /bin/bash -l
           environment:
             TMP_WORKSPACE: *tmp-workspace
