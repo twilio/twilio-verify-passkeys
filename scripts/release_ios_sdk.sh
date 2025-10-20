@@ -4,11 +4,37 @@
 
 set -euo pipefail
 
-# Ensure required env vars are set
-: "${NEW_IOS_SDK_VERSION:?Must set NEW_IOS_SDK_VERSION}"
+# Determine iOS SDK version
+echo "Determining iOS SDK version..."
+IOS_RELEASE_TYPE=$(ruby scripts/versioning/require_release.rb true)
+echo "Release type = $IOS_RELEASE_TYPE"
+
+if [ "$IOS_RELEASE_TYPE" == "NONE" ]; then
+  echo "No need to release a new version"
+  exit 0
+fi
+
+NEW_IOS_SDK_VERSION=$(ruby scripts/versioning/bump_kmp_sdk_version.rb "$IOS_RELEASE_TYPE" iosSdkVersionName)
+echo "iOS SDK version = $NEW_IOS_SDK_VERSION"
+
+# Verify this version doesn't already exist
+LATEST_IOS_SDK_VERSION=$(ruby scripts/versioning/git/get_last_released_version.rb IOS)
+echo "Latest iOS SDK version = $LATEST_IOS_SDK_VERSION"
+
+if [ "$NEW_IOS_SDK_VERSION" = "$LATEST_IOS_SDK_VERSION" ]; then
+  echo "❌ Release Aborted: The new iOS SDK version $NEW_IOS_SDK_VERSION is identical to the latest released version ($LATEST_IOS_SDK_VERSION)."
+  echo "Error: Version $NEW_IOS_SDK_VERSION already exists as the latest release ($LATEST_IOS_SDK_VERSION)."
+  exit 1
+fi
+
+echo "✅ New iOS SDK version $NEW_IOS_SDK_VERSION is unique and ready for release."
+
+# Ensure other required env vars are set
 : "${GITHUB_USER_EMAIL:?Must set GITHUB_USER_EMAIL}"
 : "${GITHUB_USER_NAME:?Must set GITHUB_USER_NAME}"
 : "${GITHUB_API_TOKEN:?Must set GITHUB_API_TOKEN}"
+
+echo "Releasing iOS SDK version $NEW_IOS_SDK_VERSION"
 
 # Check for release zip
 if [ ! -f releaseFramework.zip ]; then
