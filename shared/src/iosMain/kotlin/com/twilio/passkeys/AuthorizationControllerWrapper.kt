@@ -8,6 +8,7 @@ import com.twilio.passkeys.utils.DeviceUtils
 import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationController
 import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
+import platform.AuthenticationServices.ASAuthorizationControllerRequestOptions
 import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialAssertion
 import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialRegistration
 import platform.AuthenticationServices.ASAuthorizationPublicKeyCredentialAttachment
@@ -22,6 +23,7 @@ interface IAuthorizationControllerWrapper {
 
   fun authenticatePasskey(
     authController: ASAuthorizationController,
+    preferImmediatelyAvailableCredentials: Boolean,
     completion: (AuthenticatePasskeyResult) -> Unit,
   )
 }
@@ -49,6 +51,7 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
 
   override fun authenticatePasskey(
     authController: ASAuthorizationController,
+    preferImmediatelyAvailableCredentials: Boolean,
     completion: (AuthenticatePasskeyResult) -> Unit,
   ) {
     this.authenticatePasskeyCompletion = completion

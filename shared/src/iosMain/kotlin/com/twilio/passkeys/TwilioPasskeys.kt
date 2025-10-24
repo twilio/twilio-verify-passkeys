@@ -136,6 +136,7 @@ actual open class TwilioPasskeys internal constructor(
     appContext: AppContext,
   ): AuthenticatePasskeyResult =
     suspendCancellableCoroutine { continuation ->
+      val preferImmediatelyAvailableCredentials = authenticatePasskeyRequest.preferImmediatelyAvailableCredentials
       val publicKeyCredentialProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(authenticatePasskeyRequest.publicKey.rpId)
       val challenge = NSData.create(base64Encoding = authenticatePasskeyRequest.publicKey.challenge)
       val assertionRequest = publicKeyCredentialProvider.createCredentialAssertionRequestWithChallenge(challenge = challenge!!)
