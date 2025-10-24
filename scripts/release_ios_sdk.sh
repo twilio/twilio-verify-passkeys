@@ -59,7 +59,10 @@ cd twilio-verify-passkeys-ios
 
 # Update Package.swift with new URL and checksum
 sed -i "s|url: .*|url: \"https://github.com/twilio/twilio-verify-passkeys-ios/releases/download/v$NEW_IOS_SDK_VERSION/TwilioPasskeysAuthentication.xcframework.zip\",|" Package.swift
-sed -i "s|checksum:\".*\"|checksum: \"$CHECKSUM\"|" Package.swift
+sed -i "s|checksum: \".*\"|checksum: \"$CHECKSUM\"|" Package.swift
+DIFF=$(git diff Package.swift)
+echo "Updated Package.swift:"
+echo "$DIFF"
 
 # Commit and tag
 git config user.email "$GITHUB_USER_EMAIL"
