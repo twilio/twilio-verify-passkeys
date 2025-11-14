@@ -8,7 +8,6 @@ import com.twilio.passkeys.utils.DeviceUtils
 import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationController
 import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
-import platform.AuthenticationServices.ASAuthorizationControllerRequestOptions
 import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialAssertion
 import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentialRegistration
 import platform.AuthenticationServices.ASAuthorizationPublicKeyCredentialAttachment
@@ -34,8 +33,6 @@ interface IAuthorizationControllerWrapper {
  * @property deviceUtils The utility class for device-related operations.
  */
 class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
-  private val PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 1UL
-  private val NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 0UL
   private lateinit var authController: ASAuthorizationController
   private var createPasskeyCompletion: ((CreatePasskeyResult) -> Unit)? = null
   private var authenticatePasskeyCompletion: ((AuthenticatePasskeyResult) -> Unit)? = null
@@ -60,7 +57,9 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
     this.authController = authController
     this.authController.delegate = authenticatePasskeyDelegate
 
-    val options = if (preferImmediatelyAvailableCredentials) PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
+    val options = if (preferImmediatelyAvailableCredentials)
+      PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
+      else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
     this.authController.performRequestsWithOptions(options)
   }
 
@@ -165,5 +164,10 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
 
   private fun mapToTwilioException(error: NSError): TwilioException {
     return error.toTwilioException()
+  }
+
+  companion object {
+    const val PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 1UL
+    const val NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 0UL
   }
 }

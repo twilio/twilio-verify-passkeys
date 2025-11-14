@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AuthenticatePasskeyRequest(
   val publicKey: AuthenticatePasskeyRequestPublicKey,
-  val preferImmediatelyAvailableCredentials: Boolean = true
+  val preferImmediatelyAvailableCredentials: Boolean = true,
 )
 
 /**
