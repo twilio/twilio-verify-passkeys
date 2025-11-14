@@ -34,6 +34,8 @@ interface IAuthorizationControllerWrapper {
  * @property deviceUtils The utility class for device-related operations.
  */
 class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
+  private val PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 1UL
+  private val NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 0UL
   private lateinit var authController: ASAuthorizationController
   private var createPasskeyCompletion: ((CreatePasskeyResult) -> Unit)? = null
   private var authenticatePasskeyCompletion: ((AuthenticatePasskeyResult) -> Unit)? = null
@@ -57,7 +59,9 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
     this.authenticatePasskeyCompletion = completion
     this.authController = authController
     this.authController.delegate = authenticatePasskeyDelegate
-    this.authController.performRequests()
+
+    val options = if (preferImmediatelyAvailableCredentials) PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
+    this.authController.performRequestsWithOptions(options)
   }
 
   private val createPasskeyDelegate =
