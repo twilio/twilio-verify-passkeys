@@ -57,9 +57,8 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
     this.authController = authController
     this.authController.delegate = authenticatePasskeyDelegate
 
-    val options = if (preferImmediatelyAvailableCredentials)
-      PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
-      else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
+    val options =
+      if (preferImmediatelyAvailableCredentials) PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
     this.authController.performRequestsWithOptions(options)
   }
 

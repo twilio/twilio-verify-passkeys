@@ -155,7 +155,7 @@ actual open class TwilioPasskeys internal constructor(
       authControllerWrapper.authenticatePasskey(
         authController = authController,
         preferImmediatelyAvailableCredentials = preferImmediatelyAvailableCredentials,
-        completion = { continuation.resume(it) }
+        completion = { continuation.resume(it) },
       )
     }
 
