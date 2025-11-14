@@ -243,7 +243,8 @@ The authenticate payload for authenticating a user is a JSON with the schema:
     "rpId": "your_backend",
     "allowCredentials": [],
     "userVerification": "preferred"
-  }
+  },
+  "preferImmediatelyAvailableCredentials": true
 }
 ```
 
