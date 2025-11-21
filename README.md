@@ -243,7 +243,8 @@ The authenticate payload for authenticating a user is a JSON with the schema:
     "rpId": "your_backend",
     "allowCredentials": [],
     "userVerification": "preferred"
-  }
+  },
+  "preferImmediatelyAvailableCredentials": true
 }
 ```
 
@@ -271,6 +272,11 @@ The authenticate payload for authenticating a user is a JSON with the schema:
     - **`required`** → The authenticator must verify the user (e.g., fingerprint, face recognition, PIN). If the authenticator does not support user verification, authentication will fail.
     - **`preferred`** → The authenticator will attempt user verification if supported (e.g., biometric authentication). If not, it may still proceed without verification.
     - **`discouraged`** → User verification is not required. The credential can be used without any local authentication, making it more convenient but less secure.
+
+6. **preferImmediatelyAvailableCredentials**
+  - Tells the authorization controller to prefer credentials that are immediately available on the local device.
+    - **`false`** → When there are no available passkeys in the device, a QR will be shown as a cross-device sign-in alternative.
+    - **`true`** → The passkeys sign-in will fail before presenting the cross-device flow. The app will receive an error, but the user will not be forced onto the alternative flow.
 
 ## Building and Running Sample App <a name="building-and-running-sample-app"></a>
 
