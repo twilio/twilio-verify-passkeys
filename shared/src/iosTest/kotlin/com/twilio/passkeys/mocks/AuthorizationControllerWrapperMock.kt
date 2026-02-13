@@ -24,6 +24,7 @@ class AuthorizationControllerWrapperMock : IAuthorizationControllerWrapper {
 
   override fun authenticatePasskey(
     authController: ASAuthorizationController,
+    preferImmediatelyAvailableCredentials: Boolean,
     completion: (AuthenticatePasskeyResult) -> Unit,
   ) {
     authenticatePasskeyResultValue?.let {
