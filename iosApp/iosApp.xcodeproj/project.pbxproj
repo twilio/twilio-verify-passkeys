@@ -64,7 +64,6 @@
 		861AEF4D2B0EB43A005A097E /* PasskeysModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysModels.swift; sourceTree = "<group>"; };
 		861AEF4F2B0EB484005A097E /* PasskeysWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysWorker.swift; sourceTree = "<group>"; };
 		864891C02BD1C51D00E18A1B /* iosAppWithoutSDK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosAppWithoutSDK.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		864891C12BD1C51D00E18A1B /* iosApp copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "iosApp copy-Info.plist"; path = "/Users/aorozcobuiles/Development/Twilio/Secondary/twilio-verify-passkeys/iosApp/iosApp copy-Info.plist"; sourceTree = "<absolute>"; };
 		86ED79E72C6AA9410046B6C6 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		86FB1FCA2B0BF33100992ABF /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		86FB1FCC2B0BF9DC00992ABF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -104,7 +103,6 @@
 				7555FF7D242A565900829871 /* iosApp */,
 				7555FF7C242A565900829871 /* Products */,
 				7555FFB0242A642200829871 /* Frameworks */,
-				864891C12BD1C51D00E18A1B /* iosApp copy-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -293,7 +291,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "cd \"$SRCROOT/..\"\nexport JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\nexport PATH=\"$JAVA_HOME/bin:$PATH\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -458,7 +456,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9EVH78F4V4;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -478,7 +476,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.passkeys.twilio.sampleCode;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development com.passkeys.twilio.sampleCode";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG MAIN";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -495,7 +493,7 @@
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9EVH78F4V4;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -515,7 +513,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.passkeys.twilio.sampleCode;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development com.passkeys.twilio.sampleCode";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = MAIN;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
