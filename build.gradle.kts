@@ -106,6 +106,8 @@ nexusPublishing {
       username = getPropertyValue("OSSRH_USERNAME")
       password = getPropertyValue("OSSRH_PASSWORD")
       stagingProfileId = getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+      nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+      snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
     }
   }
 }
