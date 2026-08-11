@@ -84,9 +84,7 @@ commands:
     steps:
       - run:
           name: Copying tests results to <<parameters.folder>>
-          command: |
-            mkdir -p <<parameters.folder>>
-            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} <<parameters.folder>> \;
+          command: ./scripts/copy_test_results.sh <<parameters.folder>>
           when: always
           working_directory: *workspace
 
@@ -94,11 +92,7 @@ commands:
     steps:
       - run:
           name: Install OpenJDK 17
-          command: |
-            sudo apt-get update && sudo apt-get install openjdk-17-jdk
-            sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-            sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
-            java -version
+          command: ./scripts/install_openjdk.sh
 
   danger-check:
     parameters:
@@ -107,7 +101,7 @@ commands:
     steps:
       - run:
           name: Danger check
-          command: bundle exec danger <<parameters.danger_params>> --verbose --remove-previous-comments
+          command: ./scripts/danger_check.sh <<parameters.danger_params>>
 
   move-directory:
     parameters:
@@ -118,23 +112,18 @@ commands:
         description: destination directory
         type: string
     steps:
-      - run: cp -R <<parameters.from>> <<parameters.to>>
+      - run: ./scripts/move_directory.sh <<parameters.from>> <<parameters.to>>
 
   install-firebase-cli:
     steps:
       - run:
           name: Install Firebase CLI
-          command: npm install --save-dev firebase-tools
+          command: ./scripts/install_firebase_cli.sh
   set-sample-backend-for-ios:
     steps:
       - run:
           name: Set sample backend URL
-          command: |
-            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_URL/https:\/\/}"
-            SAMPLE_BACKEND_DOMAIN="${SAMPLE_BACKEND_DOMAIN/\/}"
-            cd iosApp
-            sed -i '' "s|let domain: String = \".*\"|let domain: String = \"${SAMPLE_BACKEND_DOMAIN}\"|" iosApp/Constants.swift
-            sed -i '' "s|<string>webcredentials:.*</string>|<string>webcredentials:${SAMPLE_BACKEND_DOMAIN}</string>|" iosApp/iosApp.entitlements
+          command: ./scripts/set_sample_backend_url.sh
   setup-certificates:
     steps:
       - run:
@@ -160,7 +149,7 @@ jobs:
       - ruby/install-deps
       - run:
           name: Assemble build
-          command: ./gradlew assembleDebug :shared:assembleRelease assembleDebugAndroidTest
+          command: ./scripts/run_gradle_task.sh assembleDebug :shared:assembleRelease assembleDebugAndroidTest
       - move-directory:
           from: shared/build/outputs/apk/androidTest/debug/
           to: builds
@@ -187,7 +176,7 @@ jobs:
       - install-jdk-17
       - run:
           name: Kotlin lint
-          command: ./gradlew ktlintCheck
+          command: ./scripts/run_gradle_task.sh ktlintCheck
       - danger-check:
           danger_params: --danger_id=lint --dangerfile=dangerfiles/dangerfile_ktlint
       - android/save_gradle_cache
@@ -203,7 +192,7 @@ jobs:
       - ruby/install-deps
       - run:
           name: Detekt check
-          command: ./gradlew detekt
+          command: ./scripts/run_gradle_task.sh detekt
       - danger-check:
           danger_params: --danger_id=detekt --dangerfile=dangerfiles/dangerfile_detekt
       - android/save_gradle_cache
@@ -219,12 +208,12 @@ jobs:
       - ruby/install-deps
       - run:
           name: Kover code coverage report
-          command: ./gradlew :shared:koverXmlReportDebug
+          command: ./scripts/run_gradle_task.sh :shared:koverXmlReportDebug
       - danger-check:
           danger_params: --danger_id=unit_tests --dangerfile=dangerfiles/dangerfile_code_coverage
       - run:
           name: Kover code coverage rule
-          command: ./gradlew :shared:koverVerify
+          command: ./scripts/run_gradle_task.sh :shared:koverVerify
       - android/save_gradle_cache
       - android/save_build_cache
       - test-results-folder
@@ -244,15 +233,8 @@ jobs:
       - android/restore_gradle_cache
       - gcp-cli/install
       - run:
-          name: Initialize gcloud CLI to connect to Google Cloud
-          command: |
-            echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json
-            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-            gcloud --quiet config set project "$GOOGLE_PROJECT_ID"
-      - run:
-          name: Run android instrumented tests in Firebase test lab - Device Pixel 9 Api 35
-          command: |
-            gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk --device model=tokay,version=35,locale=en,orientation=portrait
+          name: Run android instrumented tests
+          command: ./scripts/run_android_instrumented_tests.sh
 
   ios-unit-tests:
     executor: mac-os-executor
@@ -263,7 +245,7 @@ jobs:
       - android/restore_gradle_cache
       - run:
           name: Run Unit tests
-          command: ./gradlew :shared:iosSimulatorArm64Test
+          command: ./scripts/run_gradle_task.sh :shared:iosSimulatorArm64Test
       - android/save_gradle_cache
       - android/save_build_cache
       - test-results-folder
@@ -282,7 +264,7 @@ jobs:
       - ruby/install-deps
       - run:
           name: Android SDK size report
-          command: ./gradlew generateSizeReport
+          command: ./scripts/run_gradle_task.sh generateSizeReport
       - store_artifacts:
           path: "shared/build/outputs/sizeReport"
           destination: sizeReport
@@ -304,15 +286,11 @@ jobs:
       - ruby/install-deps
       - run:
           name: Install Gem dependencies
-          command: |
-            cd iosApp
-            bundle install
+          command: ./scripts/install_gem_dependencies.sh
       - setup-certificates
       - run:
           name: Build and measure
-          command: |
-            cd iosApp
-            bundle exec fastlane size_demo_app
+          command: ./scripts/build_and_measure.sh
       - danger-check:
           danger_params: --danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report
       - cleanup-signing
@@ -328,7 +306,7 @@ jobs:
       - checkout
       - run:
           name: Create Framework
-          command: ./gradlew shared:assembleTwilioPasskeysAuthenticationXCFramework
+          command: ./scripts/run_gradle_task.sh shared:assembleTwilioPasskeysAuthenticationXCFramework
       - run:
           name: Compress Artifacts
           command: ./scripts/compress_xcframework.sh
@@ -352,9 +330,7 @@ jobs:
           at: *workspace
       - run:
           name: Create aars
-          command: |
-            mv builds/aar/shared-debug.aar TwilioPasskeys-debug.aar
-            mv builds/aar/shared-release.aar TwilioPasskeys.aar
+          command: ./scripts/create_aars.sh
       - store_artifacts:
           path: TwilioPasskeys-debug.aar
       - store_artifacts:
@@ -369,7 +345,7 @@ jobs:
           at: *workspace
       - run:
           name: Starting KMP release
-          command: echo "Starting KMP SDK release"
+          command: ./scripts/echo.sh "Starting KMP SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -385,7 +361,7 @@ jobs:
           at: *workspace
       - run:
           name: Starting iOS release
-          command: echo "Starting iOS SDK release"
+          command: ./scripts/echo.sh "Starting iOS SDK release"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -416,8 +392,7 @@ jobs:
       - install-firebase-cli
       - run:
           name: Deploy to Firebase App Distribution
-          command: |
-            firebase appdistribution:distribute sample-app.apk --app $FIREBASE_ANDROID_APP_ID --token $FIREBASE_TOKEN --groups qa --debug --release-notes "Sample app with Local SDK" | tee firebase_app_distribution_output.log
+          command: ./scripts/deploy_to_firebase.sh android
       - persist_to_workspace:
           root: *workspace
           paths:
@@ -432,20 +407,13 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Install Gem dependencies
-          command: |
-            cd iosApp
-            bundle install
-      - run:
-          name: Configure GCloud App Distribution service
-          command: echo -n "$GCLOUD_SERVICE_KEY" | base64 --decode -o ${HOME}/gcloud-app-distribution-service-key.json
+          name: Install Gem dependencies and configure GCloud App Distribution service
+          command: ./scripts/setup_ios_sample_app.sh
       - set-sample-backend-for-ios
       - setup-certificates
       - run:
           name: Deploy to Firebase App Distribution
-          command: |
-            cd iosApp
-            bundle exec fastlane deploy_demo_app
+          command: ./scripts/deploy_to_firebase.sh ios
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -465,9 +433,7 @@ jobs:
           at: *workspace
       - run:
           name: Install Gem dependencies
-          command: |
-            cd iosApp
-            bundle install
+          command: ./scripts/install_gem_dependencies.sh
       - set-sample-backend-for-ios
       - setup-certificates
       - run:
@@ -498,10 +464,7 @@ jobs:
           at: *workspace
       - run:
           name: Start automation pipeline to run E2E tests
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_android_e2e_tests.sh $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
-            echo "Trigger pipeline: $TRIGGER_PIPELINE"
+          command: ./scripts/start_e2e_tests_pipeline.sh android $ANDROID_APP_DOWNLOAD_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -523,10 +486,7 @@ jobs:
           at: *workspace
       - run:
           name: Start automation pipeline to run E2E tests
-          command: |
-            source "$TMP_WORKSPACE/$ENV_VARS_FILE"
-            TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>)
-            echo "Trigger pipeline: $TRIGGER_PIPELINE"
+          command: ./scripts/start_e2e_tests_pipeline.sh ios $IOS_SIMULATOR_APP_URL $CIRCLE_WORKFLOW_ID << parameters.waiting_job_name >>
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -548,9 +508,7 @@ jobs:
           at: *workspace
       - run:
           name: Check triggered job status
-          command: |
-            RESULT=$(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)
-            echo "Trigger pipeline status: $RESULT"
+          command: ./scripts/echo.sh "Trigger pipeline status: $(./scripts/e2e_tests/check_triggered_e2e_tests_pipeline_approval_by.sh $CIRCLE_WORKFLOW_ID << parameters.job_name_to_check >>)"
           environment:
             TMP_WORKSPACE: *tmp-workspace
             ENV_VARS_FILE: *env-vars-file
@@ -561,7 +519,7 @@ jobs:
     steps:
       - run:
           name: All tests passed
-          command: echo "All tests passed"
+          command: ./scripts/echo.sh "All tests passed"
 
 workflows:
   build-all:
