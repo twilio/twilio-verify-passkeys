@@ -1,0 +1,181 @@
+name: iOS Development
+
+# Development pipeline for iOS: shared Kotlin/KMP checks, iOS unit tests, SDK
+# size report, XCFramework generation, sample apps and E2E tests.
+# Every step only calls a script under scripts/. Actions are pinned to a full
+# commit SHA (enterprise policy requires it).
+
+on:
+  # PRs validate feature branches; push only runs on dev (avoids double runs
+  # when a branch with an open PR is pushed). E2E jobs are gated to dev.
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+# Cancel an in-progress run when a newer commit arrives on the same PR/branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Selects Xcode 26.6 on the macOS runners (ignored by the ubuntu jobs).
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  shared-checks:
+    uses: ./.github/workflows/shared-checks.yml
+    secrets: inherit
+
+  ios-unit-tests:
+    runs-on: macos-arm
+    needs: shared-checks
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+      - run: ./scripts/run_gradle_task.sh :shared:iosSimulatorArm64Test
+      - if: always()
+        run: ./scripts/copy_test_results.sh ~/test-results/junit
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-unit-test-results
+          path: ~/test-results/
+
+  ios-sdk-size-report:
+    runs-on: macos-arm
+    env:
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Installs the root bundle (danger) reliably; the iosApp bundle (fastlane)
+      # is installed by the script below.
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - run: ./scripts/install_gem_dependencies.sh
+      - run: ./scripts/certificates_setup.sh setup
+      - run: ./scripts/build_and_measure.sh
+      - run: ./scripts/danger_check.sh "--danger_id=ios_sdk_report --dangerfile=dangerfiles/dangerfile_ios_sdk_size_report"
+      # Surface the size report on the run's summary page.
+      - if: always()
+        run: cat iosApp/fastlane/sizes.txt >> "$GITHUB_STEP_SUMMARY" || true
+      - if: always()
+        run: ./scripts/certificates_setup.sh cleanup
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-size-report
+          path: iosApp/fastlane/sizes.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-size-ipa
+          path: iosApp/IPAs/iosApp.ipa
+
+  ios-generate-framework:
+    runs-on: macos-arm
+    needs: ios-unit-tests
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+      - run: ./scripts/run_gradle_task.sh shared:assembleTwilioPasskeysAuthenticationXCFramework
+      - run: ./scripts/compress_xcframework.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-frameworks
+          path: |
+            debugFramework.zip
+            releaseFramework.zip
+
+  generate-simulator-app:
+    runs-on: macos-arm
+    needs: ios-generate-framework
+    env:
+      SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    outputs:
+      app_url: ${{ steps.upload.outputs.artifact-url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: ./scripts/install_gem_dependencies.sh
+      - run: ./scripts/set_sample_backend_url.sh
+      - run: ./scripts/certificates_setup.sh setup
+      - run: ./scripts/build_ios_simulator_app.sh
+      - if: always()
+        run: ./scripts/certificates_setup.sh cleanup
+      - id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-sample-app
+          path: iosApp/sample-app.zip
+
+  generate-sample-app:
+    runs-on: macos-arm
+    needs: [ios-sdk-size-report, ios-generate-framework]
+    env:
+      SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
+      GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+      SAMPLE_APP_FIREBASE_ID: ${{ secrets.SAMPLE_APP_FIREBASE_ID }}
+      FIREBASE_APP_DISTRIBUTION_GROUP: ${{ secrets.FIREBASE_APP_DISTRIBUTION_GROUP }}
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The IPA is built by the ios-sdk-size-report job; fetch it into
+      # iosApp/IPAs so fastlane's deploy_demo_app can distribute it.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-size-ipa
+          path: iosApp/IPAs
+      - run: ./scripts/setup_ios_sample_app.sh
+      - run: ./scripts/set_sample_backend_url.sh
+      - run: ./scripts/certificates_setup.sh setup
+      - run: ./scripts/deploy_to_firebase.sh ios
+      - if: always()
+        run: ./scripts/certificates_setup.sh cleanup
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-firebase-url
+          path: iosApp/fastlane/firebase_url.txt
+
+  run-e2e-tests:
+    runs-on: ubuntu-x64
+    needs: generate-simulator-app
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+    # Manual approval gate replaces the CircleCI `wait-for-*` approval job.
+    environment: e2e-ios-approval
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          APP_URL: ${{ needs.generate-simulator-app.outputs.app_url }}
+          WORKFLOW_ID: ${{ github.run_id }}
+        run: ./scripts/start_e2e_tests_pipeline.sh ios "$APP_URL" "$WORKFLOW_ID" wait-for-ios-local-sdk-e2e-tests
