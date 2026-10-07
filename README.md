@@ -54,6 +54,8 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 4. Click Add Package to finish integrating the SDK
 5. Import TwilioPasskeys in the files you will make use of it:
 ```
+import TwilioPasskeysAuthentication
+
 let twilioPasskey = TwilioPasskey()
 ```
 
@@ -295,6 +297,8 @@ The authenticate payload for authenticating a user is a JSON with the schema:
 
 #### Sample backend configuration for Android sample app
 
+You can use the [sample backend](https://github.com/twilio-labs/function-templates/tree/main/passkeys-backend) as a ready-to-deploy Function Template for testing the sample app.
+
 In order to create passkeys you need to create the association for the sample app to communicate to the RP.
 1. [Add support for digital asset links](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal). You can generate a sha256 by running `./gradlew signingreport` and copying the sha256 of the keystore used to build the app. 
 2. Replace [value](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L20) with sha256. 
@@ -346,7 +350,8 @@ To enable passkeys on the backend you can follow the [detailed guide](https://ww
 
 
 #### Sample backend configuration for iOS sample app
-In order to create passkeys you need to create the association for the sample app to communicate to the RP.
+
+You can use the [sample backend](https://github.com/twilio-labs/function-templates/tree/main/passkeys-backend) as a ready-to-deploy Function Template for testing the sample app.
 
 ##### Preparing device for correct passkey testing
 

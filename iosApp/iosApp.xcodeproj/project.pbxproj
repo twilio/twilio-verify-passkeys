@@ -64,7 +64,6 @@
 		861AEF4D2B0EB43A005A097E /* PasskeysModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysModels.swift; sourceTree = "<group>"; };
 		861AEF4F2B0EB484005A097E /* PasskeysWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysWorker.swift; sourceTree = "<group>"; };
 		864891C02BD1C51D00E18A1B /* iosAppWithoutSDK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosAppWithoutSDK.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		864891C12BD1C51D00E18A1B /* iosApp copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "iosApp copy-Info.plist"; path = "/Users/aorozcobuiles/Development/Twilio/Secondary/twilio-verify-passkeys/iosApp/iosApp copy-Info.plist"; sourceTree = "<absolute>"; };
 		86ED79E72C6AA9410046B6C6 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		86FB1FCA2B0BF33100992ABF /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		86FB1FCC2B0BF9DC00992ABF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -104,7 +103,6 @@
 				7555FF7D242A565900829871 /* iosApp */,
 				7555FF7C242A565900829871 /* Products */,
 				7555FFB0242A642200829871 /* Frameworks */,
-				864891C12BD1C51D00E18A1B /* iosApp copy-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
