@@ -18,6 +18,7 @@
 
 package com.twilio.passkeys
 
+import com.twilio.passkeys.extensions.b64UrlToNSData
 import com.twilio.passkeys.models.AuthenticatePasskeyRequest
 import com.twilio.passkeys.models.CreatePasskeyRequest
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -27,7 +28,6 @@ import platform.AuthenticationServices.ASAuthorizationPlatformPublicKeyCredentia
 import platform.AuthenticationServices.ASPresentationAnchor
 import platform.Foundation.NSData
 import platform.Foundation.base64Encoding
-import platform.Foundation.create
 import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
@@ -78,8 +78,8 @@ actual open class TwilioPasskeys internal constructor(
   ): CreatePasskeyResult =
     suspendCancellableCoroutine { continuation ->
       val publicKeyCredentialProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(createPasskeyRequest.rp.id)
-      val challenge = NSData.create(base64Encoding = createPasskeyRequest.challenge)
-      val userID = NSData.create(base64Encoding = createPasskeyRequest.user.id)
+      val challenge = createPasskeyRequest.challenge.b64UrlToNSData()
+      val userID = createPasskeyRequest.user.id.b64UrlToNSData()
       val registrationRequest =
         publicKeyCredentialProvider.createCredentialRegistrationRequestWithChallenge(
           challenge = challenge!!,
@@ -138,7 +138,7 @@ actual open class TwilioPasskeys internal constructor(
     suspendCancellableCoroutine { continuation ->
       val preferImmediatelyAvailableCredentials = authenticatePasskeyRequest.preferImmediatelyAvailableCredentials
       val publicKeyCredentialProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(authenticatePasskeyRequest.publicKey.rpId)
-      val challenge = NSData.create(base64Encoding = authenticatePasskeyRequest.publicKey.challenge)
+      val challenge = authenticatePasskeyRequest.publicKey.challenge.b64UrlToNSData()
       val assertionRequest = publicKeyCredentialProvider.createCredentialAssertionRequestWithChallenge(challenge = challenge!!)
       val userVerification = authenticatePasskeyRequest.publicKey.userVerification
       assertionRequest.setUserVerificationPreference(userVerification)
