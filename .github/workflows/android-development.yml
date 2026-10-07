@@ -88,8 +88,11 @@ jobs:
       SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
       FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
       FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+      SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
     outputs:
       app_url: ${{ steps.upload.outputs.artifact-url }}
+      sauce_app_id: ${{ steps.sauce.outputs.app_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -106,6 +109,10 @@ jobs:
       - run: ./scripts/build_android_simulator_app.sh
       - run: ./scripts/install_firebase_cli.sh
       - run: ./scripts/deploy_to_firebase.sh android
+      # Only dev/manual runs feed the E2E tests, so skip PRs to save Sauce storage.
+      - id: sauce
+        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+        run: ./scripts/upload_to_sauce_labs.sh sample-app.apk
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -116,11 +123,17 @@ jobs:
     runs-on: ubuntu-x64
     needs: generate-sample-app
     if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
-    # Manual approval gate replaces the CircleCI `wait-for-*` approval job.
-    environment: e2e-android-approval
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - env:
           APP_URL: ${{ needs.generate-sample-app.outputs.app_url }}
           WORKFLOW_ID: ${{ github.run_id }}
-        run: ./scripts/start_e2e_tests_pipeline.sh android "$APP_URL" "$WORKFLOW_ID" wait-for-android-local-sdk-e2e-tests
+          SAUCE_APP_ID: ${{ needs.generate-sample-app.outputs.sauce_app_id }}
+        run: ./scripts/start_e2e_tests_pipeline.sh android "$APP_URL" "$WORKFLOW_ID" wait-for-android-local-sdk-e2e-tests "$SAUCE_APP_ID"
+
+  wait-for-android-local-sdk-e2e-tests:
+    runs-on: ubuntu-x64
+    needs: run-e2e-tests
+    environment: e2e-android-approval
+    steps:
+      - run: ./scripts/echo.sh "Android E2E tests approved"
