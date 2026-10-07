@@ -140,7 +140,7 @@ jobs:
   wait-for-android-local-sdk-e2e-tests:
     runs-on: ubuntu-x64
     needs: run-e2e-tests
-    environment: e2e-android-approval
+    environment: e2e-approval
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./scripts/echo.sh "Android E2E tests approved"
