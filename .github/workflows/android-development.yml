@@ -117,7 +117,7 @@ jobs:
       - run: ./scripts/deploy_to_firebase.sh android
       # Only dev/manual runs feed the E2E tests, so skip PRs to save Sauce storage.
       - id: sauce
-        # TEMP: `if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'` removed for testing
+        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
         run: ./scripts/upload_to_sauce_labs.sh sample-app.apk
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

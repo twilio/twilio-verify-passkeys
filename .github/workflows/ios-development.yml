@@ -124,8 +124,10 @@ jobs:
       - run: ./scripts/build_ios_simulator_app.sh
       - if: always()
         run: ./scripts/certificates_setup.sh cleanup
+      # Only dev/manual runs feed the E2E tests, so skip PRs to save Sauce storage.
       # Sauce Labs iOS simulator apps are uploaded as a zipped .app.
       - id: sauce
+        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
         run: ./scripts/upload_to_sauce_labs.sh iosApp/sample-app.zip sample-app.zip
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
