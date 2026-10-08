@@ -9,7 +9,7 @@ SAUCE_APP_ID="${5:-}"
 if [ "$PLATFORM" == "android" ]; then
   TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_android_e2e_tests.sh $APP_URL $WORKFLOW_ID $WAITING_JOB_NAME "$SAUCE_APP_ID")
 elif [ "$PLATFORM" == "ios" ]; then
-  TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $APP_URL $WORKFLOW_ID $WAITING_JOB_NAME)
+  TRIGGER_PIPELINE=$(./scripts/e2e_tests/run_ios_e2e_tests.sh $APP_URL $WORKFLOW_ID $WAITING_JOB_NAME "$SAUCE_APP_ID")
 else
   echo "Unknown platform: $PLATFORM. Use 'android' or 'ios'."
   exit 1

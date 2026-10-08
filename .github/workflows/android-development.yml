@@ -128,7 +128,7 @@ jobs:
   run-e2e-tests:
     runs-on: ubuntu-x64
     needs: generate-sample-app
-    # TEMP: `if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'` removed for testing
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - env:

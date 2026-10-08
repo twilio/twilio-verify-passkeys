@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Upload the Android sample app (APK) to Sauce Labs app storage.
+# Upload a sample app (Android APK or zipped iOS simulator .app) to Sauce Labs app storage.
 #
 # Usage: ./upload_to_sauce_labs.sh [APK_PATH] [APP_NAME]
 # Needs curl and jq. On GitHub Actions the app id is also written to $GITHUB_OUTPUT as app_id.

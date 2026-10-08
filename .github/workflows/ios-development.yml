@@ -111,8 +111,11 @@ jobs:
       VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
       VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
       VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+      SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+      SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
     outputs:
       app_url: ${{ steps.upload.outputs.artifact-url }}
+      sauce_app_id: ${{ steps.sauce.outputs.app_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./scripts/install_gem_dependencies.sh
@@ -121,6 +124,9 @@ jobs:
       - run: ./scripts/build_ios_simulator_app.sh
       - if: always()
         run: ./scripts/certificates_setup.sh cleanup
+      # Sauce Labs iOS simulator apps are uploaded as a zipped .app.
+      - id: sauce
+        run: ./scripts/upload_to_sauce_labs.sh iosApp/sample-app.zip sample-app.zip
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -159,7 +165,7 @@ jobs:
   run-e2e-tests:
     runs-on: ubuntu-x64
     needs: generate-simulator-app
-    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+    # TEMP: `if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'` removed for testing
     # Manual approval gate replaces the CircleCI `wait-for-*` approval job.
     environment: e2e-approval
     steps:
@@ -167,4 +173,5 @@ jobs:
       - env:
           APP_URL: ${{ needs.generate-simulator-app.outputs.app_url }}
           WORKFLOW_ID: ${{ github.run_id }}
-        run: ./scripts/start_e2e_tests_pipeline.sh ios "$APP_URL" "$WORKFLOW_ID" wait-for-ios-local-sdk-e2e-tests
+          SAUCE_APP_ID: ${{ needs.generate-simulator-app.outputs.sauce_app_id }}
+        run: ./scripts/start_e2e_tests_pipeline.sh ios "$APP_URL" "$WORKFLOW_ID" wait-for-ios-local-sdk-e2e-tests "$SAUCE_APP_ID"
