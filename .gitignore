@@ -13,3 +13,15 @@ xcuserdata
 gradle-task-output.log
 tmp
 .kotlin
+# fastlane outputs
+/builds/
+/TwilioPasskeys*.aar
+/sample-app.*
+/debugFramework.zip
+/releaseFramework.zip
+/TwilioPasskeysAuthentication.xcframework*
+/iosApp/IPAs/
+/iosApp/simulator_build/
+/iosApp/sample-app.*
+/fastlane/report.xml
+/fastlane/test_output/

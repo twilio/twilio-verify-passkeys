@@ -1,0 +1,363 @@
+name: CI
+
+# Builds, checks and tests the KMP SDK for Android and iOS, and distributes the
+# sample apps. Replaces the CircleCI build-all and generate_app workflows.
+# The logic lives in fastlane lanes (fastlane/Fastfile). Actions are pinned to a
+# full commit SHA (org policy requires it).
+
+on:
+  # Feature branches are covered by their pull request; limiting pushes to the
+  # long-lived branches keeps a PR from running the pipeline twice.
+  push:
+    branches: [main, dev, 'release/**', 'hotfix/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      generate-app:
+        description: Only build and distribute the sample apps
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Selects Xcode 26.6 on the macOS runners (ignored by the Linux jobs).
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  FASTLANE_SKIP_UPDATE_CHECK: '1'
+  FASTLANE_HIDE_CHANGELOG: '1'
+  # Danger only comments on pull requests from this repo; forks get a read-only token.
+  RUN_DANGER: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork }}
+  # Sample apps go to testers only from dev, release and hotfix pushes, or on demand.
+  DISTRIBUTE: >-
+    ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (
+      github.ref == 'refs/heads/dev' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      startsWith(github.ref, 'refs/heads/hotfix/'))) }}
+
+# The jobs build from source independently, so they all start at once. The only
+# needs are for real handoffs (the instrumented tests use assemble's test APK,
+# the iOS sample app reuses the size report's IPA) and for the sample apps, which
+# shouldn't reach testers unless the tests passed. A generate-app run skips
+# everything but the sample apps.
+jobs:
+  assemble:
+    name: Assemble
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write # Danger comments on the PR
+      statuses: write # Danger reports its status
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Danger diffs the PR against its base branch
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane assemble
+      - name: Danger check
+        if: env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:assemble dangerfile:dangerfile_pr_validation
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-builds
+          path: builds/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-aars
+          path: |
+            TwilioPasskeys-debug.aar
+            TwilioPasskeys.aar
+          if-no-files-found: error
+
+  lint:
+    name: Lint
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane lint
+      # Runs on failure too, so the findings are reported on the PR.
+      - name: Danger check
+        if: always() && env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:lint dangerfile:dangerfile_ktlint
+
+  detekt:
+    name: Detekt
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane detekt
+      - name: Danger check
+        if: always() && env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:detekt dangerfile:dangerfile_detekt
+
+  android-unit-tests:
+    name: Android unit tests
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane android_unit_tests
+      # Runs when the coverage rule fails too, so the report still posts.
+      - name: Danger check
+        if: always() && env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:unit_tests dangerfile:dangerfile_code_coverage
+      - if: always()
+        run: bundle exec fastlane test_summary title:"Android unit tests"
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: warn
+
+  android-sdk-size-report:
+    name: Android SDK size report
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane android_size_report
+      - name: Danger check
+        if: env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:android_sdk_report dangerfile:dangerfile_android_sdk_size_report
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-size-report
+          path: shared/build/outputs/sizeReport/
+          if-no-files-found: error
+
+  ios-sdk-size-report:
+    name: iOS SDK size report
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    env:
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane ios size_report
+      - name: Danger check
+        if: env.RUN_DANGER == 'true'
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane danger_check id:ios_sdk_report dangerfile:dangerfile_ios_sdk_size_report
+      - name: Add the size report to the summary
+        if: always()
+        run: cat iosApp/build/sizes.txt >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-size-ipa
+          path: iosApp/IPAs/iosApp.ipa
+          if-no-files-found: error
+
+  android-instrumented-tests:
+    name: Android instrumented tests
+    needs: [assemble]
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 45
+    env:
+      CLOUDSDK_CORE_DISABLE_PROMPTS: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-build-env
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: android-builds
+          path: builds/
+      - uses: ./.github/actions/setup-gcloud
+        with:
+          service-account-key: ${{ secrets.GCLOUD_SERVICE_KEY }}
+          project: ${{ secrets.GOOGLE_PROJECT_ID }}
+      - run: bundle exec fastlane instrumented_tests
+
+  ios-unit-tests:
+    name: iOS unit tests
+    if: ${{ !inputs.generate-app }}
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane ios_unit_tests
+      - if: always()
+        run: bundle exec fastlane test_summary title:"iOS unit tests"
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: warn
+
+  ios-generate-framework:
+    name: Generate iOS XCFramework
+    if: ${{ !inputs.generate-app && github.ref != 'refs/heads/main' }}
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane xcframework
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-frameworks
+          path: |
+            debugFramework.zip
+            releaseFramework.zip
+          if-no-files-found: error
+
+  # The sample-app jobs also run on their own when the workflow is dispatched
+  # with generate-app (the CircleCI generate_app workflow), when everything they
+  # need is skipped. Otherwise they need their platform's tests to have passed.
+  android-sample-app:
+    name: Android sample app
+    needs: [android-unit-tests, android-instrumented-tests]
+    if: >-
+      always() && !cancelled() && (inputs.generate-app || (
+        github.ref != 'refs/heads/main' &&
+        !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'skipped')))
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    timeout-minutes: 30
+    env:
+      SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
+      FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane android_sample_app distribute:"$DISTRIBUTE"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-sample-app
+          path: sample-app.zip
+          if-no-files-found: error
+
+  ios-sample-app:
+    name: iOS sample app
+    needs: [ios-sdk-size-report, ios-unit-tests]
+    # Only distributes, so it runs where the DISTRIBUTE env does (env isn't
+    # available in a job-level if).
+    if: >-
+      always() && !cancelled() && (inputs.generate-app || (
+        (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (
+          github.ref == 'refs/heads/dev' ||
+          startsWith(github.ref, 'refs/heads/release/') ||
+          startsWith(github.ref, 'refs/heads/hotfix/')))) &&
+        !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'skipped')))
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
+    timeout-minutes: 45
+    env:
+      SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
+      GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+      SAMPLE_APP_FIREBASE_ID: ${{ secrets.SAMPLE_APP_FIREBASE_ID }}
+      FIREBASE_APP_DISTRIBUTION_GROUP: ${{ secrets.FIREBASE_APP_DISTRIBUTION_GROUP }}
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the release notes are the last commit message
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane ios set_sample_backend
+      # The size report builds the IPA; a generate-app run has no size report,
+      # so it builds the IPA itself.
+      - name: Download the IPA
+        if: needs.ios-sdk-size-report.result == 'success'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-size-ipa
+          path: iosApp/IPAs
+      - name: Build the IPA
+        if: needs.ios-sdk-size-report.result != 'success'
+        run: bundle exec fastlane ios size_report
+      - run: bundle exec fastlane ios distribute_sample_app
+
+  ios-simulator-app:
+    name: iOS simulator app
+    if: inputs.generate-app || github.ref != 'refs/heads/main'
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
+    timeout-minutes: 45
+    env:
+      SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
+      VERIFY_PASSKEYS_DEMO_CERT: ${{ secrets.VERIFY_PASSKEYS_DEMO_CERT }}
+      VERIFY_PASSKEYS_DEMO_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_KEYCHAIN_PASS }}
+      VERIFY_PASSKEYS_DEMO_PASS: ${{ secrets.VERIFY_PASSKEYS_DEMO_PASS }}
+      VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE: ${{ secrets.VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE }}
+      VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM: ${{ secrets.VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-build-env
+      - run: bundle exec fastlane ios set_sample_backend
+      - run: bundle exec fastlane ios simulator_app
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-simulator-app
+          path: iosApp/sample-app.zip
+          if-no-files-found: error
