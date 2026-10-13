@@ -1,0 +1,63 @@
+name: Prepare release
+
+# Stage 1 of the release flow. When dev is merged into main, works out which
+# platforms (KMP, iOS) have releasable commits since their last tag, bumps their
+# versions, updates CHANGELOG.md and opens a release/<versions> PR into main.
+# Merging that PR starts Publish release. main can't be pushed to directly, so
+# the release goes through a PR.
+
+on:
+  # A release PR's merge only touches these files, so it doesn't start another one.
+  push:
+    branches: [main]
+    paths-ignore:
+      - gradle.properties
+      - CHANGELOG.md
+  workflow_dispatch:
+
+concurrency:
+  group: prepare-release
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    if: github.repository_owner == 'twilio' && github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
+    # The production approval is the go/no-go for cutting a release.
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # versions and changelogs come from the commits since the last tag
+          persist-credentials: false
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Set the release commit author
+        env:
+          GITHUB_USER_NAME: ${{ secrets.GH_USER_NAME }}
+          GITHUB_USER_EMAIL: ${{ secrets.GH_USER_EMAIL }}
+        run: |
+          git config user.name "$GITHUB_USER_NAME"
+          git config user.email "$GITHUB_USER_EMAIL"
+      - name: Commit the release
+        id: release
+        env:
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: bundle exec fastlane prepare_release
+      # Pushed with the bot's token so the release branch gets CI.
+      - name: Push the branch and open the release PR
+        if: steps.release.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+          TITLE: ${{ steps.release.outputs.title }}
+        run: |
+          gh auth setup-git
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file build/release-notes.md

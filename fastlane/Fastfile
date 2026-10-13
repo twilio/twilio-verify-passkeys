@@ -1,0 +1,551 @@
+# CI and release lanes for the Twilio Verify Passkeys KMP SDK.
+#
+# GitHub Actions (.github/workflows) calls these lanes; they can also be run
+# locally with `bundle exec fastlane <lane>`. See README.md in this folder for
+# the full list.
+#
+# Lane code runs from the fastlane/ folder and actions run from the repo root,
+# so every path below is built from repo_root to avoid depending on either.
+
+require 'digest'
+require 'fileutils'
+
+default_platform(:android)
+
+IOS_REPO = "twilio/twilio-verify-passkeys-ios"
+XCFRAMEWORK_NAME = "TwilioPasskeysAuthentication.xcframework"
+PLATFORMS = {
+  kmp: { ios_only: false, property: "kmpSdkVersionName", suffix: "-kmp" },
+  ios: { ios_only: true, property: "iosSdkVersionName", suffix: "-ios" }
+}.freeze
+
+def repo_root
+  @repo_root ||= File.expand_path("..", __dir__)
+end
+
+def root_path(*parts)
+  File.join(repo_root, *parts)
+end
+
+# Runs a shell command from the repo root and returns its output.
+def sh_root(command, log: true)
+  Dir.chdir(repo_root) { sh(command, log: log) }
+end
+
+def gradle_tasks(*tasks, properties: {}, flags: nil)
+  gradle(tasks: tasks.flatten, project_dir: repo_root, properties: properties, flags: flags, print_command: true)
+end
+
+def gradle_property(name)
+  File.read(root_path("gradle.properties"))[/^#{name}\s*=\s*(\S+)\s*$/, 1].to_s
+end
+
+# Writes key=value pairs to $GITHUB_OUTPUT so later workflow steps can use them.
+def github_output(values)
+  values.each { |key, value| UI.message("#{key}=#{value}") }
+  path = ENV["GITHUB_OUTPUT"].to_s
+  return if path.empty?
+
+  File.open(path, "a") { |f| values.each { |key, value| f.puts("#{key}=#{value}") } }
+end
+
+# The temp dir GitHub gives each job, or a fresh one locally.
+def temp_dir
+  @temp_dir ||= ENV["RUNNER_TEMP"].to_s.empty? ? Dir.mktmpdir : ENV["RUNNER_TEMP"]
+end
+
+def require_env(name)
+  value = ENV[name].to_s
+  # GitHub passes secrets to fork PRs as empty strings.
+  UI.user_error!("#{name} is not set. Pull requests from forks don't receive secrets.") if value.empty?
+  value
+end
+
+def tag_exists?(tag, repo: nil)
+  remote = repo ? "https://github.com/#{repo}.git" : "origin"
+  system("git", "ls-remote", "--exit-code", "--tags", remote, "refs/tags/#{tag}", out: File::NULL, chdir: repo_root)
+end
+
+# The CHANGELOG.md entry titled "# <tag>", without its title line.
+def changelog_entry(tag)
+  lines = File.readlines(root_path("CHANGELOG.md"), chomp: true)
+  start = lines.index("# #{tag}")
+  UI.user_error!("CHANGELOG.md has no '# #{tag}' entry. Release PRs come from the Prepare release workflow.") unless start
+  rest = lines[(start + 1)..]
+  finish = rest.index { |line| line.start_with?("# ") } || rest.length
+  entry = rest[0...finish].join("\n").strip
+  UI.user_error!("The '# #{tag}' entry in CHANGELOG.md is empty.") if entry.empty?
+  entry
+end
+
+def write_notes_file(tag)
+  path = File.join(temp_dir, "release-notes-#{tag}.md")
+  File.write(path, "#{changelog_entry(tag)}\n")
+  path
+end
+
+# Makes apkanalyzer (used by the generateSizeReport task) available, installing
+# the SDK cmdline-tools when the runner doesn't have them.
+def ensure_apkanalyzer
+  return if system("command -v apkanalyzer >/dev/null 2>&1")
+
+  sdk_dir = [ENV["ANDROID_HOME"], ENV["ANDROID_SDK_ROOT"]].map(&:to_s).find { |dir| !dir.empty? } || File.join(Dir.home, "android-sdk")
+  candidates = ["#{sdk_dir}/cmdline-tools/latest/bin"] + Dir["#{sdk_dir}/cmdline-tools/*/bin"] + ["#{sdk_dir}/tools/bin"]
+  bin_dir = candidates.find { |dir| File.executable?(File.join(dir, "apkanalyzer")) }
+
+  unless bin_dir
+    sdkmanager = candidates.map { |dir| File.join(dir, "sdkmanager") }.find { |path| File.executable?(path) }
+    UI.user_error!("No apkanalyzer or sdkmanager under #{sdk_dir}; install the Android SDK cmdline-tools on the runner.") unless sdkmanager
+    sh("yes | #{sdkmanager.shellescape} 'cmdline-tools;latest'")
+    bin_dir = "#{sdk_dir}/cmdline-tools/latest/bin"
+  end
+
+  ENV["PATH"] = "#{bin_dir}#{File::PATH_SEPARATOR}#{ENV['PATH']}"
+  UI.message("apkanalyzer: #{bin_dir}")
+end
+
+def zip_xcframework(build_type, output)
+  link = root_path(XCFRAMEWORK_NAME)
+  FileUtils.rm_f([link, output])
+  File.symlink(root_path("shared/build/XCFrameworks/#{build_type}/#{XCFRAMEWORK_NAME}"), link)
+  sh_root("zip -r #{output.shellescape} #{XCFRAMEWORK_NAME}", log: false)
+ensure
+  FileUtils.rm_f(link)
+end
+
+# ---------------------------------------------------------------------------
+# Checks and tests
+# ---------------------------------------------------------------------------
+
+desc "Assemble the SDK, the Android sample app and the instrumented test APK, and collect them in builds/"
+lane :assemble do
+  gradle_tasks("assembleDebug", ":shared:assembleRelease", "assembleDebugAndroidTest")
+  FileUtils.mkdir_p(root_path("builds"))
+  FileUtils.cp_r(Dir[root_path("shared/build/outputs/apk/androidTest/debug/*")], root_path("builds"))
+  FileUtils.cp_r(root_path("shared/build/outputs/aar"), root_path("builds"))
+end
+
+desc "Check the Kotlin code style with ktlint"
+lane :lint do
+  gradle_tasks("ktlintCheck")
+end
+
+desc "Run detekt"
+lane :detekt do
+  gradle_tasks("detekt")
+end
+
+desc "Run the Android unit tests with Kover coverage and enforce the coverage rule"
+lane :android_unit_tests do
+  gradle_tasks(":shared:koverXmlReportDebug", ":shared:koverVerify")
+end
+
+desc "Run the iOS unit tests on the arm64 simulator"
+lane :ios_unit_tests do
+  gradle_tasks(":shared:iosSimulatorArm64Test")
+end
+
+desc "Generate the Android SDK size report"
+lane :android_size_report do
+  ensure_apkanalyzer
+  # A running daemon would keep its old PATH and miss apkanalyzer.
+  gradle_tasks("generateSizeReport", flags: "--no-daemon")
+end
+
+desc "Run the instrumented tests in Firebase Test Lab (gcloud must be authenticated)"
+lane :instrumented_tests do
+  sh_root(
+    "gcloud firebase test android run --app ftl/dummy.apk --test builds/shared-debug-androidTest.apk " \
+    "--device model=tokay,version=35,locale=en,orientation=portrait"
+  )
+end
+
+desc "Add a JUnit results table to the GitHub job summary. Options: title"
+lane :test_summary do |options|
+  title = options.fetch(:title)
+  files = Dir[root_path("**/build/test-results/**/*.xml")]
+  totals = Hash.new(0)
+  failing = []
+
+  files.each do |file|
+    xml = File.read(file)
+    xml.scan(/<testsuite\s[^>]*>/).each do |suite|
+      %w[tests failures errors skipped].each { |key| totals[key] += suite[/\s#{key}="(\d+)"/, 1].to_i }
+      totals["time"] += suite[/\stime="([\d.]+)"/, 1].to_f
+    end
+    xml.scan(%r{<testcase\s([^>]*?)(?:/>|>(.*?)</testcase>)}m).each do |attrs, body|
+      next unless body.to_s =~ /<(failure|error)[\s>]/
+
+      failing << "#{attrs[/classname="([^"]*)"/, 1]}.#{attrs[/(?:\A|\s)name="([^"]*)"/, 1]}"
+    end
+  end
+
+  summary =
+    if files.empty?
+      "### #{title}\n\n> No JUnit test results were found.\n"
+    else
+      failed = totals["failures"] + totals["errors"]
+      passed = totals["tests"] - failed - totals["skipped"]
+      status = failed.zero? ? "✅ Passed" : "❌ Failed"
+      text = +"### #{title} — #{status}\n\n"
+      text << "| Total | Passed | Failed | Errors | Skipped | Time (s) |\n"
+      text << "| ----- | ------ | ------ | ------ | ------- | -------- |\n"
+      text << "| #{totals['tests']} | #{passed} | #{totals['failures']} | #{totals['errors']} | #{totals['skipped']} | #{format('%.3f', totals['time'])} |\n"
+      text << "\n<details><summary>Failing tests</summary>\n\n#{failing.map { |t| "- `#{t}`" }.join("\n")}\n\n</details>\n" unless failing.empty?
+      text
+    end
+
+  path = ENV["GITHUB_STEP_SUMMARY"].to_s
+  path.empty? ? UI.message(summary) : File.write(path, "#{summary}\n", mode: "a")
+end
+
+desc "Run a Danger check on the current PR. Options: id, dangerfile (a file in dangerfiles/)"
+lane :danger_check do |options|
+  danger(
+    danger_id: options.fetch(:id),
+    dangerfile: root_path("dangerfiles", options.fetch(:dangerfile)),
+    github_api_token: require_env("DANGER_GITHUB_API_TOKEN"),
+    remove_previous_comments: true,
+    verbose: true
+  )
+end
+
+# ---------------------------------------------------------------------------
+# SDK artifacts
+# ---------------------------------------------------------------------------
+
+desc "Rename the AARs collected by assemble to TwilioPasskeys(-debug).aar"
+lane :android_aars do
+  FileUtils.cp(root_path("builds/aar/shared-debug.aar"), root_path("TwilioPasskeys-debug.aar"))
+  FileUtils.cp(root_path("builds/aar/shared-release.aar"), root_path("TwilioPasskeys.aar"))
+end
+
+desc "Build the debug and release XCFrameworks as debugFramework.zip and releaseFramework.zip"
+lane :xcframework do
+  gradle_tasks("shared:assembleTwilioPasskeysAuthenticationXCFramework")
+  zip_xcframework("debug", root_path("debugFramework.zip"))
+  zip_xcframework("release", root_path("releaseFramework.zip"))
+end
+
+# ---------------------------------------------------------------------------
+# Android sample app
+# ---------------------------------------------------------------------------
+
+desc "Build the Android sample app against the local SDK as sample-app.apk / sample-app.zip. Options: distribute"
+lane :android_sample_app do |options|
+  # Wrapped in escaped quotes because it becomes a Java string literal in BuildConfig.
+  backend_url = require_env("SAMPLE_BACKEND_URL")
+  gradle_tasks(":androidApp:assembleDebug", properties: { "sampleBackendUrl" => "\"#{backend_url}\"" })
+  FileUtils.mv(root_path("androidApp/build/outputs/apk/debug/androidApp-debug.apk"), root_path("sample-app.apk"))
+  FileUtils.rm_f(root_path("sample-app.zip"))
+  sh_root("zip sample-app.zip sample-app.apk", log: false)
+
+  # CLI options arrive as strings ("true"/"false").
+  next unless options[:distribute].to_s == "true"
+
+  firebase_app_distribution(
+    app: require_env("FIREBASE_ANDROID_APP_ID"),
+    android_artifact_path: root_path("sample-app.apk"),
+    android_artifact_type: "APK",
+    firebase_cli_token: require_env("FIREBASE_TOKEN"),
+    groups: "qa",
+    release_notes: last_git_commit[:message]
+  )
+end
+
+# ---------------------------------------------------------------------------
+# Releases
+# ---------------------------------------------------------------------------
+
+desc "Bump the version and changelog of every platform with releasable commits, and commit them on a release/<versions> branch"
+lane :prepare_release do
+  notes_file = root_path("build/release-notes.md")
+  FileUtils.mkdir_p(File.dirname(notes_file))
+  released = {}
+  entries = []
+
+  PLATFORMS.each do |platform, config|
+    release_type = sh_root("ruby scripts/versioning/require_release.rb #{config[:ios_only]}", log: false).strip
+    case release_type
+    when "NONE"
+      UI.message("No #{platform} release needed")
+      next
+    when "MAJOR", "MINOR", "PATCH"
+    else
+      UI.user_error!("require_release.rb returned #{release_type.inspect}")
+    end
+
+    version = sh_root("ruby scripts/versioning/bump_kmp_sdk_version.rb #{release_type} #{config[:property]}", log: false).strip
+    tag = "#{version}#{config[:suffix]}"
+    UI.user_error!("#{tag} is already tagged; check #{config[:property]} in gradle.properties") if tag_exists?(tag)
+    UI.success("#{release_type} release: #{tag}")
+
+    # The generator titles the entry "# <version>"; the suffix tells the KMP and
+    # iOS entries apart, and Publish release looks the entry up by its tag.
+    entry = sh_root("ruby scripts/versioning/generate_changelog.rb #{config[:ios_only]}", log: false)
+    entries << entry.strip.sub(/\A# #{Regexp.escape(version)}$/, "# #{tag}")
+    released[platform] = version
+  end
+
+  if released.empty?
+    UI.important("Nothing to release.")
+    github_output(branch: "")
+    next
+  end
+
+  label = released.map { |platform, version| "#{version}#{PLATFORMS[platform][:suffix]}" }.join(", ")
+  branch = "release/#{label.delete(' ').tr(',', '_')}"
+  unless sh_root("git ls-remote --heads origin #{branch}", log: false).strip.empty?
+    UI.user_error!("#{branch} already exists on origin. Merge or delete its PR before preparing it again.")
+  end
+
+  notes = entries.join("\n\n")
+  File.write(notes_file, "#{notes}\n")
+  changelog_path = root_path("CHANGELOG.md")
+  title, rest = File.read(changelog_path).split("\n", 2)
+  File.write(changelog_path, "#{title}\n\n#{notes}\n\n#{rest.to_s.sub(/\A\n+/, '')}")
+
+  sh_root("git switch -c #{branch}")
+  sh_root("git add gradle.properties CHANGELOG.md")
+  sh_root("git commit -m #{"chore(release): #{label}".shellescape}")
+
+  github_output(
+    branch: branch,
+    title: "Release #{label}",
+    kmp_version: released[:kmp].to_s,
+    ios_version: released[:ios].to_s
+  )
+end
+
+desc "Report each platform's version, and whether it's tagged (and for KMP, on Maven Central), to $GITHUB_OUTPUT"
+lane :release_status do
+  status = {}
+
+  PLATFORMS.each do |platform, config|
+    version = gradle_property(config[:property])
+    UI.user_error!("#{config[:property]} #{version.inspect} isn't a x.y.z version") unless version.match?(/\A\d+\.\d+\.\d+\z/)
+    tag = "#{version}#{config[:suffix]}"
+    tagged = tag_exists?(tag)
+    # Untagged versions must come from a release PR.
+    changelog_entry(tag) unless tagged
+    status["#{platform}_version"] = version
+    status["#{platform}_tagged"] = tagged
+  end
+
+  kmp_version = status["kmp_version"]
+  pom = "https://repo1.maven.org/maven2/com/twilio/twilio-verify-passkeys-common/#{kmp_version}/twilio-verify-passkeys-common-#{kmp_version}.pom"
+  on_central = system("curl", "-fsI", pom, out: File::NULL)
+  status["kmp_on_central"] = on_central
+  if on_central && !status["kmp_tagged"]
+    UI.user_error!("#{kmp_version} is already on Maven Central but has no #{kmp_version}-kmp tag. Back-fill the tag on the commit that was published, then re-run.")
+  end
+
+  github_output(status)
+end
+
+desc "Publish the KMP SDK version in gradle.properties to Maven Central"
+lane :publish_kmp do
+  # build.gradle.kts reads the signing and Sonatype credentials from the environment.
+  key_ring = require_env("SIGNING_SECRET_KEY_RING_FILE")
+  FileUtils.mkdir_p(File.dirname(key_ring))
+  # Overwrite rather than append: appending corrupts the keyring on a re-run.
+  File.binwrite(key_ring, require_env("SIGNING_KEY").unpack1("m"))
+
+  begin
+    output = sh_root("./gradlew sonatypeTwilioPasskeysStagingRepositoryUpload")
+    repository = output[/Created staging repository '([^']+)'/, 1]
+    UI.user_error!("Couldn't find the staging repository in the Gradle output") unless repository
+
+    UI.message("Releasing staging repository #{repository} to Maven Central")
+    sh_root("./gradlew releaseSonatypeStagingRepository --staging-repository-id #{repository.shellescape}")
+  ensure
+    FileUtils.rm_f(key_ring)
+  end
+end
+
+desc "Create this repo's GitHub release for a tag from its CHANGELOG.md entry. Options: tag"
+lane :github_release do |options|
+  tag = options.fetch(:tag)
+  if system("gh", "release", "view", tag, out: File::NULL, err: File::NULL, chdir: repo_root)
+    UI.message("The #{tag} release already exists.")
+    next
+  end
+  sh_root("gh release create #{tag.shellescape} --title #{tag.shellescape} --notes-file #{write_notes_file(tag).shellescape} --verify-tag")
+end
+
+desc "Release releaseFramework.zip from twilio-verify-passkeys-ios: update Package.swift, tag and create the release. Options: version"
+lane :publish_ios do |options|
+  version = options.fetch(:version)
+  # GH_TOKEN needs write access to twilio-verify-passkeys-ios.
+  require_env("GH_TOKEN")
+  zip = root_path("#{XCFRAMEWORK_NAME}.zip")
+  FileUtils.mv(root_path("releaseFramework.zip"), zip) if File.exist?(root_path("releaseFramework.zip"))
+  UI.user_error!("releaseFramework.zip not found") unless File.exist?(zip)
+  checksum = Digest::SHA256.file(zip).hexdigest
+  UI.message("Checksum: #{checksum}")
+
+  if tag_exists?("v#{version}", repo: IOS_REPO)
+    UI.message("v#{version} is already tagged in #{IOS_REPO}")
+  else
+    clone = File.join(temp_dir, "twilio-verify-passkeys-ios")
+    FileUtils.rm_rf(clone)
+    sh("gh auth setup-git")
+    sh("git clone https://github.com/#{IOS_REPO}.git #{clone.shellescape}")
+
+    package = File.join(clone, "Package.swift")
+    url = "https://github.com/#{IOS_REPO}/releases/download/v#{version}/#{XCFRAMEWORK_NAME}.zip"
+    content = File.read(package)
+                  .sub(/url: .*/, "url: \"#{url}\",")
+                  .sub(/checksum: ".*"/, "checksum: \"#{checksum}\"")
+    File.write(package, content)
+
+    Dir.chdir(clone) do
+      sh("git diff Package.swift")
+      sh("git config user.name #{require_env('GITHUB_USER_NAME').shellescape}")
+      sh("git config user.email #{require_env('GITHUB_USER_EMAIL').shellescape}")
+      sh("git commit -am #{"Update to version v#{version}".shellescape}")
+      sh("git tag v#{version}")
+      sh("git push origin main")
+      sh("git push origin v#{version}")
+    end
+  end
+
+  if system("gh", "release", "view", "v#{version}", "-R", IOS_REPO, out: File::NULL, err: File::NULL)
+    UI.message("The v#{version} release already exists in #{IOS_REPO}.")
+  else
+    sh(
+      "gh release create v#{version} #{zip.shellescape} -R #{IOS_REPO} " \
+      "--title #{"TwilioPasskeysAuthentication v#{version}".shellescape} " \
+      "--notes-file #{write_notes_file("#{version}-ios").shellescape} --verify-tag"
+    )
+  end
+end
+
+# ---------------------------------------------------------------------------
+# iOS sample app
+# ---------------------------------------------------------------------------
+
+platform :ios do
+  IOS_PROJECT = File.expand_path("../iosApp/iosApp.xcodeproj", __dir__)
+  IOS_BUNDLE_ID = "com.passkeys.twilio.sampleCode"
+  IPA_DIR = File.expand_path("../iosApp/IPAs", __dir__)
+  # The iOS size Danger check reads this file.
+  SIZES_FILE = File.expand_path("../iosApp/build/sizes.txt", __dir__)
+
+  before_all do
+    setup_ci
+  end
+
+  def signing_settings
+    {
+      BUNDLE_IDENTIFIER: IOS_BUNDLE_ID,
+      PROVISIONING_PROFILE_SPECIFIER: ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"],
+      DEVELOPMENT_TEAM: ENV["VERIFY_PASSKEYS_DEMO_DEVELOPMENT_TEAM"]
+    }
+  end
+
+  def export_options
+    { provisioningProfiles: { IOS_BUNDLE_ID => ENV["VERIFY_PASSKEYS_DEMO_PROVISIONING_PROFILE"] } }
+  end
+
+  # Installs the demo signing certificate and profile for the block, then removes them.
+  def with_signing
+    sh_root("./scripts/certificates_setup.sh setup")
+    yield
+  ensure
+    sh_root("./scripts/certificates_setup.sh cleanup")
+  end
+
+  def size_mb(path)
+    `du -sk #{path.shellescape}`.split[0].to_i / 1024.0
+  end
+
+  def build_ipa(scheme, name)
+    gym(
+      scheme: scheme,
+      project: IOS_PROJECT,
+      export_method: "development",
+      export_options: export_options,
+      xcargs: signing_settings,
+      silent: true,
+      output_directory: IPA_DIR,
+      output_name: name
+    )
+  end
+
+  desc "Point the sample app at SAMPLE_BACKEND_URL (domain and webcredentials entitlement)"
+  lane :set_sample_backend do
+    domain = require_env("SAMPLE_BACKEND_URL").sub(%r{\Ahttps://}, "").sub(%r{/\z}, "")
+    constants = root_path("iosApp/iosApp/Constants.swift")
+    File.write(constants, File.read(constants).sub(/let domain: String = ".*"/, "let domain: String = \"#{domain}\""))
+    entitlements = root_path("iosApp/iosApp/iosApp.entitlements")
+    File.write(entitlements, File.read(entitlements).sub(%r{<string>webcredentials:.*</string>}, "<string>webcredentials:#{domain}</string>"))
+  end
+
+  desc "Build the sample app with and without the SDK and write the SDK's size impact to iosApp/build/sizes.txt"
+  lane :size_report do
+    with_signing do
+      ipa = build_ipa("iosApp", "iosApp.ipa")
+      ipa_without_sdk = build_ipa("iosAppWithoutSDK", "iosAppWithoutSDK.ipa")
+
+      extracted = File.join(temp_dir, "extracted")
+      FileUtils.rm_rf(extracted)
+      sh("unzip -q #{ipa.shellescape} -d #{extracted.shellescape}")
+      app = File.join(extracted, "Payload/iosApp.app")
+      app_size = size_mb(app)
+
+      lines = [
+        "IPA size: #{format('%.1f', size_mb(ipa))} MB",
+        "IPA without SDK size: #{format('%.1f', size_mb(ipa_without_sdk))} MB",
+        "App size: #{format('%.1f', app_size)} MB"
+      ]
+      Dir[File.join(app, "Frameworks/*.framework")].each do |framework|
+        framework_size = size_mb(framework)
+        impact = framework_size / app_size * 100
+        lines << "#{File.basename(framework)}: #{format('%.1f', framework_size)} MB, Impact: #{format('%.1f', impact)}%"
+      end
+      FileUtils.mkdir_p(File.dirname(SIZES_FILE))
+      File.write(SIZES_FILE, "#{lines.join("\n")}\n")
+      UI.message(lines.join("\n"))
+    end
+  end
+
+  desc "Distribute iosApp/IPAs/iosApp.ipa (built by size_report) with Firebase App Distribution"
+  lane :distribute_sample_app do
+    key_file = File.join(temp_dir, "gcloud-app-distribution-service-key.json")
+    File.write(key_file, require_env("GCLOUD_SERVICE_KEY").unpack1("m"), perm: 0o600)
+    firebase_app_distribution(
+      app: require_env("SAMPLE_APP_FIREBASE_ID"),
+      ipa_path: File.join(IPA_DIR, "iosApp.ipa"),
+      groups: ENV["FIREBASE_APP_DISTRIBUTION_GROUP"],
+      service_credentials_file: key_file,
+      release_notes: last_git_commit[:message]
+    )
+  ensure
+    FileUtils.rm_f(key_file) if key_file
+  end
+
+  desc "Build the sample app for the simulator as iosApp/sample-app.zip"
+  lane :simulator_app do
+    with_signing do
+      derived_data = root_path("iosApp/simulator_build")
+      gym(
+        scheme: "iosApp",
+        project: IOS_PROJECT,
+        silent: true,
+        skip_package_ipa: true,
+        skip_archive: true,
+        export_method: "development",
+        export_options: export_options,
+        xcargs: signing_settings,
+        destination: "generic/platform=iOS Simulator",
+        configuration: "Debug",
+        derived_data_path: derived_data
+      )
+      app = root_path("iosApp/sample-app.app")
+      FileUtils.rm_rf([app, root_path("iosApp/sample-app.zip")])
+      FileUtils.mv(File.join(derived_data, "Build/Products/Debug-iphonesimulator/iosApp.app"), app)
+      Dir.chdir(root_path("iosApp")) { sh("zip -qr sample-app.zip sample-app.app") }
+    end
+  end
+end
