@@ -19,7 +19,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane assemble
 ```
 
-Assemble the SDK, the Android sample app and the instrumented test APK, and collect them in builds/
+Assemble the SDK, the Android sample app and the instrumented test APK. The test APK goes in builds/, the AARs become TwilioPasskeys(-debug).aar
 
 ### lint
 
@@ -84,14 +84,6 @@ Add a JUnit results table to the GitHub job summary. Options: title
 ```
 
 Run a Danger check on the current PR. Options: id, dangerfile (a file in dangerfiles/)
-
-### android_aars
-
-```sh
-[bundle exec] fastlane android_aars
-```
-
-Rename the AARs collected by assemble to TwilioPasskeys(-debug).aar
 
 ### xcframework
 

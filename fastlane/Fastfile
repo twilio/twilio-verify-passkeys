@@ -117,12 +117,14 @@ end
 # Checks and tests
 # ---------------------------------------------------------------------------
 
-desc "Assemble the SDK, the Android sample app and the instrumented test APK, and collect them in builds/"
+desc "Assemble the SDK, the Android sample app and the instrumented test APK. The test APK goes in builds/, " \
+     "the AARs become TwilioPasskeys(-debug).aar"
 lane :assemble do
   gradle_tasks("assembleDebug", ":shared:assembleRelease", "assembleDebugAndroidTest")
   FileUtils.mkdir_p(root_path("builds"))
   FileUtils.cp_r(Dir[root_path("shared/build/outputs/apk/androidTest/debug/*")], root_path("builds"))
-  FileUtils.cp_r(root_path("shared/build/outputs/aar"), root_path("builds"))
+  FileUtils.cp(root_path("shared/build/outputs/aar/shared-debug.aar"), root_path("TwilioPasskeys-debug.aar"))
+  FileUtils.cp(root_path("shared/build/outputs/aar/shared-release.aar"), root_path("TwilioPasskeys.aar"))
 end
 
 desc "Check the Kotlin code style with ktlint"
@@ -213,12 +215,6 @@ end
 # ---------------------------------------------------------------------------
 # SDK artifacts
 # ---------------------------------------------------------------------------
-
-desc "Rename the AARs collected by assemble to TwilioPasskeys(-debug).aar"
-lane :android_aars do
-  FileUtils.cp(root_path("builds/aar/shared-debug.aar"), root_path("TwilioPasskeys-debug.aar"))
-  FileUtils.cp(root_path("builds/aar/shared-release.aar"), root_path("TwilioPasskeys.aar"))
-end
 
 desc "Build the debug and release XCFrameworks as debugFramework.zip and releaseFramework.zip"
 lane :xcframework do

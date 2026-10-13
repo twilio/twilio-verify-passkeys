@@ -39,6 +39,11 @@ env:
       startsWith(github.ref, 'refs/heads/release/') ||
       startsWith(github.ref, 'refs/heads/hotfix/'))) }}
 
+# The jobs build from source independently, so they all start at once. The only
+# needs are for real handoffs (the instrumented tests use assemble's test APK,
+# the iOS sample app reuses the size report's IPA) and for the sample apps, which
+# shouldn't reach testers unless the tests passed. A generate-app run skips
+# everything but the sample apps.
 jobs:
   assemble:
     name: Assemble
@@ -65,10 +70,17 @@ jobs:
           name: android-builds
           path: builds/
           if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-aars
+          path: |
+            TwilioPasskeys-debug.aar
+            TwilioPasskeys.aar
+          if-no-files-found: error
 
   lint:
     name: Lint
-    needs: [assemble]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
     timeout-minutes: 20
     permissions:
@@ -90,7 +102,7 @@ jobs:
 
   detekt:
     name: Detekt
-    needs: [assemble]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
     timeout-minutes: 20
     permissions:
@@ -111,7 +123,7 @@ jobs:
 
   android-unit-tests:
     name: Android unit tests
-    needs: [lint, detekt]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
     timeout-minutes: 30
     permissions:
@@ -141,7 +153,7 @@ jobs:
 
   android-sdk-size-report:
     name: Android SDK size report
-    needs: [assemble]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
     timeout-minutes: 30
     permissions:
@@ -167,7 +179,7 @@ jobs:
 
   ios-sdk-size-report:
     name: iOS SDK size report
-    needs: [assemble]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
     timeout-minutes: 45
     permissions:
@@ -203,7 +215,7 @@ jobs:
 
   android-instrumented-tests:
     name: Android instrumented tests
-    needs: [android-unit-tests]
+    needs: [assemble]
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
     timeout-minutes: 45
     env:
@@ -223,7 +235,7 @@ jobs:
 
   ios-unit-tests:
     name: iOS unit tests
-    needs: [lint, detekt]
+    if: ${{ !inputs.generate-app }}
     runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
     timeout-minutes: 45
     steps:
@@ -241,8 +253,7 @@ jobs:
 
   ios-generate-framework:
     name: Generate iOS XCFramework
-    needs: [ios-unit-tests]
-    if: github.ref != 'refs/heads/main'
+    if: ${{ !inputs.generate-app && github.ref != 'refs/heads/main' }}
     runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
     timeout-minutes: 45
     steps:
@@ -257,34 +268,12 @@ jobs:
             releaseFramework.zip
           if-no-files-found: error
 
-  android-generate-aar:
-    name: Generate Android AARs
-    needs: [android-instrumented-tests]
-    if: github.ref != 'refs/heads/main'
-    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-x64' }}
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-build-env
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: android-builds
-          path: builds/
-      - run: bundle exec fastlane android_aars
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: android-aars
-          path: |
-            TwilioPasskeys-debug.aar
-            TwilioPasskeys.aar
-          if-no-files-found: error
-
   # The sample-app jobs also run on their own when the workflow is dispatched
   # with generate-app (the CircleCI generate_app workflow), when everything they
-  # need is skipped. Otherwise they need every upstream job to have passed.
+  # need is skipped. Otherwise they need their platform's tests to have passed.
   android-sample-app:
     name: Android sample app
-    needs: [android-instrumented-tests, ios-unit-tests]
+    needs: [android-unit-tests, android-instrumented-tests]
     if: >-
       always() && !cancelled() && (inputs.generate-app || (
         github.ref != 'refs/heads/main' &&
@@ -307,7 +296,7 @@ jobs:
 
   ios-sample-app:
     name: iOS sample app
-    needs: [ios-sdk-size-report, ios-generate-framework]
+    needs: [ios-sdk-size-report, ios-unit-tests]
     # Only distributes, so it runs where the DISTRIBUTE env does (env isn't
     # available in a job-level if).
     if: >-
@@ -351,11 +340,7 @@ jobs:
 
   ios-simulator-app:
     name: iOS simulator app
-    needs: [ios-generate-framework]
-    if: >-
-      always() && !cancelled() && (inputs.generate-app || (
-        github.ref != 'refs/heads/main' &&
-        !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'skipped')))
+    if: inputs.generate-app || github.ref != 'refs/heads/main'
     runs-on: ${{ vars.MACOS_RUNNER || 'macos-arm' }}
     timeout-minutes: 45
     env:
