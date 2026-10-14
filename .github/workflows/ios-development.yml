@@ -124,10 +124,10 @@ jobs:
       - run: ./scripts/build_ios_simulator_app.sh
       - if: always()
         run: ./scripts/certificates_setup.sh cleanup
-      # Only dev/manual runs feed the E2E tests, so skip PRs to save Sauce storage.
+      # Only runs that feed the E2E tests upload to Sauce (dev, PRs into dev/main, manual).
       # Sauce Labs iOS simulator apps are uploaded as a zipped .app.
       - id: sauce
-        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main'))
         run: ./scripts/upload_to_sauce_labs.sh iosApp/sample-app.zip sample-app.zip
       - id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -167,7 +167,7 @@ jobs:
   run-e2e-tests:
     runs-on: ubuntu-x64
     needs: generate-simulator-app
-    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main'))
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - env:
