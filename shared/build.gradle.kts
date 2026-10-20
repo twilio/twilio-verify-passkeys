@@ -221,6 +221,11 @@ android {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
+  testOptions {
+    targetSdk = libs.versions.targetSdk.get().toInt()
+    // Robolectric reads targetSdk from the merged manifest; without it, tests run on its default SDK.
+    unitTests.isIncludeAndroidResources = true
+  }
   packaging {
     resources {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
