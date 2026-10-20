@@ -28,7 +28,7 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 - Android 9 (API Level 28) or higher
 - iOS 16 or higher
 - Gradle 8.2
-- Java 17
+- Java 21
 
 ## Quickstart <a name="quickstart"></a>
 
