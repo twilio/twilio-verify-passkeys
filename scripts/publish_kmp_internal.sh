@@ -4,5 +4,8 @@
 # resulting repository name/URL to the env file for the Maven Central step.
 # Requires TMP_WORKSPACE and ENV_VARS_FILE.
 
+# pipefail so a failed upload fails here, not when parsing its output.
+set -eo pipefail
+
 ./scripts/run_gradle_task.sh sonatypeTwilioPasskeysStagingRepositoryUpload | tee gradle-task-output.log
 ./scripts/save_sonatype_repository_internal_release_url.sh gradle-task-output.log "$TMP_WORKSPACE" "$ENV_VARS_FILE"

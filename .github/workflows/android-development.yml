@@ -1,7 +1,8 @@
 name: Android Development
 
 # Development pipeline for Android: shared Kotlin/KMP checks, SDK size report,
-# instrumented tests, AAR generation, sample app and E2E tests.
+# instrumented tests, AAR generation, sample app and E2E tests. Jobs only wait
+# on the jobs whose output they use, or whose tests must pass first.
 # Every step only calls a script under scripts/. Actions are pinned to a full
 # commit SHA (enterprise policy requires it).
 
@@ -31,7 +32,7 @@ jobs:
 
   android-sdk-size-report:
     runs-on: ubuntu-x64
-    needs: android-generate-aar
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
@@ -56,6 +57,7 @@ jobs:
   android-instrumented-tests:
     runs-on: ubuntu-x64
     needs: shared-checks
+    timeout-minutes: 45
     env:
       GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
       GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
@@ -69,7 +71,8 @@ jobs:
 
   android-generate-aar:
     runs-on: ubuntu-x64
-    needs: android-instrumented-tests
+    needs: shared-checks
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -84,9 +87,12 @@ jobs:
             TwilioPasskeys-debug.aar
             TwilioPasskeys.aar
 
+  # Waits for the tests (the instrumented tests wait for shared-checks) so
+  # testers never get a build that failed them.
   generate-sample-app:
     runs-on: ubuntu-x64
-    needs: android-sdk-size-report
+    needs: android-instrumented-tests
+    timeout-minutes: 30
     env:
       SAMPLE_BACKEND_URL: ${{ secrets.SAMPLE_BACKEND_URL }}
       FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
@@ -113,8 +119,11 @@ jobs:
           java-version: '17'
       - run: ./scripts/update_gradle_properties.sh sampleBackendUrl "\"${SAMPLE_BACKEND_URL}\"" androidApp/gradle.properties
       - run: ./scripts/build_android_simulator_app.sh
-      - run: ./scripts/install_firebase_cli.sh
-      - run: ./scripts/deploy_to_firebase.sh android
+      # Testers get dev builds (and manual runs), not every PR build.
+      - if: github.event_name != 'pull_request'
+        run: ./scripts/install_firebase_cli.sh
+      - if: github.event_name != 'pull_request'
+        run: ./scripts/deploy_to_firebase.sh android
       # Only runs that feed the E2E tests upload to Sauce (dev, PRs into dev/main, manual).
       - id: sauce
         if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main'))
@@ -128,6 +137,7 @@ jobs:
   run-e2e-tests:
     runs-on: ubuntu-x64
     needs: generate-sample-app
+    timeout-minutes: 15
     if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main'))
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -141,6 +151,7 @@ jobs:
     runs-on: ubuntu-x64
     needs: run-e2e-tests
     environment: e2e-approval
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./scripts/echo.sh "Android E2E tests approved"

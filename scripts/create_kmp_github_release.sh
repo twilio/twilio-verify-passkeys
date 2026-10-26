@@ -1,11 +1,21 @@
 #!/bin/bash
 
-# Create the KMP GitHub release for the given tag, using the generated changelog.
-# Requires GITHUB_API_TOKEN.
+# Create the KMP GitHub release for <version>-kmp, using the version's
+# CHANGELOG.md entry as the notes. Skips a release that already exists.
+# Requires GH_TOKEN.
 #
-# Usage: $0 <tag_version>
+# Usage: $0 <version>
 
-TAG_VERSION="${1:?Usage: $0 <tag_version>}"
+set -euo pipefail
 
-RELEASE_NOTES=$(ruby scripts/versioning/generate_changelog.rb false)
-ruby scripts/versioning/create_github_release.rb twilio twilio-verify-passkeys "$GITHUB_API_TOKEN" "$TAG_VERSION" "$TAG_VERSION" "${RELEASE_NOTES}"
+VERSION="${1:?Usage: $0 <version>}"
+TAG="$VERSION-kmp"
+
+if gh release view "$TAG" > /dev/null 2>&1; then
+  echo "The $TAG release already exists"
+  exit 0
+fi
+
+NOTES_FILE=$(mktemp)
+./scripts/release/changelog_entry.sh "$VERSION" > "$NOTES_FILE"
+gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE" --verify-tag
