@@ -1,0 +1,52 @@
+name: Android Release Dry Run
+
+# Checks the KMP release secrets without releasing anything: uploads, signs and
+# closes the SDK in a Sonatype staging repository under a throwaway pre-release
+# version, then stops. Drop the staging repository in the Central Portal
+# afterwards. Run it before the first release, or after rotating the signing key
+# or Sonatype token. Every step only calls a script under scripts/. Actions are
+# pinned to a full commit SHA (enterprise policy requires it).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Throwaway pre-release version to stage, e.g. 0.3.1-dryrun1
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}
+
+permissions:
+  contents: read
+
+env:
+  # Selects Xcode 26.6 on the macOS runner.
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  # Kotlin/Native publications need macOS.
+  sonatype-dry-run:
+    runs-on: macos-arm
+    environment: production
+    timeout-minutes: 60
+    env:
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_SECRET_KEY_RING_FILE: ${{ github.workspace }}/secring.gpg
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      SONATYPE_STAGING_PROFILE_ID: ${{ secrets.SONATYPE_STAGING_PROFILE_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: ./scripts/setup_android_sdk.sh
+      - run: ./scripts/generate_signing_keyring.sh
+      - env:
+          VERSION: ${{ inputs.version }}
+        run: ./scripts/release/sonatype_dry_run.sh "$VERSION"
