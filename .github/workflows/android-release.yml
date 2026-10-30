@@ -1,14 +1,25 @@
 name: Android Release
 
-# Release pipeline for the KMP SDK, triggered by a release tag.
-# Replaces the CircleCI release-kmp continuation. Every step only calls a script
-# under scripts/. Actions are pinned to a full commit SHA (enterprise policy
-# requires it).
+# Stage 2 of the KMP release. When a release PR from Android Prepare Release
+# merges into main, publishes the kmpSdkVersionName in gradle.properties if it
+# isn't released yet: tags <version>-kmp, publishes to Maven Central and creates
+# the GitHub release. Each step checks whether it already happened, so a failed
+# run can be re-run. Every step only calls a script under scripts/. Actions are
+# pinned to a full commit SHA (enterprise policy requires it).
 
 on:
   push:
-    tags:
-      - 'release-passkeys-android-*.*.*'
+    branches:
+      - main
+    paths:
+      - gradle.properties
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+
+permissions:
+  contents: read
 
 env:
   TMP_WORKSPACE: tmp/workspace
@@ -17,27 +28,49 @@ env:
   DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
 
 jobs:
-  pre-release-check:
+  release-status:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-x64
+    timeout-minutes: 10
     outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.status.outputs.version }}
+      tag: ${{ steps.status.outputs.tag }}
+      tagged: ${{ steps.status.outputs.tagged }}
+      on_central: ${{ steps.status.outputs.on_central }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
         with:
           ruby-version: '3.3'
-      - id: check
-        run: ./scripts/release/pre_release_check.sh kmp
+      - id: status
+        run: ./scripts/release/kmp_release_status.sh
 
+  tag:
+    runs-on: ubuntu-x64
+    needs: release-status
+    if: needs.release-status.outputs.tagged == 'false'
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          TAG: ${{ needs.release-status.outputs.tag }}
+        run: ./scripts/release/create_tag.sh "$TAG"
+
+  # Kotlin/Native publications need macOS.
   publish-internal:
     runs-on: macos-arm
-    needs: pre-release-check
-    if: needs.pre-release-check.outputs.should_release == 'true'
+    needs: [release-status, tag]
+    if: >-
+      always() && needs.release-status.result == 'success' &&
+      (needs.tag.result == 'success' || needs.tag.result == 'skipped') &&
+      needs.release-status.outputs.on_central == 'false'
+    environment: production
+    timeout-minutes: 60
     env:
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-      SIGNING_SECRET_KEY_RING_FILE: ${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}
+      SIGNING_SECRET_KEY_RING_FILE: ${{ github.workspace }}/secring.gpg
       SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -45,8 +78,10 @@ jobs:
       SONATYPE_STAGING_PROFILE_ID: ${{ secrets.SONATYPE_STAGING_PROFILE_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
-          fetch-depth: 0
+          distribution: temurin
+          java-version: '17'
       - run: ./scripts/setup_android_sdk.sh
       - run: ./scripts/generate_signing_keyring.sh
       - run: ./scripts/publish_kmp_internal.sh
@@ -54,28 +89,19 @@ jobs:
         with:
           name: kmp-release-env
           path: ${{ env.TMP_WORKSPACE }}/${{ env.ENV_VARS_FILE }}
+          if-no-files-found: error
 
   publish-maven:
     runs-on: ubuntu-x64
     needs: publish-internal
-    permissions:
-      contents: write
+    environment: production
+    timeout-minutes: 30
     env:
-      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-      SIGNING_SECRET_KEY_RING_FILE: ${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}
-      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
       OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
       OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       SONATYPE_STAGING_PROFILE_ID: ${{ secrets.SONATYPE_STAGING_PROFILE_ID }}
-      GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
-        with:
-          ruby-version: '3.3'
       - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
@@ -85,6 +111,23 @@ jobs:
           name: kmp-release-env
           path: ${{ env.TMP_WORKSPACE }}
       - run: ./scripts/publish_kmp_to_maven_central.sh
-      - run: ./scripts/create_kmp_github_release.sh "$RELEASE_REF"
-        env:
-          RELEASE_REF: ${{ github.ref_name }}
+
+  # Also runs when the version was already on Maven Central, so a re-run
+  # creates a GitHub release that failed the first time.
+  github-release:
+    runs-on: ubuntu-x64
+    needs: [release-status, publish-maven]
+    if: >-
+      always() && needs.release-status.result == 'success' &&
+      (needs.publish-maven.result == 'success' ||
+        (needs.publish-maven.result == 'skipped' && needs.release-status.outputs.on_central == 'true'))
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          VERSION: ${{ needs.release-status.outputs.version }}
+        run: ./scripts/create_kmp_github_release.sh "$VERSION"
