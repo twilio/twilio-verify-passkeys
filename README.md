@@ -27,21 +27,46 @@ Twilio Passkeys SDK enables developers to easily add Passkeys into their existin
 - [IntelliJ IDEA](https://www.jetbrains.com/idea/) or [Android Studio](https://developer.android.com/studio) for shared code development.
 - Android 9 (API Level 28) or higher
 - iOS 16 or higher
-- Gradle 8.2
+- Gradle 8.9 (the version the Gradle wrapper uses)
 - Java 17
 
 ## Quickstart <a name="quickstart"></a>
 
 ### Initialize the SDK
 #### Android
-1. Add the implementation app build gradle:
-  ```
+
+##### Before you start
+
+Android only lets your app use passkeys for a domain that has approved your app. Do these steps before you call the SDK. If you skip them, `create` and `authenticate` fail with a [`DomException`](#troubleshooting).
+
+1. **Set up Digital Asset Links.** Your relying party (RP) domain must serve `https://<your-domain>/.well-known/assetlinks.json`. That file must list your app's package name and the SHA-256 fingerprint of every certificate that signs it (debug, release, and Play App Signing). See [Add support for Digital Asset Links](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal).
+   ```json
+   [{
+     "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
+     "target": {
+       "namespace": "android_app",
+       "package_name": "com.example.yourapp",
+       "sha256_cert_fingerprints": ["AB:CD:...:EF"]
+     }
+   }]
+   ```
+   To get the fingerprint of the keystores Gradle uses, run `./gradlew signingReport`.
+2. **Allow your app's origin on your backend.** Android sends `android:apk-key-hash:<hash>` as the origin, not your web URL. Your backend must accept it when it verifies the response. See [Verify the origin](https://developer.android.com/identity/sign-in/credential-manager#verify-origin).
+3. **Use a device that supports passkeys.** It needs Google Play services, a signed-in Google account, and a screen lock. Android 9 to 13 get passkey support through Google Play services; the SDK already depends on `androidx.credentials:credentials-play-services-auth`, so you don't add it yourself.
+
+##### Add the SDK
+
+1. Make sure `mavenCentral()` is in your repositories, then add the dependency to your app module's `build.gradle.kts`:
+  ```kotlin
     implementation("com.twilio:twilio-verify-passkeys-android:$sdkVersionName")
   ```
+  The latest version is on the [releases page](https://github.com/twilio/twilio-verify-passkeys/releases) (tags ending in `-kmp`).
 2. Sync the project.
-3. Use the SDK by creating an instance of TwilioPasskey:
-  ```
-    val twilioPasskey = TwilioPasskey(context)
+3. Create a `TwilioPasskeys` instance. Create it once and reuse it, for example from your dependency injection graph:
+  ```kotlin
+    import com.twilio.passkeys.TwilioPasskeys
+
+    val twilioPasskeys = TwilioPasskeys(context)
   ```
 
 #### iOS
@@ -67,34 +92,59 @@ let twilioPasskey = TwilioPasskey()
 2. Sync the project.
 3. To use the passkeys SDK in KMP there are separate initialization for iOS and Android as the SDK needs the Android context to work:
    - iOS
-     ```
-       val twilioPasskey = TwilioPasskey()
+     ```kotlin
+       val twilioPasskeys = TwilioPasskeys()
      ```
    - Android
-     ```
-        val twilioPasskey = TwilioPasskey(context)
+     ```kotlin
+        val twilioPasskeys = TwilioPasskeys(context)
       ```
+
+### How it works
+
+Both flows have the same three steps:
+
+1. Your app asks **your backend** to start a registration or authentication. Your backend gets a challenge from [Twilio Verify Passkeys](https://www.twilio.com/docs/verify/passkeys) and returns it as JSON.
+2. Your app passes that JSON to the SDK. The SDK shows the system passkey prompt and returns the signed response.
+3. Your app sends the response to **your backend**, which verifies it with Twilio Verify.
+
+The SDK never talks to Twilio itself. It only runs step 2 on the device.
 
 ### Create registration
 
-Use the `TwilioPasskey` instance to create a registration by calling the `create(String, AppContext)` function.
+Use the `TwilioPasskeys` instance to create a registration by calling the `create(String, AppContext)` function.
 
 The first param is a `String` representation of a create passkey request, check how to [create passkey payload](#create-passkey-payload) (`createPayload`).
 
-The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS.
+The second param is an instance of a `com.twilio.passkeys.AppContext`, it is created by passing the current `Activity` instance in Android or the `UIWindow` instance in iOS. On Android, pass the `Activity` that is showing; the system prompt can't be shown from an application context.
 
 You can also call the `create(CreatePasskeyRequest, AppContext)` function, where `CreatePasskeyRequest` is a wrapper object of a [create passkey payload](#create-passkey-payload) schema.
 
 **Android**
-```
-val createPasskeyResult = twilioPasskey.create(createPasskeyRequest, AppContext(activity))
-when(createPasskeyResult) {
-  is CreatePasskeyResult.Success -> {
-    // verify the createPasskeyResult.createPasskeyResponse against your backend and finish sign up
-  }
-  
-  is  CreatePasskeyResult.Error -> {
-    // handle error
+
+`create` and `authenticate` are `suspend` functions, so call them from a coroutine (for example `lifecycleScope` or `viewModelScope`). They don't throw; every failure comes back as an `Error` result holding a [`TwilioException`](#troubleshooting).
+
+```kotlin
+lifecycleScope.launch {
+  // createPayload is the JSON your backend returned when starting the registration
+  when (val result = twilioPasskeys.create(createPayload, AppContext(activity))) {
+    is CreatePasskeyResult.Success -> {
+      val response = result.createPasskeyResponse
+      // Send these to your backend to verify the registration and finish sign up
+      myBackend.verifyRegistration(
+        id = response.id,
+        rawId = response.rawId,
+        type = response.type,
+        clientDataJSON = response.clientDataJSON,
+        attestationObject = response.attestationObject,
+        transports = response.transports,
+      )
+    }
+
+    is CreatePasskeyResult.Error -> {
+      // result.error is a TwilioException; result.error.code identifies the failure
+      handleError(result.error)
+    }
   }
 }
 ```
@@ -112,7 +162,7 @@ if let success = response as? CreatePasskeyResult.Success {
 
 ### Authenticate a user
 
-Use the `TwilioPasskey` instance to authenticate a user by calling the `authenticate(String, AppContext)` function.
+Use the `TwilioPasskeys` instance to authenticate a user by calling the `authenticate(String, AppContext)` function.
 
 The first param is a `String` representation of an authentication request, it follows the schema of an [authenticate passkey payload](#authenticate-passkey-payload) (`authenticatePayload`).
 
@@ -122,15 +172,27 @@ You can also call the `authenticate(AuthenticatePasskeyRequest, AppContext)` fun
 
 **Android**
 
-```
-val authenticatePasskeyResult = twilioPasskey.authenticate(authenticatePasskeyRequest, AppContext(activity))
-when(authenticatePasskeyResult) {
-  is AuthenticatePasskeyResult.Success -> {
-    // verify the authenticatePasskeyResult.authenticatePasskeyResponse against your backend
-  }
-  
-  is AuthenticatePasskeyResult.Error -> {
-    // handle error 
+```kotlin
+lifecycleScope.launch {
+  // authenticatePayload is the JSON your backend returned when starting the authentication
+  when (val result = twilioPasskeys.authenticate(authenticatePayload, AppContext(activity))) {
+    is AuthenticatePasskeyResult.Success -> {
+      val response = result.authenticatePasskeyResponse
+      // Send these to your backend to verify the assertion and finish sign in
+      myBackend.verifyAuthentication(
+        id = response.id,
+        rawId = response.rawId,
+        clientDataJSON = response.clientDataJSON,
+        authenticatorData = response.authenticatorData,
+        signature = response.signature,
+        userHandle = response.userHandle,
+      )
+    }
+
+    is AuthenticatePasskeyResult.Error -> {
+      // NoCredentialException (code 1005) means there's no passkey for this RP on the device
+      handleError(result.error)
+    }
   }
 }
 ```
@@ -291,37 +353,26 @@ The authenticate payload for authenticating a user is a JSON with the schema:
 2. **Open the project**
    - Use **IntelliJ IDEA** or **Android Studio**.
 3. **Configure the backend URL**
-   - Update the `BaseUrl` in [`gradle.properties`](https://github.com/twilio/twilio-verify-passkeys/blob/main/androidApp/gradle.properties#L17).
+   - Set `sampleBackendUrl` in [`androidApp/gradle.properties`](androidApp/gradle.properties) to the URL of your backend (see below), keeping the quotes and trailing slash, e.g. `sampleBackendUrl="https://passkeys-backend-1234.twil.io/"`.
 4. **Build and run**
-   - Select the `androidApp` module and run the app.
+   - Select the `androidApp` run configuration and run it on a device prepared as described [below](#preparing-device-android).
 
 #### Sample backend configuration for Android sample app
 
-You can use the [sample backend](https://github.com/twilio-labs/function-templates/tree/main/passkeys-backend) as a ready-to-deploy Function Template for testing the sample app.
+You can use the [sample backend](https://github.com/twilio-labs/function-templates/tree/main/passkeys-backend) as a ready-to-deploy Function Template for testing the sample app. To set up passkeys on the Verify side, follow the [Verify Passkeys guide](https://www.twilio.com/docs/verify/passkeys).
 
-In order to create passkeys you need to create the association for the sample app to communicate to the RP.
-1. [Add support for digital asset links](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal). You can generate a sha256 by running `./gradlew signingreport` and copying the sha256 of the keystore used to build the app. 
-2. Replace [value](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L20) with sha256. 
-3. To sync passkeys with Web browsers you should replace https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L9 with the website url e.g. https://passkeys.twil.io Check Android association 
-4. Add the [origin](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/functions/registration/start.js#L38), following the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin).
+The sample backend's domain has to approve the sample app (see [Before you start](#before-you-start)):
+1. Run `./gradlew signingReport` and copy the SHA-256 fingerprint of the keystore used to build the app.
+2. Replace the [fingerprint](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L20) in the backend's `assetlinks.json` with it.
+3. To share passkeys with a website, replace the [site entry](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/assets/.well-know/assetlinks.json#L9) with the website URL, e.g. `https://passkeys.twil.io`.
+4. Add the app's [origin](https://github.com/twilio-labs/function-templates/blob/main/passkeys-backend/functions/registration/start.js#L38) to the backend, following [Verify the origin](https://developer.android.com/identity/sign-in/credential-manager#verify-origin).
 
-##### Preparing device for correct passkey testing
+##### Preparing device for correct passkey testing <a name="preparing-device-android"></a>
 
 For accurate passkey testing, ensure the following on your emulator or physical device:
 - **Google Account**: Sign in with a Google account.
-- **Google Play Services**: Confirm that Google Play services are enabled.
+- **Google Play Services**: Confirm that Google Play services are enabled. On an emulator, use a system image that includes Google Play.
 - **Device Security**: Set up a screen lock with security measures and enable biometric authentication (e.g., fingerprint or face recognition).
-
-To enable passkeys on the backend you can follow the [detailed guide](https://www.twilio.com/docs/verify/passkeys). Then you should also:
-
-1. **Verify Digital Asset Links support**
-  - Ensure you have [added support for digital asset links](https://developer.android.com/training/sign-in/passkeys#add-support-dal) and your backend includes an entry with the **SHA-256** signature of your app.
-  - Generate the **SHA-256** fingerprint using:
-    ```bash
-    ./gradlew signingReport
-    ```
-2. **Add the origin**
-  - If not already configured, follow the [official documentation](https://developer.android.com/training/sign-in/passkeys#verify-origin) to add the origin.
 
 | Passkey Creation | Passkey Authentication |
 |------------------|-----------------------|
@@ -414,9 +465,12 @@ Handles errors related to WebAuthn DOM configurations for passkeys.
 
 #### **Troubleshooting Steps:**
 - **Android:**
-  - Verify that the `/.well-known/assetlinks.json` file is correctly set up on your server.
+  - Verify that the `/.well-known/assetlinks.json` file is correctly set up on your server (see [Before you start](#before-you-start)).
   - Ensure the file has the proper syntax and contains the correct SHA256 certificate fingerprints.
-  - Reference the **Android Guide** for setup details.
+  - Check that the fingerprint matches the build you're running. Debug builds, release builds and builds re-signed by Play App Signing each have their own certificate, so each needs an entry.
+  - Check that `rp.id` (create) and `rpId` (authenticate) are the domain serving `assetlinks.json`, without `https://` or a path.
+  - To check the file, use Google's [Statement List Generator and Tester](https://developers.google.com/digital-asset-links/tools/generator).
+  - Reference the [Android guide](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal) for setup details.
 
 - **iOS:**
   - Confirm that the `/.well-known/apple-app-site-association` (AASA) file is correctly configured.
@@ -493,7 +547,8 @@ Thrown when the JSON payload is invalid.
 Represents an unspecified error.
 
 #### **Troubleshooting Steps:**
-- Check the **error message and stack trace** for additional context.
+- Check the **error message and stack trace** for additional context. The original platform error is in `cause`.
+- **Android:** this is also returned when the device has no credential provider set up (`CreateCredentialProviderConfigurationException` / `GetCredentialProviderConfigurationException`) or no provider can save the passkey (`CreateCredentialNoCreateOptionException`). Update Google Play services and check that a passkey provider (such as Google Password Manager) is enabled in the device settings.
 - Ensure the **SDK is up-to-date**.
 - If the issue persists:
   - Enable **detailed logging**.
