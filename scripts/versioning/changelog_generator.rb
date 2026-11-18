@@ -16,13 +16,14 @@ module ChangelogGenerator
            else nil
            end
 
-    platforms = commit[/(?<=\[)(.*?)(?=\])/]&.split(", ")&.map do |p|
+    prefix = commit.split(':', 2).first
+    platforms = prefix[/\[(.*?)\]/, 1]&.split(",")&.map do |p|
       case p.strip.downcase
       when Platform[:ANDROID][:platform_name].downcase then Platform[:ANDROID]
       when Platform[:IOS][:platform_name].downcase then Platform[:IOS]
-      else nil
       end
-    end || [Platform[:ANDROID], Platform[:IOS]]
+    end&.compact
+    platforms = [Platform[:ANDROID], Platform[:IOS]] if platforms.nil? || platforms.empty?
 
     return nil if type.nil?
     return [type, platforms]
