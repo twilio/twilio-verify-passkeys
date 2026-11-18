@@ -106,6 +106,9 @@ nexusPublishing {
       username = getPropertyValue("OSSRH_USERNAME")
       password = getPropertyValue("OSSRH_PASSWORD")
       stagingProfileId = getPropertyValue("SONATYPE_STAGING_PROFILE_ID")
+      // OSSRH was retired; the Central Portal's OSSRH-compatible staging API replaces it.
+      nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+      snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
     }
   }
 }

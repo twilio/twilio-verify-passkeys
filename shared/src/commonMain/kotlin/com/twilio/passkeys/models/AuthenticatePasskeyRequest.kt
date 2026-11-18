@@ -24,7 +24,10 @@ import kotlinx.serialization.Serializable
  * @property publicKey The public key associated with the authentication request.
  */
 @Serializable
-data class AuthenticatePasskeyRequest(val publicKey: AuthenticatePasskeyRequestPublicKey)
+data class AuthenticatePasskeyRequest(
+  val publicKey: AuthenticatePasskeyRequestPublicKey,
+  val preferImmediatelyAvailableCredentials: Boolean = true,
+)
 
 /**
  * Represents the public key information used for authenticating a passkey.

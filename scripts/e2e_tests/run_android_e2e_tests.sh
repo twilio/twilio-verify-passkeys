@@ -2,7 +2,7 @@
 
 # Bash script to trigger Android internal SDK E2E tests
 
-# Usage: ./run_android_e2e_tests.sh <ANDROID_APP_URL> <WORKFLOW_ID> <WAITING_JOB_NAME>
+# Usage: ./run_android_e2e_tests.sh <ANDROID_APP_URL> <WORKFLOW_ID> <WAITING_JOB_NAME> [SAUCE_APP_ID]
 
 set -euo pipefail
 
@@ -10,8 +10,10 @@ set -euo pipefail
 ANDROID_APP_URL=$1
 WORKFLOW_ID=$2
 WAITING_JOB_NAME=$3
+SAUCE_APP_ID=${4:-}
 
 echo "trigger-android"
 echo "workflow-id: $WORKFLOW_ID"
 echo "waiting-job-name: $WAITING_JOB_NAME"
 echo "android_app_url: $ANDROID_APP_URL"
+echo "sauce_app_id: $SAUCE_APP_ID"

@@ -1,0 +1,70 @@
+name: iOS Release
+
+# Release pipeline for the iOS XCFramework, triggered by a release tag.
+# Replaces the CircleCI release-ios continuation. Every step only calls a script
+# under scripts/. Actions are pinned to a full commit SHA (enterprise policy
+# requires it).
+
+on:
+  push:
+    tags:
+      - 'release-passkeys-ios-*.*.*'
+
+env:
+  # Selects Xcode 26.6 on the macOS generate-framework job (ignored elsewhere).
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  pre-release-check:
+    runs-on: ubuntu-x64
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
+        with:
+          ruby-version: '3.3'
+      - id: check
+        run: ./scripts/release/pre_release_check.sh ios
+
+  generate-framework:
+    runs-on: macos-arm
+    needs: pre-release-check
+    if: needs.pre-release-check.outputs.should_release == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+      - run: ./scripts/run_gradle_task.sh shared:assembleTwilioPasskeysAuthenticationXCFramework
+      - run: ./scripts/compress_xcframework.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-release-framework
+          path: releaseFramework.zip
+
+  publish-ios:
+    runs-on: ubuntu-x64
+    needs: generate-framework
+    env:
+      GITHUB_USER_EMAIL: ${{ secrets.GITHUB_USER_EMAIL }}
+      GITHUB_USER_NAME: ${{ secrets.GITHUB_USER_NAME }}
+      GITHUB_API_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
+        with:
+          ruby-version: '3.3'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-release-framework
+      - run: ./scripts/setup_git_ssh.sh
+      - run: ./scripts/release_ios_sdk.sh

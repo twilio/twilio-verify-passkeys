@@ -1,0 +1,53 @@
+name: Android Prepare Release
+
+# Stage 1 of the KMP release. When dev is merged into main, works out whether
+# the commits since the last -kmp tag need a release, bumps kmpSdkVersionName,
+# adds the CHANGELOG.md entry and opens a release/<version>-kmp PR into main.
+# Merging that PR starts Android Release. main can't be pushed to directly, so
+# the release goes through a PR. Every step only calls a script under scripts/.
+# Actions are pinned to a full commit SHA (enterprise policy requires it).
+
+on:
+  # A release PR only touches these files, so merging it doesn't start another one.
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - gradle.properties
+      - CHANGELOG.md
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-x64
+    # The production approval is the go/no-go for cutting a release.
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the version and changelog come from the commits since the last tag
+          persist-credentials: false
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # enterprise-allowlisted
+        with:
+          ruby-version: '3.3'
+      - env:
+          GITHUB_USER_NAME: ${{ secrets.GH_USER_NAME }}
+          GITHUB_USER_EMAIL: ${{ secrets.GH_USER_EMAIL }}
+        run: ./scripts/release/set_git_author.sh
+      - id: release
+        run: ./scripts/release/prepare_kmp_release.sh
+      # Opened with the bot's token: PRs opened with GITHUB_TOKEN don't get CI.
+      - if: steps.release.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+          TITLE: ${{ steps.release.outputs.title }}
+        run: ./scripts/release/open_release_pr.sh "$BRANCH" "$TITLE" build/release-notes.md

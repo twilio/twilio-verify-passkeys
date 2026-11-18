@@ -22,6 +22,7 @@ interface IAuthorizationControllerWrapper {
 
   fun authenticatePasskey(
     authController: ASAuthorizationController,
+    preferImmediatelyAvailableCredentials: Boolean,
     completion: (AuthenticatePasskeyResult) -> Unit,
   )
 }
@@ -49,12 +50,16 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
 
   override fun authenticatePasskey(
     authController: ASAuthorizationController,
+    preferImmediatelyAvailableCredentials: Boolean,
     completion: (AuthenticatePasskeyResult) -> Unit,
   ) {
     this.authenticatePasskeyCompletion = completion
     this.authController = authController
     this.authController.delegate = authenticatePasskeyDelegate
-    this.authController.performRequests()
+
+    val options =
+      if (preferImmediatelyAvailableCredentials) PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS else NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
+    this.authController.performRequestsWithOptions(options)
   }
 
   private val createPasskeyDelegate =
@@ -158,5 +163,10 @@ class AuthorizationControllerWrapper : IAuthorizationControllerWrapper {
 
   private fun mapToTwilioException(error: NSError): TwilioException {
     return error.toTwilioException()
+  }
+
+  companion object {
+    const val PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 1UL
+    const val NOT_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS: ULong = 0UL
   }
 }
